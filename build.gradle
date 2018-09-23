@@ -1,0 +1,36 @@
+buildscript {
+    ext.kotlin_version = '1.2.70'
+
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    group 'io.noisyfox.foxvm'
+    version '1.0-SNAPSHOT'
+
+    buildscript {
+        repositories {
+            jcenter()
+            mavenCentral()
+        }
+    }
+
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
