@@ -3,7 +3,3 @@
 //
 
 #include "vm_memory.h"
-
-void test(){
-
-}
