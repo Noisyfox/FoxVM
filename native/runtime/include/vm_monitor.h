@@ -6,6 +6,7 @@
 #define FOXVM_VM_MONITOR_H
 
 #include "vm_base.h"
+#include "vm_thread.h"
 
 JAVA_VOID monitorCreate(VMThreadContext *ctx, JAVA_OBJECT obj);
 

@@ -71,14 +71,4 @@ typedef struct {
     VMStackSlotData data;
 } VMStackSlot;
 
-typedef struct {
-    JAVA_LONG threadId;
-    JAVA_OBJECT currentThread;
-
-//    VMStackSlot* stack;
-//    int sta
-
-    JAVA_OBJECT exception;
-} VMThreadContext;
-
 #endif //FOXVM_VM_BASE_H

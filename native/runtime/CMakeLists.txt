@@ -5,9 +5,24 @@ find_package(Threads REQUIRED)
 
 set(HAVE_PTHREADS ${CMAKE_USE_PTHREADS_INIT})
 
-include ( configure )
+include(configure)
 
-configure_file (${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/config.h )
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
+
+set(SOURCE_FILES_RUNTIME
+        vm_base.c
+#        vm_monitor.c
+        vm_exception.c
+        vm_memory.c)
+
+# Set thread implementation
+if (HAVE_PTHREADS AND HAVE_SEMAPHORE_H)
+    list(APPEND SOURCE_FILES_RUNTIME thread/vm_thread_posix.c)
+elseif (WIN32 AND NOT CYGWIN)
+    list(APPEND SOURCE_FILES_RUNTIME thread/vm_thread_win32.c)
+else ()
+    message(FATAL_ERROR "Not supported on this platform.")
+endif ()
 
 add_c_library(
         foxvm_runtime
@@ -16,10 +31,7 @@ add_c_library(
         VERSION 0.0.1
 
         SOURCES
-        vm_base.c
-        vm_monitor.c
-        vm_exception.c
-        vm_memory.c
+        ${SOURCE_FILES_RUNTIME}
 
         vm_main.c
 

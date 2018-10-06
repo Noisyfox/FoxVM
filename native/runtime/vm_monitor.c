@@ -4,6 +4,7 @@
 
 #include "vm_monitor.h"
 #include "c11/threads.h"
+#include <string.h>
 
 typedef struct {
     mtx_t mutex;

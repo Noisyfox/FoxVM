@@ -3,6 +3,7 @@
 //
 
 #include "vm_base.h"
+#include "vm_thread.h"
 #include "vm_exception.h"
 #include <setjmp.h>
 
