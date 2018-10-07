@@ -11,12 +11,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DI
 
 set(SOURCE_FILES_RUNTIME
         vm_base.c
-#        vm_monitor.c
         vm_exception.c
         vm_memory.c)
 
 # Set thread implementation
-if (HAVE_PTHREADS AND HAVE_SEMAPHORE_H)
+if (HAVE_PTHREADS)
     list(APPEND SOURCE_FILES_RUNTIME thread/vm_thread_posix.c)
 elseif (WIN32 AND NOT CYGWIN)
     list(APPEND SOURCE_FILES_RUNTIME thread/vm_thread_win32.c)

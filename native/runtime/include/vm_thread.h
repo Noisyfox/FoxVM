@@ -20,10 +20,11 @@ typedef struct {
 } VMThreadContext;
 
 enum {
-    thrd_success = 0, // succeeded
-    thrd_timeout,     // timeout
-    thrd_error,       // failed
-    thrd_interrupt    // been interrupted
+    thrd_success = 0,   // succeeded
+    thrd_timeout,       // timeout
+    thrd_error,         // failed
+    thrd_interrupt,     // been interrupted
+    thrd_lock           // lock not owned by current thread
 };
 
 
@@ -55,8 +56,8 @@ int monitor_exit(VMThreadContext *ctx, JAVA_OBJECT obj);
 
 int monitor_wait(VMThreadContext *ctx, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_INT nanos);
 
-JAVA_VOID monitor_notify(VMThreadContext *ctx, JAVA_OBJECT obj);
+int monitor_notify(VMThreadContext *ctx, JAVA_OBJECT obj);
 
-JAVA_VOID monitor_notify_all(VMThreadContext *ctx, JAVA_OBJECT obj);
+int monitor_notify_all(VMThreadContext *ctx, JAVA_OBJECT obj);
 
 #endif //FOXVM_VM_THREAD_H
