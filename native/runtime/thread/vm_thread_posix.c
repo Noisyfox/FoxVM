@@ -65,7 +65,7 @@ struct _ObjectMonitor {
     pthread_cond_t blockingCondition;
     BlockingListNode blockingListHeader;
     volatile JAVA_LONG ownerThreadId;
-    volatile int reentranceCounter;
+    int reentranceCounter;
 };
 
 struct _NativeThreadContext {
@@ -73,15 +73,110 @@ struct _NativeThreadContext {
 
     pthread_mutex_t masterMutex;
     pthread_cond_t blockingCondition;
-    volatile JAVA_BOOLEAN interrupted;
+    JAVA_BOOLEAN interrupted;
+
+    pthread_t nativeThreadId;
+    volatile VMThreadState threadState;
 };
 
 int thread_init(VMThreadContext *ctx) {
+    NativeThreadContext *nativeContext = malloc(sizeof(NativeThreadContext));
+    // TODO: assert nativeContext != NULL
+    memset(nativeContext, 0, sizeof(NativeThreadContext));
+    nativeContext->waitingListNode.thread = nativeContext;
+    nativeContext->interrupted = JAVA_FALSE;
+    nativeContext->threadState = thrd_stat_new;
+    // TODO: check return value
+    pthread_mutex_init(&nativeContext->masterMutex, NULL);
+    pthread_cond_init(&nativeContext->blockingCondition, NULL);
+
+    ctx->nativeContext = nativeContext;
+
     return thrd_success;
 }
 
 JAVA_VOID thread_free(VMThreadContext *ctx) {
+    NativeThreadContext *nativeThreadContext = ctx->nativeContext;
+    if (nativeThreadContext != NULL) {
+        ctx->nativeContext = NULL;
 
+        // TODO: make sure it's not blocked
+
+        pthread_cond_destroy(&nativeThreadContext->blockingCondition);
+        pthread_mutex_destroy(&nativeThreadContext->masterMutex);
+
+        free(nativeThreadContext);
+    }
+}
+
+static void thread_cleanup(void *param) {
+    VMThreadContext *ctx = param;
+    NativeThreadContext *nativeContext = ctx->nativeContext;
+
+    pthread_mutex_lock(&nativeContext->masterMutex);
+    {
+        // Set the state to terminated
+        nativeContext->threadState = thrd_stat_terminated;
+
+        // Send signal
+        pthread_cond_signal(&nativeContext->blockingCondition);
+
+        pthread_mutex_unlock(&nativeContext->masterMutex);
+    }
+}
+
+static void *thread_bootstrap_enter(void *param) {
+    // Setup unexpected exit handler for clean up
+    pthread_cleanup_push(thread_cleanup, param) ;
+            VMThreadContext *ctx = param;
+            NativeThreadContext *nativeContext = ctx->nativeContext;
+
+            pthread_mutex_lock(&nativeContext->masterMutex);
+            {
+                // Update thread state
+                nativeContext->threadState = thrd_stat_runnable;
+
+                // Notify the thread bootstrap success
+                pthread_cond_signal(&nativeContext->blockingCondition);
+
+                pthread_mutex_unlock(&nativeContext->masterMutex);
+            }
+
+            // Run the main entrance
+            ctx->entrance(ctx);
+
+    pthread_cleanup_pop(1); // Clean up
+    return NULL;
+}
+
+int thread_start(VMThreadContext *ctx) {
+    // TODO: check if VMThreadEntrance is set
+
+    NativeThreadContext *nativeContext = ctx->nativeContext;
+    int ret;
+    pthread_mutex_lock(&nativeContext->masterMutex);
+    {
+        if (nativeContext->threadState != thrd_stat_new) {
+            ret = thrd_started;
+        } else {
+            // Create & start native thread TODO: use detached thread since java thread doesn't require join()
+            pthread_create(&nativeContext->nativeThreadId, NULL, thread_bootstrap_enter,
+                           ctx); // TODO: check return value
+            // Wait until the thread is running
+            pthread_cond_wait(&nativeContext->blockingCondition,
+                              &nativeContext->masterMutex); // TODO: check return value
+            // Check if truly running
+            if (nativeContext->threadState == thrd_stat_terminated) {
+                // Something wrong during thread bootstrap
+                ret = thrd_error;
+            } else {
+                // All good
+                ret = thrd_success;
+            }
+        }
+        pthread_mutex_unlock(&nativeContext->masterMutex);
+    }
+    return ret;
 }
 
 int thread_sleep(VMThreadContext *ctx, JAVA_LONG timeout, JAVA_INT nanos) {
@@ -122,8 +217,21 @@ JAVA_VOID thread_interrupt(VMThreadContext *current, VMThreadContext *target) {
     NativeThreadContext *nativeContext = target->nativeContext;
     pthread_mutex_lock(&nativeContext->masterMutex);
     {
-        nativeContext->interrupted = JAVA_TRUE;
-        pthread_cond_signal(&nativeContext->blockingCondition); // Unblocking the target thread
+        // Check if the thread is alive first
+        switch (nativeContext->threadState) {
+            case thrd_stat_runnable:
+            case thrd_stat_blocked:
+            case thrd_stat_waiting:
+            case thrd_stat_timed_waiting:
+                nativeContext->interrupted = JAVA_TRUE;
+                pthread_cond_signal(&nativeContext->blockingCondition); // Unblocking the target thread
+                break;
+            case thrd_stat_new:
+            case thrd_stat_terminated:
+            default:
+                // No effect
+                break;
+        }
 
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }

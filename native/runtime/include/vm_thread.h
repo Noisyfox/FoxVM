@@ -7,7 +7,13 @@
 
 #include "vm_base.h"
 
-typedef struct {
+typedef struct _VMThreadContext VMThreadContext;
+
+typedef JAVA_VOID (*VMThreadEntrance)(VMThreadContext *);
+
+struct _VMThreadContext {
+    VMThreadEntrance entrance;
+
     JAVA_LONG threadId;
     JAVA_OBJECT currentThread;
 
@@ -17,26 +23,41 @@ typedef struct {
     void *nativeContext;
 
     JAVA_OBJECT exception;
-} VMThreadContext;
+};
 
 enum {
     thrd_success = 0,   // succeeded
     thrd_timeout,       // timeout
     thrd_error,         // failed
     thrd_interrupt,     // been interrupted
-    thrd_lock           // lock not owned by current thread
+    thrd_lock,          // lock not owned by current thread
+    thrd_started,       // thread already started
 };
+
+typedef enum {
+    thrd_stat_new = 0,          // A thread that has not yet started is in this state.
+    thrd_stat_runnable,         // A thread executing in the Java virtual machine is in this state.
+    thrd_stat_blocked,          // A thread that is blocked waiting for a monitor lock is in this state.
+    thrd_stat_waiting,          // A thread that is waiting indefinitely for another thread to perform a particular action is in this state.
+    thrd_stat_timed_waiting,    // A thread that is waiting for another thread to perform an action for up to a specified waiting time is in this state.
+    thrd_stat_terminated,       // A thread that has exited is in this state.
+} VMThreadState;
 
 
 int thread_init(VMThreadContext *ctx);
 
 JAVA_VOID thread_free(VMThreadContext *ctx);
 
+// TODO: add thread parameters such as priority.
+int thread_start(VMThreadContext *ctx);
+
 int thread_sleep(VMThreadContext *ctx, JAVA_LONG timeout, JAVA_INT nanos);
 
 JAVA_VOID thread_interrupt(VMThreadContext *current, VMThreadContext *target);
 
 int thread_join(VMThreadContext *current, VMThreadContext *target, JAVA_LONG timeout, JAVA_INT nanos);
+
+VMThreadState thread_get_state(VMThreadContext *ctx);
 
 // For GC
 JAVA_VOID thread_stop_the_world(VMThreadContext *current, VMThreadContext *target);
