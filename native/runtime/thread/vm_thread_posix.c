@@ -162,9 +162,13 @@ int thread_start(VMThreadContext *ctx) {
         if (nativeContext->threadState != thrd_stat_new) {
             ret = thrd_started;
         } else {
-            // Create & start native thread TODO: use detached thread since java thread doesn't require join()
-            pthread_create(&nativeContext->nativeThreadId, NULL, thread_bootstrap_enter,
+            // Create & start native thread. Use detached thread since java thread doesn't require join()
+            pthread_attr_t attr;
+            pthread_attr_init(&attr);
+            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+            pthread_create(&nativeContext->nativeThreadId, &attr, thread_bootstrap_enter,
                            ctx); // TODO: check return value
+            pthread_attr_destroy(&attr);
             // Wait until the thread is running
             pthread_cond_wait(&nativeContext->blockingCondition,
                               &nativeContext->masterMutex); // TODO: check return value
