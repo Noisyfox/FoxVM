@@ -9,10 +9,11 @@
 
 typedef struct _VMThreadContext VMThreadContext;
 
-typedef JAVA_VOID (*VMThreadEntrance)(VMThreadContext *);
+typedef JAVA_VOID (*VMThreadCallback)(VMThreadContext *);
 
 struct _VMThreadContext {
-    VMThreadEntrance entrance;
+    VMThreadCallback entrance;
+    VMThreadCallback terminated;
 
     JAVA_LONG threadId;
     JAVA_OBJECT currentThread;
@@ -55,15 +56,37 @@ int thread_sleep(VMThreadContext *ctx, JAVA_LONG timeout, JAVA_INT nanos);
 
 JAVA_VOID thread_interrupt(VMThreadContext *current, VMThreadContext *target);
 
-int thread_join(VMThreadContext *current, VMThreadContext *target, JAVA_LONG timeout, JAVA_INT nanos);
+// join() is implemented in pure Java code
+//int thread_join(VMThreadContext *current, VMThreadContext *target, JAVA_LONG timeout, JAVA_INT nanos);
 
 VMThreadState thread_get_state(VMThreadContext *ctx);
 
 // For GC
+/**
+ * Require the target Thread to pause at check point.
+ */
 JAVA_VOID thread_stop_the_world(VMThreadContext *current, VMThreadContext *target);
+
+/**
+ * Wait until target thread runs into check point and paused.
+ */
 int thread_wait_until_checkpoint(VMThreadContext *current, VMThreadContext *target);
-JAVA_VOID thread_resume(VMThreadContext *current, VMThreadContext *target);
+
+/**
+ * Tell the target thread that it's safe to leave the check point and keep running.
+ */
+JAVA_VOID thread_resume_the_world(VMThreadContext *current, VMThreadContext *target);
+
+/**
+ * Mark current thread is in a check point, so GC thread can start marking this thread.
+ */
 JAVA_VOID thread_enter_checkpoint(VMThreadContext *ctx);
+
+/**
+ * Mark the current thread is gonna leave the check point. If the GC thread is currently
+ * working on this thread (by calling thread_stop_the_world() on this thread without calling
+ * thread_resume_the_world()), then this method will block until GC thread finishes its work.
+ */
 int thread_leave_checkpoint(VMThreadContext *ctx);
 
 

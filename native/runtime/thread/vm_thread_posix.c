@@ -123,6 +123,9 @@ static void thread_cleanup(void *param) {
 
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }
+
+    // Run the termination callback
+    ctx->terminated(ctx);
 }
 
 static void *thread_bootstrap_enter(void *param) {
@@ -150,7 +153,7 @@ static void *thread_bootstrap_enter(void *param) {
 }
 
 int thread_start(VMThreadContext *ctx) {
-    // TODO: check if VMThreadEntrance is set
+    // TODO: check if VMThreadCallback is set
 
     NativeThreadContext *nativeContext = ctx->nativeContext;
     int ret;
@@ -237,8 +240,16 @@ JAVA_VOID thread_interrupt(VMThreadContext *current, VMThreadContext *target) {
     }
 }
 
-int thread_join(VMThreadContext *current, VMThreadContext *target, JAVA_LONG timeout, JAVA_INT nanos) {
-    return thrd_success;
+VMThreadState thread_get_state(VMThreadContext *ctx) {
+    NativeThreadContext *nativeContext = ctx->nativeContext;
+    VMThreadState state;
+    pthread_mutex_lock(&nativeContext->masterMutex);
+    {
+        state = nativeContext->threadState;
+        pthread_mutex_unlock(&nativeContext->masterMutex);
+    }
+
+    return state;
 }
 
 JAVA_VOID thread_stop_the_world(VMThreadContext *current, VMThreadContext *target) {
@@ -252,7 +263,7 @@ int thread_wait_until_checkpoint(VMThreadContext *current, VMThreadContext *targ
     return thrd_success;
 }
 
-JAVA_VOID thread_resume(VMThreadContext *current, VMThreadContext *target) {
+JAVA_VOID thread_resume_the_world(VMThreadContext *current, VMThreadContext *target) {
 
 }
 
