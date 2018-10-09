@@ -70,7 +70,7 @@ JAVA_VOID thread_stop_the_world(VMThreadContext *current, VMThreadContext *targe
 /**
  * Wait until target thread runs into check point and paused.
  */
-int thread_wait_until_checkpoint(VMThreadContext *current, VMThreadContext *target);
+JAVA_VOID thread_wait_until_checkpoint(VMThreadContext *current, VMThreadContext *target);
 
 /**
  * Tell the target thread that it's safe to leave the check point and keep running.
@@ -87,7 +87,7 @@ JAVA_VOID thread_enter_checkpoint(VMThreadContext *ctx);
  * working on this thread (by calling thread_stop_the_world() on this thread without calling
  * thread_resume_the_world()), then this method will block until GC thread finishes its work.
  */
-int thread_leave_checkpoint(VMThreadContext *ctx);
+JAVA_VOID thread_leave_checkpoint(VMThreadContext *ctx);
 
 
 int monitor_create(VMThreadContext *ctx, JAVA_OBJECT obj);

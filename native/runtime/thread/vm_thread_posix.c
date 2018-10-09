@@ -77,6 +77,13 @@ struct _NativeThreadContext {
 
     pthread_t nativeThreadId;
     volatile VMThreadState threadState;
+
+    // GC specific flags
+    pthread_mutex_t gcMutex;
+    pthread_cond_t gcCondition;
+    JAVA_BOOLEAN stopTheWorld;
+    JAVA_BOOLEAN inCheckPoint;
+    JAVA_BOOLEAN waitingForResume;
 };
 
 int thread_init(VMThreadContext *ctx) {
@@ -86,9 +93,14 @@ int thread_init(VMThreadContext *ctx) {
     nativeContext->waitingListNode.thread = nativeContext;
     nativeContext->interrupted = JAVA_FALSE;
     nativeContext->threadState = thrd_stat_new;
+    nativeContext->stopTheWorld = JAVA_FALSE;
+    nativeContext->inCheckPoint = JAVA_FALSE;
+    nativeContext->waitingForResume = JAVA_FALSE;
     // TODO: check return value
     pthread_mutex_init(&nativeContext->masterMutex, NULL);
     pthread_cond_init(&nativeContext->blockingCondition, NULL);
+    pthread_mutex_init(&nativeContext->gcMutex, NULL);
+    pthread_cond_init(&nativeContext->gcCondition, NULL);
 
     ctx->nativeContext = nativeContext;
 
@@ -104,6 +116,9 @@ JAVA_VOID thread_free(VMThreadContext *ctx) {
 
         pthread_cond_destroy(&nativeThreadContext->blockingCondition);
         pthread_mutex_destroy(&nativeThreadContext->masterMutex);
+
+        pthread_cond_destroy(&nativeThreadContext->gcCondition);
+        pthread_mutex_destroy(&nativeThreadContext->gcMutex);
 
         free(nativeThreadContext);
     }
@@ -257,26 +272,63 @@ VMThreadState thread_get_state(VMThreadContext *ctx) {
 }
 
 JAVA_VOID thread_stop_the_world(VMThreadContext *current, VMThreadContext *target) {
-
+    NativeThreadContext *nativeContext = target->nativeContext;
+    pthread_mutex_lock(&nativeContext->gcMutex);
+    {
+        nativeContext->stopTheWorld = JAVA_TRUE;
+        pthread_mutex_unlock(&nativeContext->gcMutex);
+    }
 }
 
-int thread_wait_until_checkpoint(VMThreadContext *current, VMThreadContext *target) {
-    if (current == target) {
-        return thrd_success;
+JAVA_VOID thread_wait_until_checkpoint(VMThreadContext *current, VMThreadContext *target) {
+    NativeThreadContext *nativeContext = target->nativeContext;
+    pthread_mutex_lock(&nativeContext->gcMutex);
+    {
+        while (!nativeContext->inCheckPoint) {
+            pthread_cond_wait(&nativeContext->gcCondition, &nativeContext->gcMutex);
+        }
+        pthread_mutex_unlock(&nativeContext->gcMutex);
     }
-    return thrd_success;
 }
 
 JAVA_VOID thread_resume_the_world(VMThreadContext *current, VMThreadContext *target) {
-
+    NativeThreadContext *nativeContext = target->nativeContext;
+    pthread_mutex_lock(&nativeContext->gcMutex);
+    {
+        nativeContext->stopTheWorld = JAVA_FALSE;
+        if (nativeContext->waitingForResume) {
+            pthread_cond_signal(&nativeContext->gcCondition);
+        }
+        pthread_mutex_unlock(&nativeContext->gcMutex);
+    }
 }
 
 JAVA_VOID thread_enter_checkpoint(VMThreadContext *ctx) {
-
+    NativeThreadContext *nativeContext = ctx->nativeContext;
+    pthread_mutex_lock(&nativeContext->gcMutex);
+    {
+        nativeContext->inCheckPoint = JAVA_TRUE;
+        if (nativeContext->stopTheWorld) {
+            // Notify GC thread
+            pthread_cond_signal(&nativeContext->gcCondition);
+        }
+        pthread_mutex_unlock(&nativeContext->gcMutex);
+    }
 }
 
-int thread_leave_checkpoint(VMThreadContext *ctx) {
-    return thrd_success;
+JAVA_VOID thread_leave_checkpoint(VMThreadContext *ctx) {
+    NativeThreadContext *nativeContext = ctx->nativeContext;
+    pthread_mutex_lock(&nativeContext->gcMutex);
+    {
+        nativeContext->waitingForResume = JAVA_TRUE;
+        while (nativeContext->stopTheWorld) {
+            pthread_cond_wait(&nativeContext->gcCondition, &nativeContext->gcMutex);
+        }
+        nativeContext->waitingForResume = JAVA_FALSE;
+        nativeContext->inCheckPoint = JAVA_FALSE;
+
+        pthread_mutex_unlock(&nativeContext->gcMutex);
+    }
 }
 
 
