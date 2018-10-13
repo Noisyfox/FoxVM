@@ -4,7 +4,6 @@
 
 #include "vm_thread.h"
 #include <pthread.h>
-#include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #include <errno.h>
@@ -87,9 +86,8 @@ struct _NativeThreadContext {
 };
 
 int thread_init(VMThreadContext *ctx) {
-    NativeThreadContext *nativeContext = malloc(sizeof(NativeThreadContext));
+    NativeThreadContext *nativeContext = calloc(1, sizeof(NativeThreadContext));
     // TODO: assert nativeContext != NULL
-    memset(nativeContext, 0, sizeof(NativeThreadContext));
     nativeContext->waitingListNode.thread = nativeContext;
     nativeContext->interrupted = JAVA_FALSE;
     nativeContext->threadState = thrd_stat_new;
@@ -337,9 +335,8 @@ int monitor_create(VMThreadContext *ctx, JAVA_OBJECT obj) {
         return thrd_success;
     }
 
-    ObjectMonitor *m = malloc(sizeof(ObjectMonitor));
+    ObjectMonitor *m = calloc(1, sizeof(ObjectMonitor));
     // TODO: assert m != NULL
-    memset(m, 0, sizeof(ObjectMonitor));
     m->blockingListHeader.thread = NULL; // NULL indicates it's header node
     m->blockingListHeader.next = &m->blockingListHeader;
     m->blockingListHeader.prev = &m->blockingListHeader;
