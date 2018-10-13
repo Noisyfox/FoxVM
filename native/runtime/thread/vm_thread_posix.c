@@ -201,6 +201,8 @@ int thread_start(VMThreadContext *ctx) {
 }
 
 int thread_sleep(VMThreadContext *ctx, JAVA_LONG timeout, JAVA_INT nanos) {
+    thread_enter_checkpoint(ctx);
+
     NativeThreadContext *nativeContext = ctx->nativeContext;
 
     int cond_ret;
@@ -219,6 +221,8 @@ int thread_sleep(VMThreadContext *ctx, JAVA_LONG timeout, JAVA_INT nanos) {
 
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }
+
+    thread_leave_checkpoint(ctx);
 
     if (interrupt) {
         return thrd_interrupt;
@@ -371,22 +375,27 @@ JAVA_VOID monitor_free(VMThreadContext *ctx, JAVA_OBJECT obj) {
 }
 
 int monitor_enter(VMThreadContext *ctx, JAVA_OBJECT obj) {
+    thread_enter_checkpoint(ctx);
+
     if (obj->monitor == NULL) {
         JAVA_CLASS clazz = obj->clazz;
 
         if (clazz == (JAVA_CLASS) JAVA_NULL) {
             // Class monitor should be created by class loader
+            thread_leave_checkpoint(ctx);
             return thrd_error;
         }
 
         int ret = monitor_enter(ctx,
                                 (JAVA_OBJECT) clazz); // Class monitor is guaranteed to be inited when class is load.
         if (ret != thrd_success) {
+            thread_leave_checkpoint(ctx);
             return ret;
         }
         ret = monitor_create(ctx, obj);
         monitor_exit(ctx, (JAVA_OBJECT) clazz);
         if (ret != thrd_success) {
+            thread_leave_checkpoint(ctx);
             return ret;
         }
     }
@@ -410,6 +419,8 @@ int monitor_enter(VMThreadContext *ctx, JAVA_OBJECT obj) {
 
         pthread_mutex_unlock(&m->masterMutex);
     }
+
+    thread_leave_checkpoint(ctx);
 
     return thrd_success;
 }
@@ -442,14 +453,18 @@ int monitor_exit(VMThreadContext *ctx, JAVA_OBJECT obj) {
 }
 
 int monitor_wait(VMThreadContext *ctx, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_INT nanos) {
+    thread_enter_checkpoint(ctx);
+
     ObjectMonitor *m = obj->monitor;
     if (m == NULL) {
+        thread_leave_checkpoint(ctx);
         return thrd_error;
     }
 
     // Make sure the obj lock is held by current thread
     JAVA_LONG current_thread_id = ctx->threadId;
     if (current_thread_id != m->ownerThreadId) {
+        thread_leave_checkpoint(ctx);
         return thrd_lock;
     }
 
@@ -517,6 +532,9 @@ int monitor_wait(VMThreadContext *ctx, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_
         nativeContext->interrupted = JAVA_FALSE; // Clear the interrupt flag
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }
+
+    thread_leave_checkpoint(ctx);
+
     if (interrupt) {
         return thrd_interrupt;
     }
