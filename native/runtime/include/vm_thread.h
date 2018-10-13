@@ -9,6 +9,9 @@
 
 typedef struct _VMThreadContext VMThreadContext;
 
+#define vmCurrentContext __vmCurrentThreadContext
+#define VM_PARAM_CURRENT_CONTEXT VMThreadContext *vmCurrentContext
+
 typedef JAVA_VOID (*VMThreadCallback)(VMThreadContext *);
 
 struct _VMThreadContext {
@@ -45,63 +48,63 @@ typedef enum {
 } VMThreadState;
 
 
-int thread_init(VMThreadContext *ctx);
+int thread_init(VM_PARAM_CURRENT_CONTEXT);
 
-JAVA_VOID thread_free(VMThreadContext *ctx);
+JAVA_VOID thread_free(VM_PARAM_CURRENT_CONTEXT);
 
 // TODO: add thread parameters such as priority.
-int thread_start(VMThreadContext *ctx);
+int thread_start(VM_PARAM_CURRENT_CONTEXT);
 
-int thread_sleep(VMThreadContext *ctx, JAVA_LONG timeout, JAVA_INT nanos);
+int thread_sleep(VM_PARAM_CURRENT_CONTEXT, JAVA_LONG timeout, JAVA_INT nanos);
 
-JAVA_VOID thread_interrupt(VMThreadContext *current, VMThreadContext *target);
+JAVA_VOID thread_interrupt(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target);
 
 // join() is implemented in pure Java code
-//int thread_join(VMThreadContext *current, VMThreadContext *target, JAVA_LONG timeout, JAVA_INT nanos);
+//int thread_join(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target, JAVA_LONG timeout, JAVA_INT nanos);
 
-VMThreadState thread_get_state(VMThreadContext *ctx);
+VMThreadState thread_get_state(VM_PARAM_CURRENT_CONTEXT);
 
 // For GC
 /**
  * Require the target Thread to pause at check point.
  */
-JAVA_VOID thread_stop_the_world(VMThreadContext *current, VMThreadContext *target);
+JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target);
 
 /**
  * Wait until target thread runs into check point and paused.
  */
-JAVA_VOID thread_wait_until_checkpoint(VMThreadContext *current, VMThreadContext *target);
+JAVA_VOID thread_wait_until_checkpoint(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target);
 
 /**
  * Tell the target thread that it's safe to leave the check point and keep running.
  */
-JAVA_VOID thread_resume_the_world(VMThreadContext *current, VMThreadContext *target);
+JAVA_VOID thread_resume_the_world(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target);
 
 /**
  * Mark current thread is in a check point, so GC thread can start marking this thread.
  */
-JAVA_VOID thread_enter_checkpoint(VMThreadContext *ctx);
+JAVA_VOID thread_enter_checkpoint(VM_PARAM_CURRENT_CONTEXT);
 
 /**
  * Mark the current thread is gonna leave the check point. If the GC thread is currently
  * working on this thread (by calling thread_stop_the_world() on this thread without calling
  * thread_resume_the_world()), then this method will block until GC thread finishes its work.
  */
-JAVA_VOID thread_leave_checkpoint(VMThreadContext *ctx);
+JAVA_VOID thread_leave_checkpoint(VM_PARAM_CURRENT_CONTEXT);
 
 
-int monitor_create(VMThreadContext *ctx, JAVA_OBJECT obj);
+int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
-JAVA_VOID monitor_free(VMThreadContext *ctx, JAVA_OBJECT obj);
+JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
-int monitor_enter(VMThreadContext *ctx, JAVA_OBJECT obj);
+int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
-int monitor_exit(VMThreadContext *ctx, JAVA_OBJECT obj);
+int monitor_exit(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
-int monitor_wait(VMThreadContext *ctx, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_INT nanos);
+int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_INT nanos);
 
-int monitor_notify(VMThreadContext *ctx, JAVA_OBJECT obj);
+int monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
-int monitor_notify_all(VMThreadContext *ctx, JAVA_OBJECT obj);
+int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
 #endif //FOXVM_VM_THREAD_H

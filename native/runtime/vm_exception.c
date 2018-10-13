@@ -10,6 +10,6 @@
 #define EX_INIT(n_ex) \
     
 
-void test(VMThreadContext* ctx) {
+void test(VM_PARAM_CURRENT_CONTEXT) {
 
 }

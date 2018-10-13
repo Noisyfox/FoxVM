@@ -86,7 +86,7 @@ struct _NativeThreadContext {
     JAVA_BOOLEAN waitingForResume;
 };
 
-int thread_init(VMThreadContext *ctx) {
+int thread_init(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = calloc(1, sizeof(NativeThreadContext));
     // TODO: assert nativeContext != NULL
     nativeContext->waitingListNode.thread = nativeContext;
@@ -101,15 +101,15 @@ int thread_init(VMThreadContext *ctx) {
     pthread_mutex_init(&nativeContext->gcMutex, NULL);
     pthread_cond_init(&nativeContext->gcCondition, NULL);
 
-    ctx->nativeContext = nativeContext;
+    vmCurrentContext->nativeContext = nativeContext;
 
     return thrd_success;
 }
 
-JAVA_VOID thread_free(VMThreadContext *ctx) {
-    NativeThreadContext *nativeThreadContext = ctx->nativeContext;
+JAVA_VOID thread_free(VM_PARAM_CURRENT_CONTEXT) {
+    NativeThreadContext *nativeThreadContext = vmCurrentContext->nativeContext;
     if (nativeThreadContext != NULL) {
-        ctx->nativeContext = NULL;
+        vmCurrentContext->nativeContext = NULL;
 
         // TODO: make sure it's not blocked
 
@@ -124,8 +124,8 @@ JAVA_VOID thread_free(VMThreadContext *ctx) {
 }
 
 static void thread_cleanup(void *param) {
-    VMThreadContext *ctx = param;
-    NativeThreadContext *nativeContext = ctx->nativeContext;
+    VM_PARAM_CURRENT_CONTEXT = param;
+    NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
 
     pthread_mutex_lock(&nativeContext->masterMutex);
     {
@@ -139,14 +139,14 @@ static void thread_cleanup(void *param) {
     }
 
     // Run the termination callback
-    ctx->terminated(ctx);
+    vmCurrentContext->terminated(vmCurrentContext);
 }
 
 static void *thread_bootstrap_enter(void *param) {
     // Setup unexpected exit handler for clean up
     pthread_cleanup_push(thread_cleanup, param) ;
-            VMThreadContext *ctx = param;
-            NativeThreadContext *nativeContext = ctx->nativeContext;
+            VM_PARAM_CURRENT_CONTEXT = param;
+            NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
 
             pthread_mutex_lock(&nativeContext->masterMutex);
             {
@@ -160,16 +160,16 @@ static void *thread_bootstrap_enter(void *param) {
             }
 
             // Run the main entrance
-            ctx->entrance(ctx);
+            vmCurrentContext->entrance(vmCurrentContext);
 
     pthread_cleanup_pop(1); // Clean up
     return NULL;
 }
 
-int thread_start(VMThreadContext *ctx) {
+int thread_start(VM_PARAM_CURRENT_CONTEXT) {
     // TODO: check if VMThreadCallback is set
 
-    NativeThreadContext *nativeContext = ctx->nativeContext;
+    NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     int ret;
     pthread_mutex_lock(&nativeContext->masterMutex);
     {
@@ -181,7 +181,7 @@ int thread_start(VMThreadContext *ctx) {
             pthread_attr_init(&attr);
             pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
             pthread_create(&nativeContext->nativeThreadId, &attr, thread_bootstrap_enter,
-                           ctx); // TODO: check return value
+                           vmCurrentContext); // TODO: check return value
             pthread_attr_destroy(&attr);
             // Wait until the thread is running
             pthread_cond_wait(&nativeContext->blockingCondition,
@@ -200,10 +200,10 @@ int thread_start(VMThreadContext *ctx) {
     return ret;
 }
 
-int thread_sleep(VMThreadContext *ctx, JAVA_LONG timeout, JAVA_INT nanos) {
-    thread_enter_checkpoint(ctx);
+int thread_sleep(VM_PARAM_CURRENT_CONTEXT, JAVA_LONG timeout, JAVA_INT nanos) {
+    thread_enter_checkpoint(vmCurrentContext);
 
-    NativeThreadContext *nativeContext = ctx->nativeContext;
+    NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
 
     int cond_ret;
     JAVA_BOOLEAN interrupt;
@@ -222,7 +222,7 @@ int thread_sleep(VMThreadContext *ctx, JAVA_LONG timeout, JAVA_INT nanos) {
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }
 
-    thread_leave_checkpoint(ctx);
+    thread_leave_checkpoint(vmCurrentContext);
 
     if (interrupt) {
         return thrd_interrupt;
@@ -238,7 +238,7 @@ int thread_sleep(VMThreadContext *ctx, JAVA_LONG timeout, JAVA_INT nanos) {
     }
 }
 
-JAVA_VOID thread_interrupt(VMThreadContext *current, VMThreadContext *target) {
+JAVA_VOID thread_interrupt(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
     NativeThreadContext *nativeContext = target->nativeContext;
     pthread_mutex_lock(&nativeContext->masterMutex);
     {
@@ -262,8 +262,8 @@ JAVA_VOID thread_interrupt(VMThreadContext *current, VMThreadContext *target) {
     }
 }
 
-VMThreadState thread_get_state(VMThreadContext *ctx) {
-    NativeThreadContext *nativeContext = ctx->nativeContext;
+VMThreadState thread_get_state(VM_PARAM_CURRENT_CONTEXT) {
+    NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     VMThreadState state;
     pthread_mutex_lock(&nativeContext->masterMutex);
     {
@@ -274,7 +274,7 @@ VMThreadState thread_get_state(VMThreadContext *ctx) {
     return state;
 }
 
-JAVA_VOID thread_stop_the_world(VMThreadContext *current, VMThreadContext *target) {
+JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
     NativeThreadContext *nativeContext = target->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
@@ -283,7 +283,7 @@ JAVA_VOID thread_stop_the_world(VMThreadContext *current, VMThreadContext *targe
     }
 }
 
-JAVA_VOID thread_wait_until_checkpoint(VMThreadContext *current, VMThreadContext *target) {
+JAVA_VOID thread_wait_until_checkpoint(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
     NativeThreadContext *nativeContext = target->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
@@ -294,7 +294,7 @@ JAVA_VOID thread_wait_until_checkpoint(VMThreadContext *current, VMThreadContext
     }
 }
 
-JAVA_VOID thread_resume_the_world(VMThreadContext *current, VMThreadContext *target) {
+JAVA_VOID thread_resume_the_world(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
     NativeThreadContext *nativeContext = target->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
@@ -306,8 +306,8 @@ JAVA_VOID thread_resume_the_world(VMThreadContext *current, VMThreadContext *tar
     }
 }
 
-JAVA_VOID thread_enter_checkpoint(VMThreadContext *ctx) {
-    NativeThreadContext *nativeContext = ctx->nativeContext;
+JAVA_VOID thread_enter_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
+    NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
         nativeContext->inCheckPoint = JAVA_TRUE;
@@ -320,8 +320,8 @@ JAVA_VOID thread_enter_checkpoint(VMThreadContext *ctx) {
     }
 }
 
-JAVA_VOID thread_leave_checkpoint(VMThreadContext *ctx) {
-    NativeThreadContext *nativeContext = ctx->nativeContext;
+JAVA_VOID thread_leave_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
+    NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
         nativeContext->checkPointReentranceCounter--;
@@ -341,7 +341,7 @@ JAVA_VOID thread_leave_checkpoint(VMThreadContext *ctx) {
 }
 
 
-int monitor_create(VMThreadContext *ctx, JAVA_OBJECT obj) {
+int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     if (obj->monitor != NULL) {
         return thrd_success;
     }
@@ -360,7 +360,7 @@ int monitor_create(VMThreadContext *ctx, JAVA_OBJECT obj) {
     return thrd_success;
 }
 
-JAVA_VOID monitor_free(VMThreadContext *ctx, JAVA_OBJECT obj) {
+JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     ObjectMonitor *m = obj->monitor;
     if (m != NULL) {
         obj->monitor = NULL;
@@ -374,35 +374,35 @@ JAVA_VOID monitor_free(VMThreadContext *ctx, JAVA_OBJECT obj) {
     }
 }
 
-int monitor_enter(VMThreadContext *ctx, JAVA_OBJECT obj) {
-    thread_enter_checkpoint(ctx);
+int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+    thread_enter_checkpoint(vmCurrentContext);
 
     if (obj->monitor == NULL) {
         JAVA_CLASS clazz = obj->clazz;
 
         if (clazz == (JAVA_CLASS) JAVA_NULL) {
             // Class monitor should be created by class loader
-            thread_leave_checkpoint(ctx);
+            thread_leave_checkpoint(vmCurrentContext);
             return thrd_error;
         }
 
-        int ret = monitor_enter(ctx,
+        int ret = monitor_enter(vmCurrentContext,
                                 (JAVA_OBJECT) clazz); // Class monitor is guaranteed to be inited when class is load.
         if (ret != thrd_success) {
-            thread_leave_checkpoint(ctx);
+            thread_leave_checkpoint(vmCurrentContext);
             return ret;
         }
-        ret = monitor_create(ctx, obj);
-        monitor_exit(ctx, (JAVA_OBJECT) clazz);
+        ret = monitor_create(vmCurrentContext, obj);
+        monitor_exit(vmCurrentContext, (JAVA_OBJECT) clazz);
         if (ret != thrd_success) {
-            thread_leave_checkpoint(ctx);
+            thread_leave_checkpoint(vmCurrentContext);
             return ret;
         }
     }
 
     // Do lock
     ObjectMonitor *m = obj->monitor;
-    JAVA_LONG current_thread_id = ctx->threadId;
+    JAVA_LONG current_thread_id = vmCurrentContext->threadId;
     pthread_mutex_lock(&m->masterMutex);
     {
         while (1) {
@@ -420,18 +420,18 @@ int monitor_enter(VMThreadContext *ctx, JAVA_OBJECT obj) {
         pthread_mutex_unlock(&m->masterMutex);
     }
 
-    thread_leave_checkpoint(ctx);
+    thread_leave_checkpoint(vmCurrentContext);
 
     return thrd_success;
 }
 
-int monitor_exit(VMThreadContext *ctx, JAVA_OBJECT obj) {
+int monitor_exit(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     ObjectMonitor *m = obj->monitor;
     if (m == NULL) {
         return thrd_error;
     }
 
-    JAVA_LONG current_thread_id = ctx->threadId;
+    JAVA_LONG current_thread_id = vmCurrentContext->threadId;
     if (current_thread_id != m->ownerThreadId) {
         return thrd_lock;
     }
@@ -452,23 +452,23 @@ int monitor_exit(VMThreadContext *ctx, JAVA_OBJECT obj) {
     return thrd_success;
 }
 
-int monitor_wait(VMThreadContext *ctx, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_INT nanos) {
-    thread_enter_checkpoint(ctx);
+int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_INT nanos) {
+    thread_enter_checkpoint(vmCurrentContext);
 
     ObjectMonitor *m = obj->monitor;
     if (m == NULL) {
-        thread_leave_checkpoint(ctx);
+        thread_leave_checkpoint(vmCurrentContext);
         return thrd_error;
     }
 
     // Make sure the obj lock is held by current thread
-    JAVA_LONG current_thread_id = ctx->threadId;
+    JAVA_LONG current_thread_id = vmCurrentContext->threadId;
     if (current_thread_id != m->ownerThreadId) {
-        thread_leave_checkpoint(ctx);
+        thread_leave_checkpoint(vmCurrentContext);
         return thrd_lock;
     }
 
-    NativeThreadContext *nativeContext = ctx->nativeContext;
+    NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     int prev_count;
 
     pthread_mutex_lock(&m->masterMutex);
@@ -533,7 +533,7 @@ int monitor_wait(VMThreadContext *ctx, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }
 
-    thread_leave_checkpoint(ctx);
+    thread_leave_checkpoint(vmCurrentContext);
 
     if (interrupt) {
         return thrd_interrupt;
@@ -550,14 +550,14 @@ int monitor_wait(VMThreadContext *ctx, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_
     }
 }
 
-static inline int _monitor_notify(VMThreadContext *ctx, JAVA_OBJECT obj, JAVA_BOOLEAN all) {
+static inline int _monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_BOOLEAN all) {
     ObjectMonitor *m = obj->monitor;
     if (m == NULL) {
         return thrd_error;
     }
 
     // Make sure the obj lock is held by current thread
-    JAVA_LONG current_thread_id = ctx->threadId;
+    JAVA_LONG current_thread_id = vmCurrentContext->threadId;
     if (current_thread_id != m->ownerThreadId) {
         return thrd_lock;
     }
@@ -584,10 +584,10 @@ static inline int _monitor_notify(VMThreadContext *ctx, JAVA_OBJECT obj, JAVA_BO
     return thrd_success;
 }
 
-int monitor_notify(VMThreadContext *ctx, JAVA_OBJECT obj) {
-    return _monitor_notify(ctx, obj, JAVA_FALSE);
+int monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+    return _monitor_notify(vmCurrentContext, obj, JAVA_FALSE);
 }
 
-int monitor_notify_all(VMThreadContext *ctx, JAVA_OBJECT obj) {
-    return _monitor_notify(ctx, obj, JAVA_TRUE);
+int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+    return _monitor_notify(vmCurrentContext, obj, JAVA_TRUE);
 }
