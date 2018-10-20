@@ -11,6 +11,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DI
 
 set(SOURCE_FILES_RUNTIME
         vm_base.c
+        vm_array.c
         vm_exception.c
         vm_memory.c)
 

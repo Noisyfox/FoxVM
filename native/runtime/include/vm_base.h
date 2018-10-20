@@ -42,15 +42,8 @@ typedef struct {
 
 } JavaObjectBase, *JAVA_OBJECT;
 
-typedef struct {
-    JAVA_CLASS clazz;
-    void* monitor;
-
-    int length;
-} JavaArrayBase, *JAVA_ARRAY;
-
 typedef enum {
-    VM_SLOT_INVALID,
+    VM_SLOT_INVALID = 0,
     VM_SLOT_OBJECT,
     VM_SLOT_INT,
     VM_SLOT_LONG,
