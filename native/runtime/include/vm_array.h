@@ -19,14 +19,16 @@ typedef enum {
     VM_ARRAY_LONG
 } VMArrayElementType;
 
-typedef struct {
-    JAVA_CLASS clazz;
+struct _JavaArray {
+    JAVA_REF ref; // ref of current instance
+
+    JAVA_REF clazz;
     void *monitor;
 
     int length;
     int dimensions;
     VMArrayElementType elementType;
-} JavaArrayBase, *JAVA_ARRAY;
+};
 
 
 #endif //FOXVM_VM_ARRAYS_H

@@ -13,7 +13,8 @@ set(SOURCE_FILES_RUNTIME
         vm_base.c
         vm_array.c
         vm_exception.c
-        vm_memory.c)
+        memory/vm_reference.c
+        )
 
 # Set thread implementation
 if (HAVE_PTHREADS)

@@ -19,28 +19,37 @@ typedef int         JAVA_INT;
 typedef long long   JAVA_LONG;
 typedef float       JAVA_FLOAT;
 typedef double      JAVA_DOUBLE;
+typedef void*       JAVA_REF;
 
-#define JAVA_NULL   ((JAVA_OBJECT) 0)
+#define JAVA_NULL   ((JAVA_REF) 0)
 #define JAVA_FALSE  ((JAVA_BOOLEAN) 0)
 #define JAVA_TRUE   ((JAVA_BOOLEAN) 1)
 
+typedef struct _JavaClass JavaClass, *JAVA_CLASS;
+typedef struct _JavaObject JavaObjectBase, *JAVA_OBJECT;
+typedef struct _JavaArray JavaArrayBase, *JAVA_ARRAY;
+
 // Object prototype
-typedef struct _JavaClass{
-    struct _JavaClass* clazz;
+struct _JavaClass {
+    JAVA_REF ref; // ref of current instance
+
+    JAVA_REF clazz;
+    void *monitor;
+
+    const char *className;
+
+    JAVA_REF parentClass;
+    int interfaceCount;
+    JAVA_REF *parentInterfaces;
+};
+
+struct _JavaObject{
+    JAVA_REF ref; // ref of current instance
+
+    JAVA_REF clazz;
     void* monitor;
 
-    const char* className;
-
-    const struct _JavaClass* parentClass;
-    const int interfaceCount;
-    const struct _JavaClass** parentInterfaces;
-} JavaClass, *JAVA_CLASS;
-
-typedef struct {
-    JAVA_CLASS clazz;
-    void* monitor;
-
-} JavaObjectBase, *JAVA_OBJECT;
+};
 
 typedef enum {
     VM_SLOT_INVALID = 0,
@@ -52,7 +61,7 @@ typedef enum {
 } VMStackSlotType;
 
 typedef union {
-    JAVA_OBJECT o;
+    JAVA_REF    o;
     JAVA_INT    i;
     JAVA_LONG   l;
     JAVA_FLOAT  f;
