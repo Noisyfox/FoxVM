@@ -29,5 +29,5 @@ add_c_library(
         opa_queue.c
 
         LIBRARIES
-        ${OPA_HAVE_PTHREAD_H}
+        ${LIBRARIES_OPA}
 )
