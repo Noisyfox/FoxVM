@@ -1,0 +1,22 @@
+
+/* Define to 1 if you have the <pthread.h> header file. */
+#cmakedefine OPA_HAVE_PTHREAD_H
+
+#cmakedefine OPA_HAVE_GCC_ATTRIBUTE
+
+#cmakedefine OPA_HAVE_SCHED_YIELD
+
+#cmakedefine OPA_HAVE_STDDEF_H
+
+#cmakedefine OPA_HAVE_GCC_X86_32_64
+#cmakedefine OPA_HAVE_GCC_X86_32_64_P3
+#cmakedefine OPA_HAVE_GCC_AND_IA64_ASM
+#cmakedefine OPA_HAVE_GCC_AND_POWERPC_ASM
+#cmakedefine OPA_HAVE_GCC_AND_ARM_ASM
+#cmakedefine OPA_HAVE_GCC_AND_SICORTEX_ASM
+#cmakedefine OPA_HAVE_GCC_INTRINSIC_ATOMICS
+#cmakedefine OPA_HAVE_NT_INTRINSICS
+#cmakedefine OPA_HAVE_SUN_ATOMIC_OPS
+
+#cmakedefine OPA_SIZEOF_INT @OPA_SIZEOF_INT@
+#cmakedefine OPA_SIZEOF_VOID_P @OPA_SIZEOF_VOID_P@

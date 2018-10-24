@@ -25,6 +25,9 @@ else ()
     message(FATAL_ERROR "Not supported on this platform.")
 endif ()
 
+add_subdirectory(opa)
+include_directories($<TARGET_PROPERTY:opa,INCLUDE_DIRECTORIES>)
+
 add_c_library(
         foxvm_runtime
         OUTPUT_NAME runtime
@@ -38,4 +41,7 @@ add_c_library(
 
         LIBRARIES
         Threads::Threads
+
+        LOCAL_LIBRARIES
+        opa
 )

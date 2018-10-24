@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1.0)
 project(foxvm C)
 set(CMAKE_C_STANDARD 99)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(CTargets)
 
 add_subdirectory(runtime)
