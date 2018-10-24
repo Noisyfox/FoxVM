@@ -25,7 +25,8 @@ else ()
     message(FATAL_ERROR "Not supported on this platform.")
 endif ()
 
-add_subdirectory(opa)
+add_subdirectory(3rd)
+
 include_directories($<TARGET_PROPERTY:opa,INCLUDE_DIRECTORIES>)
 
 add_c_library(
