@@ -87,7 +87,7 @@ struct _NativeThreadContext {
     JAVA_BOOLEAN waitingForResume;
 };
 
-int thread_init(VM_PARAM_CURRENT_CONTEXT) {
+int thread_native_init(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = calloc(1, sizeof(NativeThreadContext));
     // TODO: assert nativeContext != NULL
     nativeContext->waitingListNode.thread = nativeContext;
@@ -107,7 +107,7 @@ int thread_init(VM_PARAM_CURRENT_CONTEXT) {
     return thrd_success;
 }
 
-JAVA_VOID thread_free(VM_PARAM_CURRENT_CONTEXT) {
+JAVA_VOID thread_native_free(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeThreadContext = vmCurrentContext->nativeContext;
     if (nativeThreadContext != NULL) {
         vmCurrentContext->nativeContext = NULL;

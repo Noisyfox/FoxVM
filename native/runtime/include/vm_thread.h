@@ -48,9 +48,9 @@ typedef enum {
 } VMThreadState;
 
 
-int thread_init(VM_PARAM_CURRENT_CONTEXT);
+int thread_native_init(VM_PARAM_CURRENT_CONTEXT);
 
-JAVA_VOID thread_free(VM_PARAM_CURRENT_CONTEXT);
+JAVA_VOID thread_native_free(VM_PARAM_CURRENT_CONTEXT);
 
 // TODO: add thread parameters such as priority.
 int thread_start(VM_PARAM_CURRENT_CONTEXT);
