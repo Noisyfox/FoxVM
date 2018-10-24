@@ -342,9 +342,7 @@ JAVA_VOID thread_leave_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
 }
 
 
-int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef) {
-    JAVA_OBJECT obj = ref_dereference(vmCurrentContext, objRef);
-
+int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     if (obj->monitor != NULL) {
         return thrd_success;
     }
@@ -363,9 +361,7 @@ int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef) {
     return thrd_success;
 }
 
-JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef) {
-    JAVA_OBJECT obj = ref_dereference(vmCurrentContext, objRef);
-
+JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     ObjectMonitor *m = obj->monitor;
     if (m != NULL) {
         obj->monitor = NULL;
@@ -379,32 +375,38 @@ JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef) {
     }
 }
 
-int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef) {
-    JAVA_OBJECT obj = ref_dereference(vmCurrentContext, objRef);
+int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+    JAVA_REF obj_ref = ref_obtain(vmCurrentContext, obj); // Save the reference before enter checkpoint
 
     if (obj->monitor == NULL) {
-        JAVA_REF clazzRef = obj->clazz;
-
-        if (clazzRef == JAVA_NULL) {
+        JAVA_CLASS clazz = obj->clazz;
+        if (clazz == (JAVA_CLASS) JAVA_NULL) {
             // Class monitor should be created by class loader
             return thrd_error;
         }
 
-        int ret = monitor_enter(vmCurrentContext, clazzRef); // Class monitor is guaranteed to be inited when class is load.
+        JAVA_REF clazz_ref = ref_obtain(vmCurrentContext,
+                                        (JAVA_OBJECT) clazz); // Save the reference before enter checkpoint
+        int ret = monitor_enter(vmCurrentContext,
+                                (JAVA_OBJECT) clazz); // Class monitor is guaranteed to be inited when class is load.
         if (ret != thrd_success) {
             return ret;
         }
-        ret = monitor_create(vmCurrentContext, objRef);
-        monitor_exit(vmCurrentContext, clazzRef);
+        // The monitor_enter() call enters check point, so we need to update the reference
+        obj = ref_dereference(vmCurrentContext, obj_ref);
+        clazz = (JAVA_CLASS) ref_dereference(vmCurrentContext, clazz_ref);
+
+        ret = monitor_create(vmCurrentContext, obj);
+        monitor_exit(vmCurrentContext, (JAVA_OBJECT) clazz);
         if (ret != thrd_success) {
             return ret;
         }
     }
 
-    thread_enter_checkpoint(vmCurrentContext);
+    ObjectMonitor *m = obj->monitor; // Obtain the monitor before enter checkpoint
 
     // Do lock
-    ObjectMonitor *m = obj->monitor;
+    thread_enter_checkpoint(vmCurrentContext);
     JAVA_LONG current_thread_id = vmCurrentContext->threadId;
     pthread_mutex_lock(&m->masterMutex);
     {
@@ -428,9 +430,7 @@ int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef) {
     return thrd_success;
 }
 
-int monitor_exit(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef) {
-    JAVA_OBJECT obj = ref_dereference(vmCurrentContext, objRef);
-
+int monitor_exit(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     ObjectMonitor *m = obj->monitor;
     if (m == NULL) {
         return thrd_error;
@@ -457,16 +457,13 @@ int monitor_exit(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef) {
     return thrd_success;
 }
 
-int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef, JAVA_LONG timeout, JAVA_INT nanos) {
-    JAVA_OBJECT obj = ref_dereference(vmCurrentContext, objRef);
-
-    thread_enter_checkpoint(vmCurrentContext);
-
+int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_INT nanos) {
     ObjectMonitor *m = obj->monitor;
     if (m == NULL) {
-        thread_leave_checkpoint(vmCurrentContext);
         return thrd_error;
     }
+
+    thread_enter_checkpoint(vmCurrentContext);
 
     // Make sure the obj lock is held by current thread
     JAVA_LONG current_thread_id = vmCurrentContext->threadId;
@@ -557,9 +554,7 @@ int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef, JAVA_LONG timeout, J
     }
 }
 
-static inline int _monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef, JAVA_BOOLEAN all) {
-    JAVA_OBJECT obj = ref_dereference(vmCurrentContext, objRef);
-
+static inline int _monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_BOOLEAN all) {
     ObjectMonitor *m = obj->monitor;
     if (m == NULL) {
         return thrd_error;
@@ -593,10 +588,10 @@ static inline int _monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef, JAV
     return thrd_success;
 }
 
-int monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef) {
-    return _monitor_notify(vmCurrentContext, objRef, JAVA_FALSE);
+int monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+    return _monitor_notify(vmCurrentContext, obj, JAVA_FALSE);
 }
 
-int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef) {
-    return _monitor_notify(vmCurrentContext, objRef, JAVA_TRUE);
+int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+    return _monitor_notify(vmCurrentContext, obj, JAVA_TRUE);
 }

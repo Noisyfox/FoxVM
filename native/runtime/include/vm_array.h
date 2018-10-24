@@ -20,9 +20,8 @@ typedef enum {
 } VMArrayElementType;
 
 struct _JavaArray {
-    JAVA_REF ref; // ref of current instance
-
-    JAVA_REF clazz;
+    OPA_ptr_t ref;
+    JAVA_CLASS clazz;
     void *monitor;
 
     int length;

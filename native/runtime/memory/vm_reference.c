@@ -1,20 +1,39 @@
 //
-// Created by noisyfox on 2018/10/20.
+// Created by noisyfox on 2018/10/24.
 //
 
 #include "vm_reference.h"
 
 typedef struct {
-    JAVA_OBJECT targetObject; // Not NULL!
+    OPA_ptr_t targetObject; // Not NULL!
 } NativeReference;
 
-JAVA_OBJECT ref_dereference(VM_PARAM_CURRENT_CONTEXT, JAVA_REF ref) {
-    // Make sure not in checkpoint!
 
-    return ((NativeReference *) ref)->targetObject;
+JAVA_REF ref_obtain(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+    // TODO: make sure not in checkpoint
+    OPA_ptr_t *ptr = &obj->ref;
+    NativeReference *ref = OPA_load_ptr(ptr);
+
+    if (ref) {// Reference already created
+        return ref;
+    }
+
+    // TODO: Create new reference
+    return NULL;
 }
 
-void ref_update(VM_PARAM_CURRENT_CONTEXT, JAVA_REF ref, JAVA_OBJECT newAddress) {
-    ((NativeReference *) ref)->targetObject = newAddress;
-    newAddress->ref = ref;
+JAVA_REF ref_update(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+    OPA_ptr_t *ptr = &obj->ref;
+    NativeReference *ref = OPA_load_ptr(ptr);
+
+    if (ref) {
+        OPA_store_ptr(&ref->targetObject, obj);
+    }
+
+    return ref;
+}
+
+JAVA_OBJECT ref_dereference(VM_PARAM_CURRENT_CONTEXT, JAVA_REF ref) {
+    // TODO: make sure not in checkpoint
+    return OPA_load_ptr(&((NativeReference *) ref)->targetObject);
 }

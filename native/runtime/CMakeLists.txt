@@ -13,7 +13,10 @@ set(SOURCE_FILES_RUNTIME
         vm_base.c
         vm_array.c
         vm_exception.c
+
         memory/vm_reference.c
+        memory/vm_memory.c
+        memory/vm_tlab.c
         )
 
 # Set thread implementation

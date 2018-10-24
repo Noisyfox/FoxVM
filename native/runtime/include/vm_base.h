@@ -9,6 +9,8 @@
 #include "config.h"
 #endif
 
+#include "opa_primitives.h"
+
 // Java primary type def
 typedef void        JAVA_VOID;
 typedef int         JAVA_BOOLEAN;
@@ -19,36 +21,32 @@ typedef int         JAVA_INT;
 typedef long long   JAVA_LONG;
 typedef float       JAVA_FLOAT;
 typedef double      JAVA_DOUBLE;
-typedef void*       JAVA_REF;
 
-#define JAVA_NULL   ((JAVA_REF) 0)
+#define JAVA_NULL   ((JAVA_OBJECT) 0)
 #define JAVA_FALSE  ((JAVA_BOOLEAN) 0)
 #define JAVA_TRUE   ((JAVA_BOOLEAN) 1)
 
-typedef struct _JavaClass JavaClass, *JAVA_CLASS;
-typedef struct _JavaObject JavaObjectBase, *JAVA_OBJECT;
-typedef struct _JavaArray JavaArrayBase, *JAVA_ARRAY;
+typedef struct _JavaClass   JavaClass,      *JAVA_CLASS;
+typedef struct _JavaObject  JavaObjectBase, *JAVA_OBJECT;
+typedef struct _JavaArray   JavaArrayBase,  *JAVA_ARRAY;
 
 // Object prototype
 struct _JavaClass {
-    JAVA_REF ref; // ref of current instance
-
-    JAVA_REF clazz;
+    OPA_ptr_t ref;
+    JAVA_CLASS clazz;
     void *monitor;
 
     const char *className;
 
-    JAVA_REF parentClass;
+    JAVA_CLASS parentClass;
     int interfaceCount;
-    JAVA_REF *parentInterfaces;
+    JAVA_CLASS *parentInterfaces;
 };
 
-struct _JavaObject{
-    JAVA_REF ref; // ref of current instance
-
-    JAVA_REF clazz;
-    void* monitor;
-
+struct _JavaObject {
+    OPA_ptr_t ref;
+    JAVA_CLASS clazz;
+    void *monitor;
 };
 
 typedef enum {
@@ -61,7 +59,7 @@ typedef enum {
 } VMStackSlotType;
 
 typedef union {
-    JAVA_REF    o;
+    JAVA_OBJECT o;
     JAVA_INT    i;
     JAVA_LONG   l;
     JAVA_FLOAT  f;

@@ -19,14 +19,14 @@ struct _VMThreadContext {
     VMThreadCallback terminated;
 
     JAVA_LONG threadId;
-    JAVA_REF currentThread;
+    JAVA_OBJECT currentThread;
 
 //    VMStackSlot* stack;
 //    int sta
 
     void *nativeContext;
 
-    JAVA_REF exception;
+    JAVA_OBJECT exception;
 };
 
 enum {
@@ -93,18 +93,18 @@ JAVA_VOID thread_enter_checkpoint(VM_PARAM_CURRENT_CONTEXT);
 JAVA_VOID thread_leave_checkpoint(VM_PARAM_CURRENT_CONTEXT);
 
 
-int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef);
+int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
-JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef);
+JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
-int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef);
+int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
-int monitor_exit(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef);
+int monitor_exit(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
-int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef, JAVA_LONG timeout, JAVA_INT nanos);
+int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_INT nanos);
 
-int monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef);
+int monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
-int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, JAVA_REF objRef);
+int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
 #endif //FOXVM_VM_THREAD_H
