@@ -6,5 +6,5 @@
 #include <Windows.h>
 
 typedef struct {
-
+    void* _;
 } VMThreadMonitor;

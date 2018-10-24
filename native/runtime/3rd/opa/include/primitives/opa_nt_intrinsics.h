@@ -8,9 +8,9 @@
 #define OPA_NT_INTRINSICS_H_INCLUDED
 
 #define WIN32_LEAN_AND_MEAN
-#include<windows.h>
+#include<Windows.h>
 #include<intrin.h>
-#include "mpi.h"
+//#include "mpi.h"
 
 /* OPA_int_t uses a long because the compiler intrinsics operate on
  * longs instead of ints. */
