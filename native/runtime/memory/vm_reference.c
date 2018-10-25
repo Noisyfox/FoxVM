@@ -3,10 +3,33 @@
 //
 
 #include "vm_reference.h"
+#include <stdint.h>
 
-typedef struct {
-    OPA_ptr_t targetObject; // Not NULL!
-} NativeReference;
+typedef struct _NativeReference     NativeReference;
+typedef struct _ReferenceRowMeta    ReferenceRowMeta;
+typedef struct _ReferenceRow        ReferenceRow;
+typedef struct _ReferenceBlockMeta  ReferenceBlockMeta;
+typedef struct _ReferenceBlock      ReferenceBlock;
+
+struct _ReferenceBlock {
+    union {
+        struct _ReferenceBlockMeta {
+            uint64_t bitmap;
+        } meta;
+
+        struct _ReferenceRow {
+            union {
+                struct _ReferenceRowMeta {
+                    uint64_t bitmap;
+                } meta;
+
+                struct _NativeReference {
+                    OPA_ptr_t targetObject; // Not NULL!
+                } ref;
+            } refs[64];
+        } row;
+    } rows[64];
+};
 
 
 JAVA_REF ref_obtain(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
