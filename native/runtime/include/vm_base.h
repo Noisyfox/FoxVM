@@ -5,10 +5,7 @@
 #ifndef FOXVM_VM_BASE_H
 #define FOXVM_VM_BASE_H
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
-
 #include "opa_primitives.h"
 
 // Java primary type def

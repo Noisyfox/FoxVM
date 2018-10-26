@@ -8,4 +8,5 @@ include ( CheckCSourceCompiles )
 include ( CheckTypeSize )
 include ( CheckSTDC )
 
-ADD_DEFINITIONS(-DHAVE_CONFIG_H)
+check_symbol_exists ( _aligned_malloc "malloc.h" HAVE_ALIGNED_MALLOC )
+check_symbol_exists ( posix_memalign "stdlib.h" HAVE_POSIX_MEMALIGN )

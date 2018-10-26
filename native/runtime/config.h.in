@@ -1,3 +1,7 @@
 
 /* Define to 1 if you have the <pthread.h> header file. */
 #cmakedefine HAVE_PTHREADS
+
+#cmakedefine HAVE_ALIGNED_MALLOC
+
+#cmakedefine HAVE_POSIX_MEMALIGN
