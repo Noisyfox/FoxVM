@@ -30,6 +30,11 @@ JAVA_REF ref_obtain(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 JAVA_REF ref_update(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
 /**
+ * Only used by GC. Free the given reference.
+ */
+void ref_release(VM_PARAM_CURRENT_CONTEXT, JAVA_REF ref);
+
+/**
  * Get object pointer from given reference.
  */
 JAVA_OBJECT ref_dereference(VM_PARAM_CURRENT_CONTEXT, JAVA_REF ref);

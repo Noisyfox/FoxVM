@@ -180,6 +180,10 @@ JAVA_REF ref_update(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     return ref;
 }
 
+void ref_release(VM_PARAM_CURRENT_CONTEXT, JAVA_REF ref) {
+    ref_put_back(ref);
+}
+
 JAVA_OBJECT ref_dereference(VM_PARAM_CURRENT_CONTEXT, JAVA_REF ref) {
     // TODO: make sure not in checkpoint
     return OPA_load_ptr(&((NativeReference *) ref)->targetObject);
