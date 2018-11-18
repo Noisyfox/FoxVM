@@ -6,16 +6,17 @@
 #define FOXVM_VM_BASE_H
 
 #include "config.h"
+#include <stdint.h>
 #include "opa_primitives.h"
 
 // Java primary type def
 typedef void        JAVA_VOID;
-typedef int         JAVA_BOOLEAN;
-typedef int         JAVA_CHAR;
-typedef int         JAVA_BYTE;
-typedef int         JAVA_SHORT;
-typedef int         JAVA_INT;
-typedef long long   JAVA_LONG;
+typedef int8_t      JAVA_BOOLEAN;
+typedef int16_t     JAVA_CHAR;
+typedef int8_t      JAVA_BYTE;
+typedef int16_t     JAVA_SHORT;
+typedef int32_t     JAVA_INT;
+typedef int64_t     JAVA_LONG;
 typedef float       JAVA_FLOAT;
 typedef double      JAVA_DOUBLE;
 

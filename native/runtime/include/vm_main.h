@@ -7,5 +7,6 @@
 
 #include "vm_exception.h"
 #include "vm_memory.h"
+#include "vm_gc.h"
 
 #endif //FOXVM_VM_MAIN_H

@@ -3,6 +3,6 @@
 
 int main() {
     printf("Hello, World!\n");
-    test();
+    heap_init();
     return 0;
 }

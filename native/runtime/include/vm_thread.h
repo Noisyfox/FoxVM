@@ -6,6 +6,7 @@
 #define FOXVM_VM_THREAD_H
 
 #include "vm_base.h"
+#include "vm_memory_base.h"
 
 typedef struct _VMThreadContext VMThreadContext;
 
@@ -27,6 +28,8 @@ struct _VMThreadContext {
     void *nativeContext;
 
     JAVA_OBJECT exception;
+
+    ThreadAllocContext tlab;
 };
 
 enum {

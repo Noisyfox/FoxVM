@@ -16,7 +16,7 @@ set(SOURCE_FILES_RUNTIME
 
         memory/vm_reference.c
         memory/vm_memory.c
-        memory/vm_tlab.c
+        memory/vm_gc.c
         )
 
 # Set thread implementation
