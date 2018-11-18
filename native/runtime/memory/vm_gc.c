@@ -6,7 +6,7 @@
 #include "vm_memory.h"
 
 int heap_init() {
-
+    mem_init();
 }
 
 void tlab_init(VM_PARAM_CURRENT_CONTEXT, ThreadAllocContext *tlab) {

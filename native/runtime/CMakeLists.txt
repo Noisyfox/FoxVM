@@ -28,6 +28,14 @@ else ()
     message(FATAL_ERROR "Not supported on this platform.")
 endif ()
 
+if (HAVE_MMAN_H)
+    list(APPEND SOURCE_FILES_RUNTIME memory/vm_memory_posix.c)
+elseif (WIN32 AND NOT CYGWIN)
+    list(APPEND SOURCE_FILES_RUNTIME memory/vm_memory_win32.c)
+else ()
+    message(FATAL_ERROR "Not supported on this platform.")
+endif ()
+
 add_subdirectory(3rd)
 
 include_directories($<TARGET_PROPERTY:opa,INCLUDE_DIRECTORIES>)
