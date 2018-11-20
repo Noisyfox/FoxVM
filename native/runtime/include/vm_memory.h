@@ -8,6 +8,36 @@
 #define FOXVM_VM_MEMORY_H
 
 #include "vm_base.h"
+#include <stddef.h>
+#include <stdint.h>
+
+// Helper functions to align pointers
+#define align_up_(value, alignment) (((value) + ((alignment) - 1)) & ~((alignment) - 1))
+#define align_down_(value, alignment) ((value) & ~((alignment) - 1))
+
+static inline JAVA_BOOLEAN is_size_aligned_up(size_t size, size_t alignment) {
+    return align_up_(size, alignment) == size ? JAVA_TRUE : JAVA_FALSE;
+}
+
+static inline size_t align_size_up(size_t size, size_t alignment) {
+    return align_up_(size, alignment);
+}
+
+static inline JAVA_BOOLEAN is_ptr_aligned(void *ptr, size_t alignment) {
+    return align_up_((intptr_t) ptr, (intptr_t) alignment) == (intptr_t) ptr ? JAVA_TRUE : JAVA_FALSE;
+}
+
+static inline void *align_ptr(void *ptr, size_t alignment) {
+    return (void *) align_up_((intptr_t) ptr, (intptr_t) alignment);
+}
+
+static inline JAVA_BOOLEAN is_size_aligned_down(size_t size, size_t alignment) {
+    return align_down_(size, alignment) == size ? JAVA_TRUE : JAVA_FALSE;
+}
+
+static inline size_t align_size_down(size_t size, size_t alignment) {
+    return align_down_(size, alignment);
+}
 
 #if defined(HAVE_POSIX_MEMALIGN)
 
@@ -43,7 +73,7 @@ size_t mem_page_size();
 
 size_t mem_alloc_granularity();
 
-void *mem_reserve(void *addr, size_t size);
+void *mem_reserve(void *addr, size_t size, size_t alignment_hint);
 
 JAVA_BOOLEAN mem_commit(void *addr, size_t size);
 

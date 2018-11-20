@@ -28,7 +28,7 @@ size_t mem_alloc_granularity() {
     return _alloc_granularity;
 }
 
-void *mem_reserve(void *addr, size_t size) {
+void *mem_reserve(void *addr, size_t size, size_t alignment_hint) {
     if (((uintptr_t) addr) % mem_alloc_granularity() != 0) {
         // TODO: log unaligned address
         return NULL;
@@ -38,6 +38,7 @@ void *mem_reserve(void *addr, size_t size) {
         return NULL;
     }
 
+    // TODO: make sure addr is aligned
     void *target_addr = VirtualAlloc(addr, size, MEM_RESERVE, PAGE_READWRITE);
 
     if (target_addr != NULL && addr != NULL && target_addr != addr) {
