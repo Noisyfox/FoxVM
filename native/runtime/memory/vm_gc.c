@@ -7,6 +7,9 @@
 
 int heap_init() {
     mem_init();
+
+    // Reserve the whole heap memory address space
+
 }
 
 void tlab_init(VM_PARAM_CURRENT_CONTEXT, ThreadAllocContext *tlab) {
@@ -24,7 +27,25 @@ int alloc_tlab(VM_PARAM_CURRENT_CONTEXT) {
 
 }
 
+/**
+ * @param start
+ * @return usable address after header
+ */
+static void *init_heap_header(void *start) {
+    ObjectHeapHeader *h = start;
+    h->flag = HEAP_FLAG_NORMAL;
+
+    return start + sizeof(ObjectHeapHeader);
+}
+
 void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
+    // Make sure the size can contain a ForwardPointer
+    if (size < sizeof(ForwardPointer)) {
+        size = sizeof(ForwardPointer);
+    }
+    // Add heap header
+    size += sizeof(ObjectHeapHeader);
+
     if (size <= TLAB_MAX_ALLOC) {
         // Try alloc on TLAB
         ThreadAllocContext *tlab = &vmCurrentContext->tlab;
@@ -36,7 +57,8 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
             if (advance <= tlab->tlabLimit) {
                 // Alloc from TLAB by increasing the current pointer
                 tlab->tlabCurrent = advance;
-                return result;
+
+                return init_heap_header(result);
             } else {
                 // Need a new TLAB
                 int r = alloc_tlab(vmCurrentContext);

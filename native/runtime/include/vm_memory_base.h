@@ -5,6 +5,7 @@
 #ifndef FOXVM_VM_MEMORY_STRUCT_H
 #define FOXVM_VM_MEMORY_STRUCT_H
 
+#include <stddef.h>
 #include <stdint.h>
 
 // The size of each TLAB, 8k
@@ -23,5 +24,26 @@ struct _AllocContext {
     uint8_t *tlabCurrent;  // current allocation position of TLAB
     uint8_t *tlabLimit; // The end of TLAB
 };
+
+// The data after the header is a normal object
+#define HEAP_FLAG_NORMAL ((uint32_t) 0x0)
+
+// The original object after the header has been moved to another place and
+// the data now is a forward pointer structure
+#define HEAP_FLAG_FORWARD ((uint32_t) 0x1)
+
+/**
+ * Heap object header (small structure that immediately precedes every object in the GC heap). Only
+ * the GC uses this so far, and only to store a couple of bits of information.
+ */
+typedef struct {
+    // TODO: add padding if target x64
+    uint32_t flag;
+} ObjectHeapHeader;
+
+typedef struct {
+    void *newAddress;
+    size_t remainingSize; // Size of the original object - sizeof(ForwardPointer)
+} ForwardPointer;
 
 #endif //FOXVM_VM_MEMORY_STRUCT_H
