@@ -8,24 +8,32 @@
 
 #include <Windows.h>
 
-static size_t _page_size = 0;
-static size_t _alloc_granularity = 0;
-
 JAVA_BOOLEAN mem_init() {
+    memset(&g_systemMemoryInfo, 0, sizeof(g_systemMemoryInfo));
+
     SYSTEM_INFO si;
     GetSystemInfo(&si);
-    _page_size = si.dwPageSize;
-    _alloc_granularity = si.dwAllocationGranularity;
+    g_systemMemoryInfo.pageSize = si.dwPageSize;
+    g_systemMemoryInfo.allocGranularity = si.dwAllocationGranularity;
 
     return JAVA_TRUE;
 }
 
-size_t mem_page_size() {
-    return _page_size;
-}
+JAVA_BOOLEAN mem_get_status(MemoryStatus *status) {
+    memset(status, 0, sizeof(MemoryStatus));
 
-size_t mem_alloc_granularity() {
-    return _alloc_granularity;
+    MEMORYSTATUSEX memStatus;
+    memStatus.dwLength = sizeof(MEMORYSTATUSEX);
+    if (GlobalMemoryStatusEx(&memStatus)) {
+        status->totalPhys = memStatus.ullTotalPhys;
+        status->availPhys = memStatus.ullAvailPhys;
+        status->totalVirt = memStatus.ullTotalVirtual;
+        status->availVirt = memStatus.ullAvailVirtual;
+
+        return JAVA_TRUE;
+    } else {
+        return JAVA_FALSE;
+    }
 }
 
 void *mem_reserve(void *addr, size_t size, size_t alignment_hint) {

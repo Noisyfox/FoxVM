@@ -35,7 +35,7 @@ static void *init_heap_header(void *start) {
     ObjectHeapHeader *h = start;
     h->flag = HEAP_FLAG_NORMAL;
 
-    return start + sizeof(ObjectHeapHeader);
+    return (void *) (((uintptr_t) start) + sizeof(ObjectHeapHeader));
 }
 
 void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {

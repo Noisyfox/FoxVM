@@ -8,6 +8,7 @@
 #define FOXVM_VM_MEMORY_H
 
 #include "vm_base.h"
+#include "vm_memory_base.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -67,11 +68,19 @@ static inline void *mem_aligned_malloc(size_t size, size_t alignment) {
 #error no aligned malloc implementation specified
 #endif
 
+extern SystemMemoryInfo g_systemMemoryInfo;
+
 JAVA_BOOLEAN mem_init();
 
-size_t mem_page_size();
+static inline uint32_t mem_page_size() {
+    return g_systemMemoryInfo.pageSize;
+}
 
-size_t mem_alloc_granularity();
+static inline uint32_t mem_alloc_granularity() {
+    return g_systemMemoryInfo.allocGranularity;
+}
+
+JAVA_BOOLEAN mem_get_status(MemoryStatus *status);
 
 void *mem_reserve(void *addr, size_t size, size_t alignment_hint);
 

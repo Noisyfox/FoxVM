@@ -8,6 +8,18 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct {
+    uint32_t pageSize;
+    uint32_t allocGranularity;
+} SystemMemoryInfo;
+
+typedef struct {
+    uint64_t totalPhys;
+    uint64_t availPhys;
+    uint64_t totalVirt;
+    uint64_t availVirt;
+} MemoryStatus;
+
 // The size of each TLAB, 8k
 #define TLAB_SIZE  ((size_t)(8*1024))
 

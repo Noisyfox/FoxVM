@@ -5,21 +5,30 @@
 #include "vm_memory.h"
 #include <sys/mman.h>
 #include <unistd.h>
+#include <string.h>
 
-static size_t _page_size = 0;
 
 JAVA_BOOLEAN mem_init() {
-    _page_size = (size_t) sysconf(_SC_PAGESIZE);
+    memset(&g_systemMemoryInfo, 0, sizeof(g_systemMemoryInfo));
+
+    g_systemMemoryInfo.pageSize = (uint32_t) sysconf(_SC_PAGESIZE);
+    g_systemMemoryInfo.allocGranularity = g_systemMemoryInfo.pageSize;
 
     return JAVA_TRUE;
 }
 
-size_t mem_page_size() {
-    return _page_size;
-}
+JAVA_BOOLEAN mem_get_status(MemoryStatus *status) {
+    memset(status, 0, sizeof(MemoryStatus));
 
-size_t mem_alloc_granularity() {
-    return _page_size;
+    status->totalPhys = ((uint64_t) g_systemMemoryInfo.pageSize) * sysconf(_SC_PHYS_PAGES);
+    status->availPhys = ((uint64_t) g_systemMemoryInfo.pageSize) * sysconf(_SC_AVPHYS_PAGES);
+
+    // Not available on general POSIX system, use a large value here.
+    static const uint64_t _128TB = (1ull << 47);
+    status->totalVirt = _128TB;
+    status->availVirt = _128TB;
+
+    return JAVA_TRUE;
 }
 
 void *mem_reserve(void *addr, size_t size, size_t alignment_hint) {
