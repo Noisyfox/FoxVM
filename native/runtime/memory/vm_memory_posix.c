@@ -33,7 +33,7 @@ JAVA_BOOLEAN mem_get_status(MemoryStatus *status) {
 
 void *mem_reserve(void *addr, size_t size, size_t alignment_hint) {
     // Make sure start addr is aligned
-    if (is_ptr_aligned(addr, alignment_hint) != JAVA_FALSE) {
+    if (is_ptr_aligned(addr, alignment_hint) != JAVA_TRUE) {
         // TODO: log unaligned address
         return NULL;
     }
