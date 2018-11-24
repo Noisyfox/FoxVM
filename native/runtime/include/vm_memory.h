@@ -40,6 +40,8 @@ static inline size_t align_size_down(size_t size, size_t alignment) {
     return align_down_(size, alignment);
 }
 
+#define ptr_offset(ptr, offset) ((void*)((uintptr_t)(ptr)) + (offset))
+
 #if defined(HAVE_POSIX_MEMALIGN)
 
 #include <stdlib.h>

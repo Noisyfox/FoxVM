@@ -7,11 +7,17 @@
 
 #include "vm_thread.h"
 
+typedef struct {
+    size_t maxSize;
+    uint32_t newRatio;
+    uint32_t survivorRatio;
+} HeapConfig;
+
 /**
  * Initialize global application heap.
  * @return 0 if success, 1 otherwise.
  */
-int heap_init();
+int heap_init(HeapConfig *config);
 
 void tlab_init(VM_PARAM_CURRENT_CONTEXT, ThreadAllocContext *tlab);
 
