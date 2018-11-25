@@ -21,7 +21,7 @@ typedef enum {
 
 struct _JavaArray {
     OPA_ptr_t ref;
-    JAVA_CLASS clazz;
+    OPA_ptr_t clazz;
     void *monitor;
 
     int length;

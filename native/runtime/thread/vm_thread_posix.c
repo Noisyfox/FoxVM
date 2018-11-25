@@ -379,7 +379,7 @@ int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     JAVA_REF obj_ref = ref_obtain(vmCurrentContext, obj); // Save the reference before enter checkpoint
 
     if (obj->monitor == NULL) {
-        JAVA_CLASS clazz = obj->clazz;
+        JAVA_CLASS clazz = obj_get_class(obj);
         if (clazz == (JAVA_CLASS) JAVA_NULL) {
             // Class monitor should be created by class loader
             return thrd_error;

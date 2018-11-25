@@ -31,7 +31,7 @@ typedef struct _JavaArray   JavaArrayBase,  *JAVA_ARRAY;
 // Object prototype
 struct _JavaClass {
     OPA_ptr_t ref;
-    JAVA_CLASS clazz;
+    OPA_ptr_t clazz;
     void *monitor;
 
     const char *className;
@@ -43,7 +43,7 @@ struct _JavaClass {
 
 struct _JavaObject {
     OPA_ptr_t ref;
-    JAVA_CLASS clazz;
+    OPA_ptr_t clazz;
     void *monitor;
 };
 
@@ -68,5 +68,91 @@ typedef struct {
     VMStackSlotType type;
     VMStackSlotData data;
 } VMStackSlot;
+
+#define OBJECT_FLAG_MASK ((uintptr_t)0xFFF)
+
+static inline JAVA_CLASS obj_get_class(JAVA_OBJECT obj) {
+    // The class instance is allocated with a alignment of 4096
+    // so the lower 12 bits of the pointer can be used as other
+    // flags. When we want the real address of the class instance,
+    // we need to zero out the lower bits
+
+    uintptr_t ref = (uintptr_t) OPA_load_ptr(&obj->clazz);
+    ref = ref & (~OBJECT_FLAG_MASK);
+
+    return (void *) ref;
+}
+
+static inline void obj_set_flags(JAVA_OBJECT obj, uintptr_t flags) {
+    flags &= OBJECT_FLAG_MASK;
+
+    void *orig_ref = OPA_load_ptr(&obj->clazz);
+
+    while (1) {
+        uintptr_t new_ref = ((uintptr_t) orig_ref) | flags;
+        void *prev = OPA_cas_ptr(&obj->clazz, orig_ref, (void *) new_ref);
+        if (prev == orig_ref) {
+            break;
+        } else {
+            orig_ref = prev;
+        }
+    }
+}
+
+static inline void obj_clear_flags(JAVA_OBJECT obj, uintptr_t flags) {
+    flags &= OBJECT_FLAG_MASK;
+    flags = ~flags;
+
+    void *orig_ref = OPA_load_ptr(&obj->clazz);
+
+    while (1) {
+        uintptr_t new_ref = ((uintptr_t) orig_ref) & flags;
+        void *prev = OPA_cas_ptr(&obj->clazz, orig_ref, (void *) new_ref);
+        if (prev == orig_ref) {
+            break;
+        } else {
+            orig_ref = prev;
+        }
+    }
+}
+
+static inline void obj_reset_flags(JAVA_OBJECT obj, uintptr_t flags) {
+    flags &= OBJECT_FLAG_MASK;
+
+    void *orig_ref = OPA_load_ptr(&obj->clazz);
+
+    while (1) {
+        uintptr_t new_ref = (((uintptr_t) orig_ref) & (~OBJECT_FLAG_MASK)) | flags;
+        void *prev = OPA_cas_ptr(&obj->clazz, orig_ref, (void *) new_ref);
+        if (prev == orig_ref) {
+            break;
+        } else {
+            orig_ref = prev;
+        }
+    }
+}
+
+static inline uintptr_t obj_get_flags(JAVA_OBJECT obj) {
+    uintptr_t ref = (uintptr_t) OPA_load_ptr(&obj->clazz);
+
+    return ref & OBJECT_FLAG_MASK;
+}
+
+static inline JAVA_BOOLEAN obj_test_flags_and(JAVA_OBJECT obj, uintptr_t flags) {
+    flags &= OBJECT_FLAG_MASK;
+
+    uintptr_t current_flags = obj_get_flags(obj);
+
+    return (flags & current_flags) == flags ? JAVA_TRUE : JAVA_FALSE;
+}
+
+static inline JAVA_BOOLEAN obj_test_flags_or(JAVA_OBJECT obj, uintptr_t flags) {
+    flags &= OBJECT_FLAG_MASK;
+
+    uintptr_t current_flags = obj_get_flags(obj);
+
+    return (flags & current_flags) != 0 ? JAVA_TRUE : JAVA_FALSE;
+}
+
 
 #endif //FOXVM_VM_BASE_H
