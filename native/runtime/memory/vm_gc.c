@@ -10,6 +10,7 @@
 #define SYNC_LOCK_FREE 0
 #define SYNC_LOCK_HELD 1
 
+// Header for the young gen
 typedef struct {
     OPA_int_t sync; // Global lock for accessing the young gen
 
@@ -20,6 +21,19 @@ typedef struct {
     void *survivorMiddle;
     void *youngEnd;
 } JavaHeapYoungGen;
+
+// Header for the whole heap
+typedef struct {
+    uint64_t heapSize;
+
+    uint64_t tlabSize;
+    uint64_t tlabMaxAllocSize;
+    uint64_t largeObjectSize;
+
+    JavaHeapYoungGen* youngGenHeader;
+} JavaHeap;
+
+static JavaHeap *g_heap = NULL;
 
 
 int heap_init(HeapConfig *config) {
@@ -38,7 +52,10 @@ int heap_init(HeapConfig *config) {
     max_heap_size = align_size_down(max_heap_size, mem_page_size());
     // TODO: check if max_heap_size is too small
 
-    uint64_t young_gen_size = max_heap_size / (config->newRatio + 1);
+    uint64_t heap_header_size = align_size_up(sizeof(JavaHeap), mem_page_size());
+    uint64_t heap_data_size = max_heap_size - heap_header_size;
+
+    uint64_t young_gen_size = heap_data_size / (config->newRatio + 1);
     young_gen_size = align_size_down(young_gen_size, mem_page_size());
 
     uint64_t survivor_size = young_gen_size / (config->survivorRatio + 2);
@@ -47,21 +64,29 @@ int heap_init(HeapConfig *config) {
     uint64_t young_gen_header_size = align_size_up(sizeof(JavaHeapYoungGen), mem_alloc_granularity());
     uint64_t eden_size = young_gen_size - young_gen_header_size - survivor_size * 2;
 
-    uint64_t old_gen_size = max_heap_size - young_gen_size;
+    uint64_t old_gen_size = heap_data_size - young_gen_size;
 
     // Reserve the whole heap
     void *heap_mem = mem_reserve(NULL, max_heap_size, mem_page_size());
 
-    // Commit the young gen header
-    if (mem_commit(heap_mem, young_gen_header_size) != JAVA_TRUE) {
+    // Commit the heap header + young gen header
+    if (mem_commit(heap_mem, heap_header_size + young_gen_header_size) != JAVA_TRUE) {
         mem_release(heap_mem, max_heap_size);
         return -1;
     }
-    memset(heap_mem, 0, young_gen_header_size);
-    JavaHeapYoungGen *young_gen = heap_mem;
+    memset(heap_mem, 0, heap_header_size + young_gen_header_size);
+    JavaHeap *heap = heap_mem;
+    // Init heap header
+    heap->heapSize = max_heap_size;
+    heap->tlabSize = align_size_up(TLAB_SIZE_MIN, mem_alloc_granularity());
+    heap->tlabMaxAllocSize = heap->tlabSize / TLAB_MAX_ALLOC_RATIO;
+    heap->largeObjectSize = LARGE_OBJECT_SIZE_MIN;
+
+    JavaHeapYoungGen *young_gen = ptr_offset(heap_mem, heap_header_size);
+    heap->youngGenHeader = young_gen;
     // Init young gen header
     OPA_store_int(&young_gen->sync, SYNC_LOCK_FREE);
-    young_gen->edenStart = ptr_offset(heap_mem, young_gen_header_size);
+    young_gen->edenStart = ptr_offset(young_gen, young_gen_header_size);
     young_gen->largeObjIndex = young_gen->edenStart;
     young_gen->edenEnd = ptr_offset(young_gen->edenStart, eden_size);
     young_gen->tlabIndex = young_gen->edenEnd;
@@ -76,7 +101,7 @@ int heap_init(HeapConfig *config) {
 
     // Init old gen
 
-
+    g_heap = heap;
     return 0;
 }
 
@@ -114,7 +139,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
     // Add heap header
     size += sizeof(ObjectHeapHeader);
 
-    if (size <= TLAB_MAX_ALLOC) {
+    if (size <= g_heap->tlabMaxAllocSize) {
         // Try alloc on TLAB
         ThreadAllocContext *tlab = &vmCurrentContext->tlab;
 
@@ -135,7 +160,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
                 }
             }
         }
-    } else if (size > LARGE_OBJECT_SIZE) {
+    } else if (size > g_heap->largeObjectSize) {
         // Alloc on old gen
 
     } else {

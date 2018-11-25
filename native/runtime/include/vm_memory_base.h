@@ -21,13 +21,13 @@ typedef struct {
 } MemoryStatus;
 
 // The size of each TLAB, 8k
-#define TLAB_SIZE  ((size_t)(8*1024))
+#define TLAB_SIZE_MIN  ((size_t)(8*1024))
 
-// Object larger than half of TLAB_SIZE will alloc out of TLAB
-#define TLAB_MAX_ALLOC (TLAB_SIZE / 2)
+// Object larger than 1/4 of TLAB_SIZE will alloc out of TLAB
+#define TLAB_MAX_ALLOC_RATIO 4
 
 // Large objects go directly to old gen
-#define LARGE_OBJECT_SIZE ((size_t)(85000))
+#define LARGE_OBJECT_SIZE_MIN ((size_t)(85000))
 
 typedef struct _AllocContext ThreadAllocContext;
 
