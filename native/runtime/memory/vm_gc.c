@@ -81,15 +81,24 @@ int heap_init(HeapConfig *config) {
     uint64_t old_gen_bytemap_data_size = old_gen_size - old_gen_header_size;
     uint64_t old_gen_remain = old_gen_bytemap_data_size % old_gen_chunk_size;
     uint64_t old_gen_chunk_count = old_gen_bytemap_data_size / old_gen_chunk_size;
-    while (old_gen_remain < old_gen_chunk_count && old_gen_chunk_count > 0) {
-        old_gen_chunk_count--;
-        old_gen_remain += old_gen_chunk_size;
+    if (old_gen_remain < old_gen_chunk_count) {
+        // calculate L so that remain + chunk_size * L >= chunk_count - L
+        // so that L >= (chunk_count - count_remain) / (chunk_size + 1)
+        uint64_t d = old_gen_chunk_count - old_gen_remain;
+        uint64_t c_1 = old_gen_chunk_size + 1;
+        uint64_t l = d / c_1;
+        if (l * c_1 < d) {
+            l++;
+        }
+
+        if (old_gen_chunk_count <= l) {
+            return -1;
+        }
+        old_gen_remain += l * old_gen_chunk_size;
+        old_gen_chunk_count -= l;
     }
     if (is_size_aligned_up(old_gen_remain, mem_alloc_granularity()) != JAVA_TRUE) {
         // Make sure the remaining is aligned
-        return -1;
-    }
-    if (old_gen_chunk_count == 0) {
         return -1;
     }
 
