@@ -22,6 +22,15 @@ typedef struct {
     void *youngEnd;
 } JavaHeapYoungGen;
 
+typedef struct {
+    OPA_int_t sync; // Global lock for accessing the old gen
+
+    uint64_t chunkSize;
+    uint64_t chunkCount;
+    uint8_t *byteMap;
+    void *dataStart;
+} JavaHeapOldGen;
+
 // Header for the whole heap
 typedef struct {
     uint64_t heapSize;
@@ -30,7 +39,8 @@ typedef struct {
     uint64_t tlabMaxAllocSize;
     uint64_t largeObjectSize;
 
-    JavaHeapYoungGen* youngGenHeader;
+    JavaHeapYoungGen *youngGenHeader;
+    JavaHeapOldGen *oldGenHeader;
 } JavaHeap;
 
 static JavaHeap *g_heap = NULL;
@@ -65,6 +75,23 @@ int heap_init(HeapConfig *config) {
     uint64_t eden_size = young_gen_size - young_gen_header_size - survivor_size * 2;
 
     uint64_t old_gen_size = heap_data_size - young_gen_size;
+    uint64_t old_gen_header_size = align_size_up(sizeof(JavaHeapOldGen), mem_alloc_granularity());
+    uint64_t old_gen_chunk_size = align_size_up(OLD_GEN_CHUNK_SIZE_MIN, mem_alloc_granularity());
+    // Calculate required bytemap size
+    uint64_t old_gen_bytemap_data_size = old_gen_size - old_gen_header_size;
+    uint64_t old_gen_remain = old_gen_bytemap_data_size % old_gen_chunk_size;
+    uint64_t old_gen_chunk_count = old_gen_bytemap_data_size / old_gen_chunk_size;
+    while (old_gen_remain < old_gen_chunk_count && old_gen_chunk_count > 0) {
+        old_gen_chunk_count--;
+        old_gen_remain += old_gen_chunk_size;
+    }
+    if (is_size_aligned_up(old_gen_remain, mem_alloc_granularity()) != JAVA_TRUE) {
+        // Make sure the remaining is aligned
+        return -1;
+    }
+    if (old_gen_chunk_count == 0) {
+        return -1;
+    }
 
     // Reserve the whole heap
     void *heap_mem = mem_reserve(NULL, max_heap_size, mem_page_size());
@@ -99,7 +126,27 @@ int heap_init(HeapConfig *config) {
         return -1;
     }
 
+    // Commit old gen header + bytemap
+    if (mem_commit(young_gen->youngEnd, old_gen_header_size + old_gen_remain) != JAVA_TRUE) {
+        mem_release(heap_mem, max_heap_size);
+        return -1;
+    }
+    memset(young_gen->youngEnd, 0, old_gen_header_size + old_gen_remain);
+    JavaHeapOldGen *old_gen = young_gen->youngEnd;
+    heap->oldGenHeader = old_gen;
     // Init old gen
+    OPA_store_int(&old_gen->sync, SYNC_LOCK_FREE);
+    old_gen->chunkSize = old_gen_chunk_size;
+    old_gen->chunkCount = old_gen_chunk_count;
+    old_gen->byteMap = ptr_offset(old_gen, old_gen_header_size);
+    old_gen->dataStart = ptr_offset(old_gen->byteMap, old_gen_remain);
+
+    // Double check
+    if (ptr_offset(old_gen->dataStart, old_gen->chunkSize * old_gen->chunkCount) !=
+        ptr_offset(heap_mem, max_heap_size)) {
+        mem_release(heap_mem, max_heap_size);
+        return -1;
+    }
 
     g_heap = heap;
     return 0;

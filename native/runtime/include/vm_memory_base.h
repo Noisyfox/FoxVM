@@ -29,6 +29,9 @@ typedef struct {
 // Large objects go directly to old gen
 #define LARGE_OBJECT_SIZE_MIN ((size_t)(85000))
 
+// Min size of each chunk in old gen
+#define OLD_GEN_CHUNK_SIZE_MIN ((size_t)4*1024)
+
 typedef struct _AllocContext ThreadAllocContext;
 
 struct _AllocContext {
