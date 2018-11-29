@@ -202,7 +202,7 @@ int thread_start(VM_PARAM_CURRENT_CONTEXT) {
 }
 
 int thread_sleep(VM_PARAM_CURRENT_CONTEXT, JAVA_LONG timeout, JAVA_INT nanos) {
-    thread_enter_checkpoint(vmCurrentContext);
+    thread_enter_saferegion(vmCurrentContext);
 
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
 
@@ -223,7 +223,7 @@ int thread_sleep(VM_PARAM_CURRENT_CONTEXT, JAVA_LONG timeout, JAVA_INT nanos) {
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }
 
-    thread_leave_checkpoint(vmCurrentContext);
+    thread_leave_saferegion(vmCurrentContext);
 
     if (interrupt) {
         return thrd_interrupt;
@@ -307,7 +307,7 @@ JAVA_VOID thread_resume_the_world(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *tar
     }
 }
 
-JAVA_VOID thread_enter_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
+JAVA_VOID thread_enter_saferegion(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
@@ -321,7 +321,7 @@ JAVA_VOID thread_enter_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
     }
 }
 
-JAVA_VOID thread_leave_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
+JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
@@ -406,7 +406,7 @@ int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     ObjectMonitor *m = obj->monitor; // Obtain the monitor before enter checkpoint
 
     // Do lock
-    thread_enter_checkpoint(vmCurrentContext);
+    thread_enter_saferegion(vmCurrentContext);
     JAVA_LONG current_thread_id = vmCurrentContext->threadId;
     pthread_mutex_lock(&m->masterMutex);
     {
@@ -425,7 +425,7 @@ int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
         pthread_mutex_unlock(&m->masterMutex);
     }
 
-    thread_leave_checkpoint(vmCurrentContext);
+    thread_leave_saferegion(vmCurrentContext);
 
     return thrd_success;
 }
@@ -463,12 +463,12 @@ int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, J
         return thrd_error;
     }
 
-    thread_enter_checkpoint(vmCurrentContext);
+    thread_enter_saferegion(vmCurrentContext);
 
     // Make sure the obj lock is held by current thread
     JAVA_LONG current_thread_id = vmCurrentContext->threadId;
     if (current_thread_id != m->ownerThreadId) {
-        thread_leave_checkpoint(vmCurrentContext);
+        thread_leave_saferegion(vmCurrentContext);
         return thrd_lock;
     }
 
@@ -537,7 +537,7 @@ int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, J
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }
 
-    thread_leave_checkpoint(vmCurrentContext);
+    thread_leave_saferegion(vmCurrentContext);
 
     if (interrupt) {
         return thrd_interrupt;

@@ -84,16 +84,16 @@ JAVA_VOID thread_wait_until_checkpoint(VM_PARAM_CURRENT_CONTEXT, VMThreadContext
 JAVA_VOID thread_resume_the_world(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target);
 
 /**
- * Mark current thread is in a check point, so GC thread can start marking this thread.
+ * Mark current thread is in a safe region, so GC thread can start marking this thread.
  */
-JAVA_VOID thread_enter_checkpoint(VM_PARAM_CURRENT_CONTEXT);
+JAVA_VOID thread_enter_saferegion(VM_PARAM_CURRENT_CONTEXT);
 
 /**
- * Mark the current thread is gonna leave the check point. If the GC thread is currently
+ * Mark the current thread is gonna leave the safe region. If the GC thread is currently
  * working on this thread (by calling thread_stop_the_world() on this thread without calling
  * thread_resume_the_world()), then this method will block until GC thread finishes its work.
  */
-JAVA_VOID thread_leave_checkpoint(VM_PARAM_CURRENT_CONTEXT);
+JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT);
 
 
 int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
