@@ -52,8 +52,8 @@ add_c_library(
         vm_main.c
 
         LIBRARIES
-        Threads::Threads
 
         LOCAL_LIBRARIES
+        Threads::Threads
         opa
 )

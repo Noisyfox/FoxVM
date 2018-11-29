@@ -11,11 +11,11 @@ include(configure)
 
 configure_file(opa_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/opa_config.h)
 
-set(LIBRARIES_OPA)
+set(LOCAL_LIBRARIES_OPA)
 
 # Set thread implementation
 if (OPA_HAVE_PTHREAD_H)
-    list(APPEND LIBRARIES_OPA Threads::Threads)
+    list(APPEND LOCAL_LIBRARIES_OPA Threads::Threads)
 endif ()
 
 add_c_library(
@@ -28,6 +28,6 @@ add_c_library(
         opa_primitives.c
         opa_queue.c
 
-        LIBRARIES
-        ${LIBRARIES_OPA}
+        LOCAL_LIBRARIES
+        ${LOCAL_LIBRARIES_OPA}
 )
