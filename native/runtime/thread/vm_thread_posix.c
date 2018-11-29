@@ -81,7 +81,7 @@ struct _NativeThreadContext {
     // GC specific flags
     pthread_mutex_t gcMutex;
     pthread_cond_t gcCondition;
-    int checkPointReentranceCounter;
+    int safeRegionReentranceCounter;
     JAVA_BOOLEAN stopTheWorld;
     JAVA_BOOLEAN inCheckPoint;
     JAVA_BOOLEAN waitingForResume;
@@ -312,7 +312,7 @@ JAVA_VOID thread_enter_saferegion(VM_PARAM_CURRENT_CONTEXT) {
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
         nativeContext->inCheckPoint = JAVA_TRUE;
-        nativeContext->checkPointReentranceCounter++;
+        nativeContext->safeRegionReentranceCounter++;
         if (nativeContext->stopTheWorld) {
             // Notify GC thread
             pthread_cond_signal(&nativeContext->gcCondition);
@@ -325,9 +325,9 @@ JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
-        nativeContext->checkPointReentranceCounter--;
-        if (nativeContext->checkPointReentranceCounter <= 0) {
-            nativeContext->checkPointReentranceCounter = 0;
+        nativeContext->safeRegionReentranceCounter--;
+        if (nativeContext->safeRegionReentranceCounter <= 0) {
+            nativeContext->safeRegionReentranceCounter = 0;
 
             nativeContext->waitingForResume = JAVA_TRUE;
             while (nativeContext->stopTheWorld) {
@@ -336,6 +336,28 @@ JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT) {
             nativeContext->waitingForResume = JAVA_FALSE;
             nativeContext->inCheckPoint = JAVA_FALSE;
         }
+
+        pthread_mutex_unlock(&nativeContext->gcMutex);
+    }
+}
+
+JAVA_VOID thread_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
+    NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
+    pthread_mutex_lock(&nativeContext->gcMutex);
+    {
+        // TODO: Make sure we are not in safe region already
+
+        nativeContext->inCheckPoint = JAVA_TRUE;
+        if (nativeContext->stopTheWorld) {
+            // Notify GC thread
+            pthread_cond_signal(&nativeContext->gcCondition);
+        }
+        nativeContext->waitingForResume = JAVA_TRUE;
+        while (nativeContext->stopTheWorld) {
+            pthread_cond_wait(&nativeContext->gcCondition, &nativeContext->gcMutex);
+        }
+        nativeContext->waitingForResume = JAVA_FALSE;
+        nativeContext->inCheckPoint = JAVA_FALSE;
 
         pthread_mutex_unlock(&nativeContext->gcMutex);
     }

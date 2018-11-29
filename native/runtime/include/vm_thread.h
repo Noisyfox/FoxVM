@@ -95,6 +95,14 @@ JAVA_VOID thread_enter_saferegion(VM_PARAM_CURRENT_CONTEXT);
  */
 JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT);
 
+/**
+ * Check if gc is trying to suspend the thread. If stopTheWorld==true then this function will
+ * block until gc is finished.
+ *
+ * Equivalent to call thread_leave_saferegion() immediately after thread_enter_saferegion().
+ */
+JAVA_VOID thread_checkpoint(VM_PARAM_CURRENT_CONTEXT);
+
 
 int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
