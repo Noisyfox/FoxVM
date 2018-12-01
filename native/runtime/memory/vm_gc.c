@@ -15,10 +15,13 @@ typedef struct {
     OPA_int_t sync; // Global lock for accessing the young gen
 
     void *edenStart;
+    void *reservedEnd;
     void *largeObjIndex;
     void *tlabIndex;
     void *edenEnd;
+    void *survivor0Limit;
     void *survivorMiddle;
+    void *survivor1Limit;
     void *youngEnd;
 } JavaHeapYoungGen;
 
@@ -42,6 +45,33 @@ typedef struct {
     JavaHeapYoungGen *youngGenHeader;
     JavaHeapOldGen *oldGenHeader;
 } JavaHeap;
+
+size_t young_gen_expand(JavaHeapYoungGen *youngGen, size_t increase) {
+    if (increase == 0) {
+        return 0;
+    }
+
+    increase = align_size_up(increase, mem_page_size());
+
+    void *current_reserved_end = youngGen->reservedEnd;
+    void *new_reserved_end = ptr_dec(current_reserved_end, increase);
+
+    if (new_reserved_end > current_reserved_end) {
+        // Overflow?
+        return 0;
+    }
+    if (new_reserved_end < youngGen->edenStart) {
+        increase = (size_t) (((uintptr_t) current_reserved_end) - ((uintptr_t) youngGen->edenStart));
+        new_reserved_end = youngGen->edenStart;
+    }
+
+    if (mem_commit(new_reserved_end, increase) != JAVA_TRUE) {
+        return 0;
+    }
+
+    youngGen->reservedEnd = new_reserved_end;
+    return increase;
+}
 
 static JavaHeap *g_heap = NULL;
 
@@ -73,6 +103,7 @@ int heap_init(HeapConfig *config) {
 
     uint64_t young_gen_header_size = align_size_up(sizeof(JavaHeapYoungGen), mem_alloc_granularity());
     uint64_t eden_size = young_gen_size - young_gen_header_size - survivor_size * 2;
+    uint64_t eden_initial_size = eden_size / 8;
 
     uint64_t old_gen_size = heap_data_size - young_gen_size;
     uint64_t old_gen_header_size = align_size_up(sizeof(JavaHeapOldGen), mem_alloc_granularity());
@@ -118,19 +149,27 @@ int heap_init(HeapConfig *config) {
     heap->tlabMaxAllocSize = heap->tlabSize / TLAB_MAX_ALLOC_RATIO;
     heap->largeObjectSize = LARGE_OBJECT_SIZE_MIN;
 
-    JavaHeapYoungGen *young_gen = ptr_offset(heap_mem, heap_header_size);
+    JavaHeapYoungGen *young_gen = ptr_inc(heap_mem, heap_header_size);
     heap->youngGenHeader = young_gen;
     // Init young gen header
     OPA_store_int(&young_gen->sync, SYNC_LOCK_FREE);
-    young_gen->edenStart = ptr_offset(young_gen, young_gen_header_size);
-    young_gen->largeObjIndex = young_gen->edenStart;
-    young_gen->edenEnd = ptr_offset(young_gen->edenStart, eden_size);
+    young_gen->edenStart = ptr_inc(young_gen, young_gen_header_size);
+    young_gen->edenEnd = ptr_inc(young_gen->edenStart, eden_size);
+    young_gen->reservedEnd = young_gen->edenEnd;
     young_gen->tlabIndex = young_gen->edenEnd;
-    young_gen->survivorMiddle = ptr_offset(young_gen->edenEnd, survivor_size);
-    young_gen->youngEnd = ptr_offset(young_gen->survivorMiddle, survivor_size);
+    young_gen->survivor0Limit = young_gen->edenEnd;
+    young_gen->survivorMiddle = ptr_inc(young_gen->edenEnd, survivor_size);
+    young_gen->survivor1Limit = young_gen->survivorMiddle;
+    young_gen->youngEnd = ptr_inc(young_gen->survivorMiddle, survivor_size);
+    // Pre-alloc eden initial space
+    if (young_gen_expand(young_gen, eden_initial_size) < eden_initial_size) {
+        mem_release(heap_mem, max_heap_size);
+        return -1;
+    }
+    young_gen->largeObjIndex = young_gen->reservedEnd;
 
     // Double check
-    if (ptr_offset(young_gen, young_gen_size) != young_gen->youngEnd) {
+    if (ptr_inc(young_gen, young_gen_size) != young_gen->youngEnd) {
         mem_release(heap_mem, max_heap_size);
         return -1;
     }
@@ -147,12 +186,12 @@ int heap_init(HeapConfig *config) {
     OPA_store_int(&old_gen->sync, SYNC_LOCK_FREE);
     old_gen->chunkSize = old_gen_chunk_size;
     old_gen->chunkCount = old_gen_chunk_count;
-    old_gen->byteMap = ptr_offset(old_gen, old_gen_header_size);
-    old_gen->dataStart = ptr_offset(old_gen->byteMap, old_gen_remain);
+    old_gen->byteMap = ptr_inc(old_gen, old_gen_header_size);
+    old_gen->dataStart = ptr_inc(old_gen->byteMap, old_gen_remain);
 
     // Double check
-    if (ptr_offset(old_gen->dataStart, old_gen->chunkSize * old_gen->chunkCount) !=
-        ptr_offset(heap_mem, max_heap_size)) {
+    if (ptr_inc(old_gen->dataStart, old_gen->chunkSize * old_gen->chunkCount) !=
+        ptr_inc(heap_mem, max_heap_size)) {
         mem_release(heap_mem, max_heap_size);
         return -1;
     }
@@ -184,7 +223,7 @@ static void *init_heap_header(void *start) {
     ObjectHeapHeader *h = start;
     h->flag = HEAP_FLAG_NORMAL;
 
-    return ptr_offset(start, sizeof(ObjectHeapHeader));
+    return ptr_inc(start, sizeof(ObjectHeapHeader));
 }
 
 void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
