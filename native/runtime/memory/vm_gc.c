@@ -10,6 +10,14 @@
 #define SYNC_LOCK_FREE 0
 #define SYNC_LOCK_HELD 1
 
+static void sync_enter(OPA_int_t *sync) {
+
+}
+
+static void sync_exit(OPA_int_t *sync) {
+
+}
+
 // Header for the young gen
 typedef struct {
     OPA_int_t sync; // Global lock for accessing the young gen
@@ -209,10 +217,32 @@ void tlab_init(VM_PARAM_CURRENT_CONTEXT, ThreadAllocContext *tlab) {
 /**
  * Get a new TLAB buffer.
  * @param __vmCurrentThreadContext
- * @return 0 for success, 1 otherwise.
+ * @return 0 for success, -1 need retry, 1 otherwise.
  */
 int alloc_tlab(VM_PARAM_CURRENT_CONTEXT) {
+    // Give GC a chance to run before we try alloc more space
+    thread_checkpoint(vmCurrentContext);
 
+    JavaHeapYoungGen *youngGen = g_heap->youngGenHeader;
+
+    // Acquire the young gen lock
+    sync_enter(&youngGen->sync);
+
+    void *limit = youngGen->tlabIndex;
+    void *head = ptr_dec(limit, g_heap->tlabSize);
+    if (head < youngGen->largeObjIndex) {
+        // TODO: Eden full, need GC
+    } else {
+        youngGen->tlabIndex = head;
+        ThreadAllocContext *tlab = &vmCurrentContext->tlab;
+        tlab->tlabHead = head;
+        tlab->tlabCurrent = head;
+        tlab->tlabLimit = limit;
+
+        // Release lock
+        sync_exit(&youngGen->sync);
+        return 0;
+    }
 }
 
 /**
@@ -250,7 +280,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
             } else {
                 // Need a new TLAB
                 int r = alloc_tlab(vmCurrentContext);
-                if (r) {
+                if (r > 0) {
                     return NULL;
                 }
             }
@@ -260,6 +290,24 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
 
     } else {
         // Alloc in yong gen, outside TLAB
+        JavaHeapYoungGen *youngGen = g_heap->youngGenHeader;
 
+        while (1) {
+            // Acquire the young gen lock
+            sync_enter(&youngGen->sync);
+
+            uint8_t *result = youngGen->largeObjIndex;
+            uint8_t *advance = result + size;
+
+            if ((void *) advance <= youngGen->tlabIndex) {
+                youngGen->largeObjIndex = advance;
+
+                // Release lock
+                sync_exit(&youngGen->sync);
+                return init_heap_header(result);
+            } else {
+                // TODO: Eden full, need GC
+            }
+        }
     }
 }
