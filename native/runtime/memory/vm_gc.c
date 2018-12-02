@@ -5,22 +5,11 @@
 #include <string.h>
 #include "vm_gc.h"
 #include "vm_memory.h"
-#include "opa_primitives.h"
 
-#define SYNC_LOCK_FREE 0
-#define SYNC_LOCK_HELD 1
-
-static void sync_enter(OPA_int_t *sync) {
-
-}
-
-static void sync_exit(OPA_int_t *sync) {
-
-}
 
 // Header for the young gen
 typedef struct {
-    OPA_int_t sync; // Global lock for accessing the young gen
+    VMSpinLock sync; // Global lock for accessing the young gen
 
     void *edenStart;
     void *reservedEnd;
@@ -34,7 +23,7 @@ typedef struct {
 } JavaHeapYoungGen;
 
 typedef struct {
-    OPA_int_t sync; // Global lock for accessing the old gen
+    VMSpinLock sync; // Global lock for accessing the old gen
 
     uint64_t chunkSize;
     uint64_t chunkCount;
@@ -160,7 +149,7 @@ int heap_init(HeapConfig *config) {
     JavaHeapYoungGen *young_gen = ptr_inc(heap_mem, heap_header_size);
     heap->youngGenHeader = young_gen;
     // Init young gen header
-    OPA_store_int(&young_gen->sync, SYNC_LOCK_FREE);
+    spin_lock_init(&young_gen->sync);
     young_gen->edenStart = ptr_inc(young_gen, young_gen_header_size);
     young_gen->edenEnd = ptr_inc(young_gen->edenStart, eden_size);
     young_gen->reservedEnd = young_gen->edenEnd;
@@ -191,7 +180,7 @@ int heap_init(HeapConfig *config) {
     JavaHeapOldGen *old_gen = young_gen->youngEnd;
     heap->oldGenHeader = old_gen;
     // Init old gen
-    OPA_store_int(&old_gen->sync, SYNC_LOCK_FREE);
+    spin_lock_init(&old_gen->sync);
     old_gen->chunkSize = old_gen_chunk_size;
     old_gen->chunkCount = old_gen_chunk_count;
     old_gen->byteMap = ptr_inc(old_gen, old_gen_header_size);
@@ -226,7 +215,7 @@ int alloc_tlab(VM_PARAM_CURRENT_CONTEXT) {
     JavaHeapYoungGen *youngGen = g_heap->youngGenHeader;
 
     // Acquire the young gen lock
-    sync_enter(&youngGen->sync);
+    spin_lock_enter(&youngGen->sync);
 
     void *limit = youngGen->tlabIndex;
     void *head = ptr_dec(limit, g_heap->tlabSize);
@@ -240,7 +229,7 @@ int alloc_tlab(VM_PARAM_CURRENT_CONTEXT) {
         tlab->tlabLimit = limit;
 
         // Release lock
-        sync_exit(&youngGen->sync);
+        spin_lock_exit(&youngGen->sync);
         return 0;
     }
 }
@@ -294,7 +283,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
 
         while (1) {
             // Acquire the young gen lock
-            sync_enter(&youngGen->sync);
+            spin_lock_enter(&youngGen->sync);
 
             uint8_t *result = youngGen->largeObjIndex;
             uint8_t *advance = result + size;
@@ -303,7 +292,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
                 youngGen->largeObjIndex = advance;
 
                 // Release lock
-                sync_exit(&youngGen->sync);
+                spin_lock_exit(&youngGen->sync);
                 return init_heap_header(result);
             } else {
                 // TODO: Eden full, need GC

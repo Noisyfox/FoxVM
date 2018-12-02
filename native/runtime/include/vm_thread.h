@@ -118,4 +118,24 @@ int monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
 int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
+/**
+ * Naive & simple Spin Lock based on CAS.
+ */
+#define VM_SPIN_LOCK_FREE 0
+#define VM_SPIN_LOCK_HELD 1
+
+typedef OPA_int_t VMSpinLock;
+
+static inline void spin_lock_init(VMSpinLock *lock) {
+    OPA_store_int(lock, VM_SPIN_LOCK_FREE);
+}
+
+static inline void spin_lock_enter(VMSpinLock *lock) {
+
+}
+
+static inline void spin_lock_exit(VMSpinLock *lock) {
+
+}
+
 #endif //FOXVM_VM_THREAD_H
