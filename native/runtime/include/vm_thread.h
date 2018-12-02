@@ -8,6 +8,15 @@
 #include "vm_base.h"
 #include "vm_memory_base.h"
 
+
+typedef struct {
+    uint32_t numberOfProcessors;
+} SystemProcessorInfo;
+
+extern SystemProcessorInfo g_systemProcessorInfo;
+
+JAVA_BOOLEAN thread_init();
+
 typedef struct _VMThreadContext VMThreadContext;
 
 #define vmCurrentContext __vmCurrentThreadContext

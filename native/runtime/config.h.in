@@ -5,3 +5,9 @@
 #cmakedefine HAVE_ALIGNED_MALLOC
 
 #cmakedefine HAVE_POSIX_MEMALIGN
+
+#cmakedefine HAVE_GET_NPROCS
+
+#cmakedefine HAVE_SC_NPROCESSORS_ONLN
+
+#cmakedefine HAVE_HW_AVAILCPU

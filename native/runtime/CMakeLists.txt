@@ -14,6 +14,8 @@ set(SOURCE_FILES_RUNTIME
         vm_array.c
         vm_exception.c
 
+        thread/vm_thread.c
+
         memory/vm_reference.c
         memory/vm_memory.c
         memory/vm_gc.c

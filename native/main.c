@@ -4,6 +4,8 @@
 int main() {
     printf("Hello, World!\n");
 
+    thread_init();
+
     HeapConfig heapConfig = {
             .maxSize=0,
             .newRatio=2,
