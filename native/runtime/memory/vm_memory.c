@@ -4,4 +4,4 @@
 
 #include "vm_memory.h"
 
-SystemMemoryInfo g_systemMemoryInfo;
+SystemMemoryInfo g_systemMemoryInfo = {0};

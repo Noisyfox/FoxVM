@@ -9,9 +9,13 @@
 
 #include <sys/sysinfo.h>
 
-#elif defined(HAVE_SC_NPROCESSORS_ONLN) || defined(HAVE_HW_AVAILCPU)
+#elif defined(HAVE_SC_NPROCESSORS_ONLN)
 
 #include <unistd.h>
+
+#elif defined(HAVE_HW_AVAILCPU)
+
+#include <sys/sysctl.h>
 
 #elif defined(WIN32)
 
@@ -23,7 +27,7 @@
 #error Not supported on this platform.
 #endif
 
-SystemProcessorInfo g_systemProcessorInfo;
+SystemProcessorInfo g_systemProcessorInfo = {0};
 
 
 JAVA_BOOLEAN thread_init() {
@@ -47,7 +51,26 @@ JAVA_BOOLEAN thread_init() {
 
 #elif defined(HAVE_HW_AVAILCPU)
 
+    int mib[4];
+    int numCPU;
+    size_t len = sizeof(numCPU);
 
+    /* set the mib for hw.ncpu */
+    mib[0] = CTL_HW;
+    mib[1] = HW_AVAILCPU;  // alternatively, try HW_NCPU;
+
+    /* get the number of CPUs from the system */
+    sysctl(mib, 2, &numCPU, &len, NULL, 0);
+
+    if (numCPU < 1) {
+        mib[1] = HW_NCPU;
+        sysctl(mib, 2, &numCPU, &len, NULL, 0);
+        if (numCPU < 1) {
+            numCPU = 1;
+        }
+    }
+
+    g_systemProcessorInfo.numberOfProcessors = (uint32_t) numCPU;
 
 #elif defined(WIN32)
 
