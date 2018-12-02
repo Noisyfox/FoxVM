@@ -29,6 +29,10 @@
 
 SystemProcessorInfo g_systemProcessorInfo = {0};
 
+static VMSpinLock g_threadGlobalLock = OPA_INT_T_INITIALIZER(0);
+
+static VMThreadContext *g_threadList = NULL;
+
 
 JAVA_BOOLEAN thread_init() {
     memset(&g_systemProcessorInfo, 0, sizeof(SystemProcessorInfo));
@@ -81,5 +85,53 @@ JAVA_BOOLEAN thread_init() {
 
 #endif
 
+    spin_lock_init(&g_threadGlobalLock);
+
     return JAVA_TRUE;
+}
+
+static inline VMThreadContext *next_thread(VMThreadContext *cursor) {
+    if (cursor == NULL) {
+        return g_threadList;
+    }
+
+    return cursor->next;
+}
+
+JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT) {
+    // Acquire the global thread lock.  We will hold this until the we resume the world.
+    spin_lock_enter(vmCurrentContext, &g_threadGlobalLock);
+
+    VMThreadContext *thread = NULL;
+    // Ask all threads to suspend.
+    while ((thread = next_thread(thread)) != NULL) {
+        if (thread == vmCurrentContext) {
+            continue;
+        }
+
+        thread_suspend_single(vmCurrentContext, thread);
+    }
+    // Wait until all thread to be stopped in safe region.
+    while ((thread = next_thread(thread)) != NULL) {
+        if (thread == vmCurrentContext) {
+            continue;
+        }
+
+        thread_wait_until_checkpoint(vmCurrentContext, thread);
+    }
+}
+
+JAVA_VOID thread_resume_the_world(VM_PARAM_CURRENT_CONTEXT) {
+    VMThreadContext *thread = NULL;
+    // Make a pass through all threads.
+    while ((thread = next_thread(thread)) != NULL) {
+        if (thread == vmCurrentContext) {
+            continue;
+        }
+
+        thread_resume_single(vmCurrentContext, thread);
+    }
+
+    // Release the thread lock
+    spin_lock_exit(&g_threadGlobalLock);
 }

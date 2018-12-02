@@ -25,6 +25,8 @@ typedef struct _VMThreadContext VMThreadContext;
 typedef JAVA_VOID (*VMThreadCallback)(VMThreadContext *);
 
 struct _VMThreadContext {
+    VMThreadContext *next;
+
     VMThreadCallback entrance;
     VMThreadCallback terminated;
 
@@ -77,6 +79,17 @@ JAVA_VOID thread_interrupt(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target);
 VMThreadState thread_get_state(VM_PARAM_CURRENT_CONTEXT);
 
 // For GC
+/**
+ * Suspend all threads except the caller thread, and wait until all threads
+ * are suspended in the safe region.
+ */
+JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT);
+
+/**
+ * Resume all suspended threads.
+ */
+JAVA_VOID thread_resume_the_world(VM_PARAM_CURRENT_CONTEXT);
+
 /**
  * Require the target Thread to pause at check point.
  */
