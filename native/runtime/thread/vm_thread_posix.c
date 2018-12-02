@@ -275,7 +275,7 @@ VMThreadState thread_get_state(VM_PARAM_CURRENT_CONTEXT) {
     return state;
 }
 
-JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
+JAVA_VOID thread_suspend_single(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
     NativeThreadContext *nativeContext = target->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
@@ -295,7 +295,7 @@ JAVA_VOID thread_wait_until_checkpoint(VM_PARAM_CURRENT_CONTEXT, VMThreadContext
     }
 }
 
-JAVA_VOID thread_resume_the_world(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
+JAVA_VOID thread_resume_single(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
     NativeThreadContext *nativeContext = target->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
