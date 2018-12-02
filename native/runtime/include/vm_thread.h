@@ -139,12 +139,42 @@ static inline void spin_lock_init(VMSpinLock *lock) {
     OPA_store_int(lock, VM_SPIN_LOCK_FREE);
 }
 
-static inline void spin_lock_enter(VMSpinLock *lock) {
-
+static inline JAVA_BOOLEAN spin_lock_try_enter(VMSpinLock *lock) {
+    return OPA_cas_int(lock, VM_SPIN_LOCK_FREE, VM_SPIN_LOCK_HELD) == VM_SPIN_LOCK_FREE ? JAVA_TRUE : JAVA_FALSE;
 }
 
 static inline void spin_lock_exit(VMSpinLock *lock) {
+    OPA_store_int(lock, VM_SPIN_LOCK_FREE);
+}
 
+static inline JAVA_BOOLEAN spin_lock_is_locked(VMSpinLock *lock) {
+    return OPA_load_int(lock) == VM_SPIN_LOCK_FREE ? JAVA_FALSE : JAVA_TRUE;
+}
+
+static inline void spin_lock_enter(VM_PARAM_CURRENT_CONTEXT, VMSpinLock *lock) {
+    thread_enter_saferegion(vmCurrentContext);
+
+    retry:
+
+    if (spin_lock_try_enter(lock) != JAVA_TRUE) {
+        unsigned int retry_count = 0;
+        while (spin_lock_is_locked(lock)) {
+            if (++retry_count & 7) {
+                int spin_count = 1024 * g_systemProcessorInfo.numberOfProcessors;
+                for (int i = 0; i < spin_count; i++) {
+                    if (spin_lock_is_locked(lock) == JAVA_FALSE) {
+                        break;
+                    }
+                    OPA_busy_wait();
+                }
+            } else {
+                // TODO: wait for a longer time
+            }
+        }
+        goto retry;
+    }
+
+    thread_leave_saferegion(vmCurrentContext);
 }
 
 #endif //FOXVM_VM_THREAD_H

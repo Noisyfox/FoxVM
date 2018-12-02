@@ -215,7 +215,7 @@ int alloc_tlab(VM_PARAM_CURRENT_CONTEXT) {
     JavaHeapYoungGen *youngGen = g_heap->youngGenHeader;
 
     // Acquire the young gen lock
-    spin_lock_enter(&youngGen->sync);
+    spin_lock_enter(vmCurrentContext, &youngGen->sync);
 
     void *limit = youngGen->tlabIndex;
     void *head = ptr_dec(limit, g_heap->tlabSize);
@@ -283,7 +283,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
 
         while (1) {
             // Acquire the young gen lock
-            spin_lock_enter(&youngGen->sync);
+            spin_lock_enter(vmCurrentContext, &youngGen->sync);
 
             uint8_t *result = youngGen->largeObjIndex;
             uint8_t *advance = result + size;
