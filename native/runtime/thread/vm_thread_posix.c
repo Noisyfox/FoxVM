@@ -96,6 +96,7 @@ int thread_native_init(VM_PARAM_CURRENT_CONTEXT) {
     nativeContext->stopTheWorld = JAVA_FALSE;
     nativeContext->inCheckPoint = JAVA_FALSE;
     nativeContext->waitingForResume = JAVA_FALSE;
+    nativeContext->safeRegionReentranceCounter = 0;
     // TODO: check return value
     pthread_mutex_init(&nativeContext->masterMutex, NULL);
     pthread_cond_init(&nativeContext->blockingCondition, NULL);
@@ -122,6 +123,24 @@ JAVA_VOID thread_native_free(VM_PARAM_CURRENT_CONTEXT) {
 
         free(nativeThreadContext);
     }
+}
+
+JAVA_LONG thread_get_native_id(VM_PARAM_CURRENT_CONTEXT) {
+    NativeThreadContext *nativeThreadContext = vmCurrentContext->nativeContext;
+    return (JAVA_LONG) nativeThreadContext->nativeThreadId;
+}
+
+JAVA_BOOLEAN thread_native_attach_main(VM_PARAM_CURRENT_CONTEXT) {
+    NativeThreadContext *nativeThreadContext = vmCurrentContext->nativeContext;
+    if (nativeThreadContext == NULL) {
+        return JAVA_FALSE;
+    }
+
+    nativeThreadContext->nativeThreadId = pthread_self();
+    nativeThreadContext->threadState = thrd_stat_runnable;
+    vmCurrentContext->threadId = thread_get_native_id(vmCurrentContext);
+
+    return JAVA_TRUE;
 }
 
 static void thread_cleanup(void *param) {
@@ -151,6 +170,9 @@ static void *thread_bootstrap_enter(void *param) {
 
             pthread_mutex_lock(&nativeContext->masterMutex);
             {
+                // Update thread id
+                vmCurrentContext->threadId = thread_get_native_id(vmCurrentContext);
+
                 // Update thread state
                 nativeContext->threadState = thrd_stat_runnable;
 

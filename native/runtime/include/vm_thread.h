@@ -22,7 +22,7 @@ typedef struct _VMThreadContext VMThreadContext;
 #define vmCurrentContext __vmCurrentThreadContext
 #define VM_PARAM_CURRENT_CONTEXT VMThreadContext *vmCurrentContext
 
-typedef JAVA_VOID (*VMThreadCallback)(VMThreadContext *);
+typedef JAVA_VOID (*VMThreadCallback)(VM_PARAM_CURRENT_CONTEXT);
 
 struct _VMThreadContext {
     VMThreadContext *next;
@@ -65,6 +65,15 @@ typedef enum {
 int thread_native_init(VM_PARAM_CURRENT_CONTEXT);
 
 JAVA_VOID thread_native_free(VM_PARAM_CURRENT_CONTEXT);
+
+JAVA_LONG thread_get_native_id(VM_PARAM_CURRENT_CONTEXT);
+
+/**
+ * Attach the given context to current thread.
+ *
+ * The given context must be inited by calling `thread_native_init` first.
+ */
+JAVA_BOOLEAN thread_native_attach_main(VM_PARAM_CURRENT_CONTEXT);
 
 // TODO: add thread parameters such as priority.
 int thread_start(VM_PARAM_CURRENT_CONTEXT);
