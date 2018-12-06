@@ -8,10 +8,12 @@ int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
     thread_init();
 
     VMThreadContext thread_main = {0};
-    thread_native_init(&thread_main);
-    thread_native_attach_main(&thread_main);
+    VM_PARAM_CURRENT_CONTEXT = &thread_main;
 
-    // TODO: register the main thread to global thread list
+    thread_native_init(vmCurrentContext);
+    thread_native_attach_main(vmCurrentContext);
+    // register the main thread to global thread list
+    thread_managed_add(vmCurrentContext);
 
     HeapConfig heapConfig = {
             .maxSize=0,
@@ -21,10 +23,16 @@ int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
 
     heap_init(&heapConfig);
 
-    tlab_init(&thread_main, &thread_main.tlab);
+    tlab_init(vmCurrentContext, &vmCurrentContext->tlab);
     // TODO: create java Thread Object for main thread
 
-    entrance(&thread_main, (JAVA_CLASS) JAVA_NULL, NULL);
+    // TODO: start GC thread
+
+    entrance(vmCurrentContext, (JAVA_CLASS) JAVA_NULL, NULL);
+
+    // Shutdown VM
+    thread_managed_remove(vmCurrentContext);
+    thread_native_free(vmCurrentContext);
 
     return 0;
 }

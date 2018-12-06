@@ -31,7 +31,7 @@ SystemProcessorInfo g_systemProcessorInfo = {0};
 
 static VMSpinLock g_threadGlobalLock = OPA_INT_T_INITIALIZER(0);
 
-static VMThreadContext *g_threadList = NULL;
+static VMThreadContext g_threadList = {0};
 
 
 JAVA_BOOLEAN thread_init() {
@@ -90,9 +90,53 @@ JAVA_BOOLEAN thread_init() {
     return JAVA_TRUE;
 }
 
+static inline JAVA_BOOLEAN thread_add(VMThreadContext *target) {
+    if (target->next != NULL || g_threadList.next == target) {
+        // This check doesn't cover all error cases!
+        return JAVA_FALSE;
+    }
+
+    target->next = g_threadList.next;
+    g_threadList.next = target;
+
+    return JAVA_TRUE;
+}
+
+static inline JAVA_BOOLEAN thread_remove(VMThreadContext *target) {
+    VMThreadContext *cursor = &g_threadList;
+
+    while (cursor->next != NULL) {
+        if (cursor->next == target) {
+            cursor->next = target->next;
+            target->next = NULL;
+            return JAVA_TRUE;
+        }
+
+        cursor = cursor->next;
+    }
+
+    return JAVA_FALSE;
+}
+
+JAVA_BOOLEAN thread_managed_add(VM_PARAM_CURRENT_CONTEXT) {
+    spin_lock_enter(vmCurrentContext, &g_threadGlobalLock);
+    JAVA_BOOLEAN result = thread_add(vmCurrentContext);
+    spin_lock_exit(&g_threadGlobalLock);
+
+    return result;
+}
+
+JAVA_BOOLEAN thread_managed_remove(VM_PARAM_CURRENT_CONTEXT) {
+    spin_lock_enter(vmCurrentContext, &g_threadGlobalLock);
+    JAVA_BOOLEAN result = thread_remove(vmCurrentContext);
+    spin_lock_exit(&g_threadGlobalLock);
+
+    return result;
+}
+
 static inline VMThreadContext *next_thread(VMThreadContext *cursor) {
     if (cursor == NULL) {
-        return g_threadList;
+        return g_threadList.next;
     }
 
     return cursor->next;

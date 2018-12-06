@@ -160,12 +160,20 @@ static void thread_cleanup(void *param) {
 
     // Run the termination callback
     vmCurrentContext->terminated(vmCurrentContext);
+
+    // Remove this thread from managed thread list
+    thread_managed_remove(vmCurrentContext);
 }
 
 static void *thread_bootstrap_enter(void *param) {
     // Setup unexpected exit handler for clean up
     pthread_cleanup_push(thread_cleanup, param) ;
             VM_PARAM_CURRENT_CONTEXT = param;
+            // Add this thread to managed thread list
+            if (thread_managed_add(vmCurrentContext) != JAVA_TRUE) {
+                return NULL;
+            }
+
             NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
 
             pthread_mutex_lock(&nativeContext->masterMutex);

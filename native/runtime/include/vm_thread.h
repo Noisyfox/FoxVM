@@ -75,6 +75,10 @@ JAVA_LONG thread_get_native_id(VM_PARAM_CURRENT_CONTEXT);
  */
 JAVA_BOOLEAN thread_native_attach_main(VM_PARAM_CURRENT_CONTEXT);
 
+JAVA_BOOLEAN thread_managed_add(VM_PARAM_CURRENT_CONTEXT);
+
+JAVA_BOOLEAN thread_managed_remove(VM_PARAM_CURRENT_CONTEXT);
+
 // TODO: add thread parameters such as priority.
 int thread_start(VM_PARAM_CURRENT_CONTEXT);
 
