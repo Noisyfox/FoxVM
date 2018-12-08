@@ -160,11 +160,11 @@ static void thread_cleanup(void *param) {
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }
 
-    // Run the termination callback
-    vmCurrentContext->terminated(vmCurrentContext);
-
     // Remove this thread from managed thread list
     thread_managed_remove(vmCurrentContext);
+
+    // Run the termination callback
+    vmCurrentContext->terminated(vmCurrentContext);
 }
 
 static void *thread_bootstrap_enter(void *param) {

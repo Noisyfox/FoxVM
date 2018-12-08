@@ -17,7 +17,11 @@ typedef struct {
  * Initialize global application heap.
  * @return 0 if success, 1 otherwise.
  */
-int heap_init(HeapConfig *config);
+int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config);
+
+int gc_thread_start(VM_PARAM_CURRENT_CONTEXT);
+
+int gc_thread_shutdown(VM_PARAM_CURRENT_CONTEXT);
 
 void tlab_init(VM_PARAM_CURRENT_CONTEXT, ThreadAllocContext *tlab);
 

@@ -21,19 +21,23 @@ int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
             .survivorRatio=8
     };
 
-    heap_init(&heapConfig);
+    heap_init(vmCurrentContext, &heapConfig);
 
     tlab_init(vmCurrentContext, &vmCurrentContext->tlab);
     // TODO: create java Thread Object for main thread
 
-    // TODO: start GC thread
+    // start GC thread
+    gc_thread_start(vmCurrentContext);
 
     entrance(vmCurrentContext, (JAVA_CLASS) JAVA_NULL, NULL);
 
     // Shutdown VM
+    gc_thread_shutdown(vmCurrentContext);
+//    thread_sleep(vmCurrentContext, 5000, 0);
     thread_managed_remove(vmCurrentContext);
     thread_native_free(vmCurrentContext);
     vmCurrentContext->threadId = 0;
+    // TODO: free up heap.
 
     return 0;
 }

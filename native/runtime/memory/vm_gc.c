@@ -3,9 +3,13 @@
 //
 
 #include <string.h>
+#include <stdio.h>
 #include "vm_gc.h"
 #include "vm_memory.h"
 
+static JAVA_VOID gc_thread_entrance(VM_PARAM_CURRENT_CONTEXT);
+
+static JAVA_VOID gc_thread_terminated(VM_PARAM_CURRENT_CONTEXT);
 
 // Header for the young gen
 typedef struct {
@@ -38,6 +42,10 @@ typedef struct {
     uint64_t tlabSize;
     uint64_t tlabMaxAllocSize;
     uint64_t largeObjectSize;
+
+    JAVA_BOOLEAN gcThreadRunning;
+    JavaObjectBase gcThreadObject; // A dummy object for gc thread.
+    VMThreadContext gcThread;
 
     JavaHeapYoungGen *youngGenHeader;
     JavaHeapOldGen *oldGenHeader;
@@ -73,7 +81,7 @@ size_t young_gen_expand(JavaHeapYoungGen *youngGen, size_t increase) {
 static JavaHeap *g_heap = NULL;
 
 
-int heap_init(HeapConfig *config) {
+int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     mem_init();
 
     // Calculate size of different part of the heap
@@ -145,6 +153,15 @@ int heap_init(HeapConfig *config) {
     heap->tlabSize = align_size_up(TLAB_SIZE_MIN, mem_alloc_granularity());
     heap->tlabMaxAllocSize = heap->tlabSize / TLAB_MAX_ALLOC_RATIO;
     heap->largeObjectSize = LARGE_OBJECT_SIZE_MIN;
+    // Init gc thread
+    heap->gcThreadRunning = JAVA_FALSE;
+    heap->gcThread.entrance = gc_thread_entrance;
+    heap->gcThread.terminated = gc_thread_terminated;
+    if (monitor_create(vmCurrentContext, &heap->gcThreadObject) != thrd_success) {
+        mem_release(heap_mem, max_heap_size);
+        return -1;
+    }
+    heap->gcThread.currentThread = &heap->gcThreadObject;
 
     JavaHeapYoungGen *young_gen = ptr_inc(heap_mem, heap_header_size);
     heap->youngGenHeader = young_gen;
@@ -299,4 +316,72 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
             }
         }
     }
+}
+
+static JAVA_VOID gc_thread_entrance(VM_PARAM_CURRENT_CONTEXT) {
+    printf("gc_thread_entrance\n");
+
+    monitor_enter(vmCurrentContext, vmCurrentContext->currentThread);
+    {
+        while (g_heap->gcThreadRunning) {
+            monitor_wait(vmCurrentContext, vmCurrentContext->currentThread, 1000, 0);
+        }
+
+        monitor_exit(vmCurrentContext, vmCurrentContext->currentThread);
+    }
+}
+
+static JAVA_VOID gc_thread_terminated(VM_PARAM_CURRENT_CONTEXT) {
+    // GC thread exit.
+    printf("gc_thread_terminated\n");
+
+    if (g_heap->gcThreadRunning) {
+        // Restart the gc thread.
+        thread_native_free(vmCurrentContext);
+        thread_native_init(vmCurrentContext);
+        thread_start(vmCurrentContext);
+    } else {
+        monitor_enter(vmCurrentContext, vmCurrentContext->currentThread);
+        {
+            monitor_notify(vmCurrentContext, vmCurrentContext->currentThread);
+
+            monitor_exit(vmCurrentContext, vmCurrentContext->currentThread);
+        }
+    }
+}
+
+int gc_thread_start(VM_PARAM_CURRENT_CONTEXT) {
+    int result;
+
+    monitor_enter(vmCurrentContext, &g_heap->gcThreadObject);
+    {
+        if (g_heap->gcThreadRunning == JAVA_TRUE) {
+            result = thrd_success;
+        } else {
+            thread_native_init(&g_heap->gcThread);
+            tlab_init(vmCurrentContext, &g_heap->gcThread.tlab);
+            g_heap->gcThreadRunning = JAVA_TRUE;
+
+            result = thread_start(&g_heap->gcThread);
+        }
+
+        monitor_exit(vmCurrentContext, &g_heap->gcThreadObject);
+    }
+
+    return result;
+}
+
+int gc_thread_shutdown(VM_PARAM_CURRENT_CONTEXT) {
+    monitor_enter(vmCurrentContext, &g_heap->gcThreadObject);
+    {
+        g_heap->gcThreadRunning = JAVA_FALSE;
+        monitor_notify(vmCurrentContext, &g_heap->gcThreadObject);
+
+        monitor_wait(vmCurrentContext, &g_heap->gcThreadObject, 0, 0);
+        thread_native_free(&g_heap->gcThread);
+
+        monitor_exit(vmCurrentContext, &g_heap->gcThreadObject);
+    }
+
+    return thrd_success;
 }
