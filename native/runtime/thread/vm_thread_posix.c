@@ -437,7 +437,6 @@ JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
 }
 
 int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
-    JAVA_REF obj_ref = ref_obtain(vmCurrentContext, obj); // Save the reference before enter checkpoint
 
     if (obj->monitor == NULL) {
         JAVA_CLASS clazz = obj_get_class(obj);
@@ -446,8 +445,7 @@ int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
             return thrd_error;
         }
 
-        JAVA_REF clazz_ref = ref_obtain(vmCurrentContext,
-                                        (JAVA_OBJECT) clazz); // Save the reference before enter checkpoint
+        JAVA_REF obj_ref = ref_obtain(vmCurrentContext, obj); // Save the reference before enter checkpoint
         int ret = monitor_enter(vmCurrentContext,
                                 (JAVA_OBJECT) clazz); // Class monitor is guaranteed to be inited when class is load.
         if (ret != thrd_success) {
@@ -455,7 +453,7 @@ int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
         }
         // The monitor_enter() call enters check point, so we need to update the reference
         obj = ref_dereference(vmCurrentContext, obj_ref);
-        clazz = (JAVA_CLASS) ref_dereference(vmCurrentContext, clazz_ref);
+        clazz = obj_get_class(obj);
 
         ret = monitor_create(vmCurrentContext, obj);
         monitor_exit(vmCurrentContext, (JAVA_OBJECT) clazz);
