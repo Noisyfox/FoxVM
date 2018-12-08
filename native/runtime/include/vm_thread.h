@@ -53,6 +53,7 @@ enum {
 };
 
 typedef enum {
+    thrd_stat_invalid = -1,     // The thread is not inited.
     thrd_stat_new = 0,          // A thread that has not yet started is in this state.
     thrd_stat_runnable,         // A thread executing in the Java virtual machine is in this state.
     thrd_stat_blocked,          // A thread that is blocked waiting for a monitor lock is in this state.

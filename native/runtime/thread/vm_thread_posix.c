@@ -152,6 +152,8 @@ static void thread_cleanup(void *param) {
         // Set the state to terminated
         nativeContext->threadState = thrd_stat_terminated;
 
+        vmCurrentContext->threadId = 0;
+
         // Send signal
         pthread_cond_signal(&nativeContext->blockingCondition);
 
@@ -240,6 +242,8 @@ int thread_sleep(VM_PARAM_CURRENT_CONTEXT, JAVA_LONG timeout, JAVA_INT nanos) {
     JAVA_BOOLEAN interrupt;
     pthread_mutex_lock(&nativeContext->masterMutex);
     {
+        nativeContext->threadState = thrd_stat_timed_waiting;
+
         // Wait for certain time
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts); // TODO: handle error
@@ -250,6 +254,7 @@ int thread_sleep(VM_PARAM_CURRENT_CONTEXT, JAVA_LONG timeout, JAVA_INT nanos) {
         interrupt = nativeContext->interrupted;
         nativeContext->interrupted = JAVA_FALSE;
 
+        nativeContext->threadState = thrd_stat_runnable;
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }
 
@@ -296,10 +301,14 @@ JAVA_VOID thread_interrupt(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
 VMThreadState thread_get_state(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     VMThreadState state;
-    pthread_mutex_lock(&nativeContext->masterMutex);
-    {
-        state = nativeContext->threadState;
-        pthread_mutex_unlock(&nativeContext->masterMutex);
+    if (nativeContext == NULL) {
+        state = thrd_stat_invalid;
+    } else {
+        pthread_mutex_lock(&nativeContext->masterMutex);
+        {
+            state = nativeContext->threadState;
+            pthread_mutex_unlock(&nativeContext->masterMutex);
+        }
     }
 
     return state;
@@ -470,7 +479,10 @@ int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
                 m->reentranceCounter++;
                 break;
             } else {
+                NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
+                nativeContext->threadState = thrd_stat_blocked;
                 pthread_cond_wait(&m->blockingCondition, &m->masterMutex); // Waiting for ownership to be released
+                nativeContext->threadState = thrd_stat_runnable;
             }
         }
 
@@ -546,15 +558,18 @@ int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, J
     {
         if (timeout == 0 && nanos == 0) {
             // Wait for unlimited time
+            nativeContext->threadState = thrd_stat_waiting;
             cond_ret = pthread_cond_wait(&nativeContext->blockingCondition, &nativeContext->masterMutex);
         } else {
             // Wait for certain time
+            nativeContext->threadState = thrd_stat_timed_waiting;
             struct timespec ts;
             clock_gettime(CLOCK_REALTIME, &ts); // TODO: handle error
             timeAdd(&ts, timeout, nanos);
             cond_ret = pthread_cond_timedwait(&nativeContext->blockingCondition, &nativeContext->masterMutex,
                                               &ts);
         }
+        nativeContext->threadState = thrd_stat_runnable;
         pthread_mutex_unlock(&nativeContext->masterMutex);
     }
 
@@ -573,7 +588,9 @@ int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, J
                 m->reentranceCounter = prev_count; // Restore the reentrance count
                 break;
             } else {
+                nativeContext->threadState = thrd_stat_blocked;
                 pthread_cond_wait(&m->blockingCondition, &m->masterMutex); // Waiting for ownership to be released
+                nativeContext->threadState = thrd_stat_runnable;
             }
         }
 

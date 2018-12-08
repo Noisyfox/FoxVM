@@ -33,6 +33,7 @@ int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
     // Shutdown VM
     thread_managed_remove(vmCurrentContext);
     thread_native_free(vmCurrentContext);
+    vmCurrentContext->threadId = 0;
 
     return 0;
 }
