@@ -145,6 +145,7 @@ JAVA_BOOLEAN thread_native_attach_main(VM_PARAM_CURRENT_CONTEXT) {
 
 static void thread_cleanup(void *param) {
     VM_PARAM_CURRENT_CONTEXT = param;
+    thread_enter_saferegion(vmCurrentContext);
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
 
     pthread_mutex_lock(&nativeContext->masterMutex);
