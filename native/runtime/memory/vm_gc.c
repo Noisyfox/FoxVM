@@ -377,7 +377,9 @@ int gc_thread_shutdown(VM_PARAM_CURRENT_CONTEXT) {
         g_heap->gcThreadRunning = JAVA_FALSE;
         monitor_notify(vmCurrentContext, &g_heap->gcThreadObject);
 
-        monitor_wait(vmCurrentContext, &g_heap->gcThreadObject, 0, 0);
+        while (thread_get_state(&g_heap->gcThread) != thrd_stat_terminated) {
+            monitor_wait(vmCurrentContext, &g_heap->gcThreadObject, 1000, 0);
+        }
         thread_native_free(&g_heap->gcThread);
 
         monitor_exit(vmCurrentContext, &g_heap->gcThreadObject);
