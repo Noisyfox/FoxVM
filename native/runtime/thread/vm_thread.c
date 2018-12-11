@@ -155,6 +155,10 @@ JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT) {
 
         thread_suspend_single(vmCurrentContext, thread);
     }
+}
+
+JAVA_VOID thread_wait_until_world_stopped(VM_PARAM_CURRENT_CONTEXT) {
+    VMThreadContext *thread = NULL;
     // Wait until all thread to be stopped in safe region.
     while ((thread = next_thread(thread)) != NULL) {
         if (thread == vmCurrentContext) {

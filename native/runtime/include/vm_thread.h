@@ -94,10 +94,14 @@ VMThreadState thread_get_state(VM_PARAM_CURRENT_CONTEXT);
 
 // For GC
 /**
- * Suspend all threads except the caller thread, and wait until all threads
- * are suspended in the safe region.
+ * Ask all thread to stop in safe region except the caller thread.
  */
 JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT);
+
+/**
+ * Wait until all threads are suspended in the safe region.
+ */
+JAVA_VOID thread_wait_until_world_stopped(VM_PARAM_CURRENT_CONTEXT);
 
 /**
  * Resume all suspended threads.
@@ -202,6 +206,39 @@ static inline void spin_lock_enter(VM_PARAM_CURRENT_CONTEXT, VMSpinLock *lock) {
     }
 
     thread_leave_saferegion(vmCurrentContext);
+}
+
+/**
+ * Get the lock without enter safe region
+ */
+static inline void spin_lock_enter_unsafe(VMSpinLock *lock) {
+    retry:
+
+    if (spin_lock_try_enter(lock) != JAVA_TRUE) {
+        unsigned int retry_count = 0;
+        while (spin_lock_is_locked(lock)) {
+            if (++retry_count & 7) {
+                int spin_count = 1024 * g_systemProcessorInfo.numberOfProcessors;
+                for (int i = 0; i < spin_count; i++) {
+                    if (spin_lock_is_locked(lock) == JAVA_FALSE) {
+                        break;
+                    }
+                    OPA_busy_wait();
+                }
+            } else {
+                // TODO: wait for a longer time
+            }
+        }
+        goto retry;
+    }
+}
+
+/**
+ * Acquire a lock then release it immediately without enter safe region.
+ */
+static inline void spin_lock_touch_unsafe(VMSpinLock *lock) {
+    spin_lock_enter_unsafe(lock);
+    spin_lock_exit(lock);
 }
 
 #endif //FOXVM_VM_THREAD_H

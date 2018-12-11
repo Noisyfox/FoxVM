@@ -7,6 +7,15 @@
 #include "vm_gc.h"
 #include "vm_memory.h"
 
+typedef enum {
+    gc_type_failed = -1,
+    gc_type_nop = 0,
+    gc_type_minor = 1,
+    gc_type_major = 2
+} GCType;
+
+static GCType gc_trigger(VM_PARAM_CURRENT_CONTEXT, GCType type);
+
 static JAVA_VOID gc_thread_entrance(VM_PARAM_CURRENT_CONTEXT);
 
 static JAVA_VOID gc_thread_terminated(VM_PARAM_CURRENT_CONTEXT);
@@ -43,6 +52,8 @@ typedef struct {
     uint64_t tlabMaxAllocSize;
     uint64_t largeObjectSize;
 
+    VMSpinLock gcSync;
+    GCType gcLastType;
     JAVA_BOOLEAN gcThreadRunning;
     JavaObjectBase gcThreadObject; // A dummy object for gc thread.
     VMThreadContext gcThread;
@@ -154,6 +165,12 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     heap->tlabMaxAllocSize = heap->tlabSize / TLAB_MAX_ALLOC_RATIO;
     heap->largeObjectSize = LARGE_OBJECT_SIZE_MIN;
     // Init gc thread
+    spin_lock_init(&heap->gcSync);
+    if (spin_lock_try_enter(&heap->gcSync) != JAVA_TRUE) {
+        mem_release(heap_mem, max_heap_size);
+        return -1;
+    }
+    heap->gcLastType = gc_type_nop;
     heap->gcThreadRunning = JAVA_FALSE;
     heap->gcThread.entrance = gc_thread_entrance;
     heap->gcThread.terminated = gc_thread_terminated;
@@ -214,6 +231,10 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     return 0;
 }
 
+//*********************************************************************************************************
+// Allocator related functions
+//*********************************************************************************************************
+
 void tlab_init(VM_PARAM_CURRENT_CONTEXT, ThreadAllocContext *tlab) {
     tlab->tlabHead = 0;
     tlab->tlabCurrent = 0;
@@ -223,9 +244,9 @@ void tlab_init(VM_PARAM_CURRENT_CONTEXT, ThreadAllocContext *tlab) {
 /**
  * Get a new TLAB buffer.
  * @param __vmCurrentThreadContext
- * @return 0 for success, -1 need retry, 1 otherwise.
+ * @return true for success, false otherwise.
  */
-int alloc_tlab(VM_PARAM_CURRENT_CONTEXT) {
+static JAVA_BOOLEAN alloc_tlab(VM_PARAM_CURRENT_CONTEXT) {
     // Give GC a chance to run before we try alloc more space
     thread_checkpoint(vmCurrentContext);
 
@@ -234,20 +255,34 @@ int alloc_tlab(VM_PARAM_CURRENT_CONTEXT) {
     // Acquire the young gen lock
     spin_lock_enter(vmCurrentContext, &youngGen->sync);
 
-    void *limit = youngGen->tlabIndex;
-    void *head = ptr_dec(limit, g_heap->tlabSize);
-    if (head < youngGen->largeObjIndex) {
-        // TODO: Eden full, need GC
-    } else {
-        youngGen->tlabIndex = head;
-        ThreadAllocContext *tlab = &vmCurrentContext->tlab;
-        tlab->tlabHead = head;
-        tlab->tlabCurrent = head;
-        tlab->tlabLimit = limit;
+    while (1) {
+        void *limit = youngGen->tlabIndex;
+        void *head = ptr_dec(limit, g_heap->tlabSize);
+        if (head < youngGen->largeObjIndex) {
+            // Eden full, need trigger a minor GC
+            GCType actual_gc;
+            do {
+                actual_gc = gc_trigger(vmCurrentContext, gc_type_minor);
+            } while (actual_gc < gc_type_minor && actual_gc >= gc_type_nop);
 
-        // Release lock
-        spin_lock_exit(&youngGen->sync);
-        return 0;
+            if (actual_gc == gc_type_failed) {
+                // GC failed due to OOM.
+                spin_lock_exit(&youngGen->sync);
+                return JAVA_FALSE;
+            }
+
+            // Now retry tlab alloc
+        } else {
+            youngGen->tlabIndex = head;
+            ThreadAllocContext *tlab = &vmCurrentContext->tlab;
+            tlab->tlabHead = head;
+            tlab->tlabCurrent = head;
+            tlab->tlabLimit = limit;
+
+            // Release lock
+            spin_lock_exit(&youngGen->sync);
+            return JAVA_TRUE;
+        }
     }
 }
 
@@ -286,7 +321,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
             } else {
                 // Need a new TLAB
                 int r = alloc_tlab(vmCurrentContext);
-                if (r > 0) {
+                if (r != JAVA_TRUE) {
                     return NULL;
                 }
             }
@@ -298,10 +333,10 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
         // Alloc in yong gen, outside TLAB
         JavaHeapYoungGen *youngGen = g_heap->youngGenHeader;
 
-        while (1) {
-            // Acquire the young gen lock
-            spin_lock_enter(vmCurrentContext, &youngGen->sync);
+        // Acquire the young gen lock
+        spin_lock_enter(vmCurrentContext, &youngGen->sync);
 
+        while (1) {
             uint8_t *result = youngGen->largeObjIndex;
             uint8_t *advance = result + size;
 
@@ -312,10 +347,48 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
                 spin_lock_exit(&youngGen->sync);
                 return init_heap_header(result);
             } else {
-                // TODO: Eden full, need GC
+                // Eden full, need trigger a minor GC
+                GCType actual_gc;
+                do {
+                    actual_gc = gc_trigger(vmCurrentContext, gc_type_minor);
+                } while (actual_gc < gc_type_minor && actual_gc >= gc_type_nop);
+
+                if (actual_gc == gc_type_failed) {
+                    // GC failed due to OOM.
+                    spin_lock_exit(&youngGen->sync);
+                    return NULL;
+                }
+
+                // Now retry alloc
             }
         }
     }
+}
+
+//*********************************************************************************************************
+// GC related functions
+//*********************************************************************************************************
+
+/**
+ * Trigger a GC with the given type.
+ *
+ * @return The actual gc type that performed. Can be different to the required type.
+ */
+static GCType gc_trigger(VM_PARAM_CURRENT_CONTEXT, GCType type) {
+
+    // TODO: wake up the gc thread
+
+    /*
+     * GC thread will hold the gc lock until all other threads are asked to suspend.
+     * So if we could touch the gc lock, then we are guaranteed to be blocked when
+     * passing a checkpoint.
+     */
+    spin_lock_touch_unsafe(&g_heap->gcSync);
+    thread_checkpoint(vmCurrentContext);
+
+    // The gc thread finished working and resumed the world.
+    // Get the type of gc that performed during this period.
+    return g_heap->gcLastType;
 }
 
 static JAVA_VOID gc_thread_entrance(VM_PARAM_CURRENT_CONTEXT) {
@@ -323,10 +396,14 @@ static JAVA_VOID gc_thread_entrance(VM_PARAM_CURRENT_CONTEXT) {
 
     monitor_enter(vmCurrentContext, vmCurrentContext->currentThread);
     {
-        while (g_heap->gcThreadRunning) {
-            monitor_wait(vmCurrentContext, vmCurrentContext->currentThread, 1000, 0);
-        }
+        if (g_heap->gcThreadRunning) {
+            monitor_wait(vmCurrentContext, vmCurrentContext->currentThread, 0, 0);
+            while (g_heap->gcThreadRunning) {
+                // TODO: check wake reason
 
+                monitor_wait(vmCurrentContext, vmCurrentContext->currentThread, 0, 0);
+            }
+        }
         monitor_exit(vmCurrentContext, vmCurrentContext->currentThread);
     }
 }
