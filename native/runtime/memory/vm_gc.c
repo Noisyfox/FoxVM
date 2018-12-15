@@ -53,7 +53,8 @@ typedef struct {
     uint64_t largeObjectSize;
 
     VMSpinLock gcSync;
-    GCType gcLastType;
+    GCType gcRequired;
+    GCType gcLast;
     JAVA_BOOLEAN gcThreadRunning;
     JavaObjectBase gcThreadObject; // A dummy object for gc thread.
     VMThreadContext gcThread;
@@ -170,7 +171,8 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
         mem_release(heap_mem, max_heap_size);
         return -1;
     }
-    heap->gcLastType = gc_type_nop;
+    heap->gcRequired = gc_type_nop;
+    heap->gcLast = gc_type_nop;
     heap->gcThreadRunning = JAVA_FALSE;
     heap->gcThread.entrance = gc_thread_entrance;
     heap->gcThread.terminated = gc_thread_terminated;
@@ -375,8 +377,16 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
  * @return The actual gc type that performed. Can be different to the required type.
  */
 static GCType gc_trigger(VM_PARAM_CURRENT_CONTEXT, GCType type) {
+    // Wake up the gc thread
+    monitor_enter(vmCurrentContext, &g_heap->gcThreadObject);
+    {
+        if (g_heap->gcRequired < type) {
+            g_heap->gcRequired = type;
+        }
+        monitor_notify_all(vmCurrentContext, &g_heap->gcThreadObject);
 
-    // TODO: wake up the gc thread
+        monitor_exit(vmCurrentContext, &g_heap->gcThreadObject);
+    }
 
     /*
      * GC thread will hold the gc lock until all other threads are asked to suspend.
@@ -388,24 +398,62 @@ static GCType gc_trigger(VM_PARAM_CURRENT_CONTEXT, GCType type) {
 
     // The gc thread finished working and resumed the world.
     // Get the type of gc that performed during this period.
-    return g_heap->gcLastType;
+    return g_heap->gcLast;
 }
 
 static JAVA_VOID gc_thread_entrance(VM_PARAM_CURRENT_CONTEXT) {
     printf("gc_thread_entrance\n");
 
-    monitor_enter(vmCurrentContext, vmCurrentContext->currentThread);
-    {
-        if (g_heap->gcThreadRunning) {
-            monitor_wait(vmCurrentContext, vmCurrentContext->currentThread, 0, 0);
-            while (g_heap->gcThreadRunning) {
-                // TODO: check wake reason
+    while (1) {
+        GCType targetGC;
+        monitor_enter(vmCurrentContext, vmCurrentContext->currentThread);
+        {
+            while (1) {
+                // Check state
+                if (g_heap->gcThreadRunning) {
+                    targetGC = g_heap->gcRequired;
+                } else {
+                    targetGC = gc_type_failed;
+                }
+                g_heap->gcRequired = gc_type_nop;
 
-                monitor_wait(vmCurrentContext, vmCurrentContext->currentThread, 0, 0);
+                if (targetGC == gc_type_nop) {
+                    monitor_wait(vmCurrentContext, vmCurrentContext->currentThread, 0, 0);
+                } else {
+                    break;
+                }
             }
+
+            g_heap->gcLast = targetGC;
+
+            monitor_exit(vmCurrentContext, vmCurrentContext->currentThread);
         }
-        monitor_exit(vmCurrentContext, vmCurrentContext->currentThread);
+
+        if (targetGC == gc_type_failed) {
+            break;
+        }
+
+        // Ask all thread to suspend
+        thread_stop_the_world(vmCurrentContext);
+        // Release gc sync
+        spin_lock_exit(&g_heap->gcSync);
+        // Wait all thread to suspend
+        thread_wait_until_world_stopped(vmCurrentContext);
+
+        // World stopped, now the gc can start
+        // TODO: do gc
+
+        // Re-lock the gc sync
+        if (spin_lock_try_enter(&g_heap->gcSync) != JAVA_TRUE) {
+            // ?????????????????????? WHY??????
+            fprintf(stderr, "Re-enter the gc sync failed!");
+            exit(-1);
+        }
+
+        // Resume the world
+        thread_resume_the_world(vmCurrentContext);
     }
+
 }
 
 static JAVA_VOID gc_thread_terminated(VM_PARAM_CURRENT_CONTEXT) {
@@ -418,9 +466,12 @@ static JAVA_VOID gc_thread_terminated(VM_PARAM_CURRENT_CONTEXT) {
         thread_native_init(vmCurrentContext);
         thread_start(vmCurrentContext);
     } else {
+        // Release the gc sync
+        spin_lock_exit(&g_heap->gcSync);
+
         monitor_enter(vmCurrentContext, vmCurrentContext->currentThread);
         {
-            monitor_notify(vmCurrentContext, vmCurrentContext->currentThread);
+            monitor_notify_all(vmCurrentContext, vmCurrentContext->currentThread);
 
             monitor_exit(vmCurrentContext, vmCurrentContext->currentThread);
         }
@@ -452,7 +503,7 @@ int gc_thread_shutdown(VM_PARAM_CURRENT_CONTEXT) {
     monitor_enter(vmCurrentContext, &g_heap->gcThreadObject);
     {
         g_heap->gcThreadRunning = JAVA_FALSE;
-        monitor_notify(vmCurrentContext, &g_heap->gcThreadObject);
+        monitor_notify_all(vmCurrentContext, &g_heap->gcThreadObject);
 
         while (thread_get_state(&g_heap->gcThread) != thrd_stat_terminated) {
             monitor_wait(vmCurrentContext, &g_heap->gcThreadObject, 1000, 0);
