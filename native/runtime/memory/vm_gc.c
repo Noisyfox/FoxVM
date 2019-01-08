@@ -439,8 +439,41 @@ static GCType gc_trigger(VM_PARAM_CURRENT_CONTEXT, GCType type) {
     return g_heap->gcLast;
 }
 
-static JAVA_VOID mark_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN young_only) {
+#define obj_marked(obj, flag) obj_test_flags_and((obj), (flag))
 
+static JAVA_VOID mark_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN young_only) {
+    if (obj == JAVA_NULL) {
+        return;
+    }
+
+    // Already marked
+    if (obj_marked(obj, gc_flag) == JAVA_TRUE) {
+        return;
+    }
+
+    // TODO: Mark current obj
+
+    // Then walk pass all fields and mark reference fields
+    JAVA_CLASS currentClass = obj_get_class(obj);
+
+    while (currentClass != (JAVA_CLASS) JAVA_NULL) {
+        FieldTable *fieldTable = currentClass->fieldTable;
+
+        for (int i = 0; i < fieldTable->fieldCount; i++) {
+            FieldDesc *desc = &fieldTable->fields[i];
+            if (desc->isReference != JAVA_TRUE) {
+                continue;
+            }
+
+            // TODO: check if it's static field
+
+            JAVA_OBJECT *fieldPtr = ptr_inc(obj, desc->offset);
+            mark_object(*fieldPtr, gc_flag, young_only);
+        }
+
+        // Then mark parent class fields
+        currentClass = currentClass->parentClass;
+    }
 }
 
 static JAVA_VOID gc_minor(uintptr_t gc_flag) {

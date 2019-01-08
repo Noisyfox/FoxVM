@@ -63,6 +63,7 @@ typedef struct {
 
     // GC scanning information
     size_t offset;
+    JAVA_BOOLEAN isReference;
 } FieldDesc;
 
 typedef struct {
@@ -85,7 +86,7 @@ struct _JavaClass {
     int interfaceCount;
     JAVA_CLASS *parentInterfaces;
 
-    FieldTable* fieldTable;
+    FieldTable* fieldTable; // Fields of parent classes are not included here.
 };
 
 // Object prototype
