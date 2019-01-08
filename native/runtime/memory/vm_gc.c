@@ -55,6 +55,7 @@ typedef struct {
     VMSpinLock gcSync;
     GCType gcRequired;
     GCType gcLast;
+    uint64_t gcCount;
     JAVA_BOOLEAN gcThreadRunning;
     JavaObjectBase gcThreadObject; // A dummy object for gc thread.
     VMThreadContext gcThread;
@@ -92,6 +93,38 @@ size_t young_gen_expand(JavaHeapYoungGen *youngGen, size_t increase) {
 
 static JavaHeap *g_heap = NULL;
 
+/**
+ * Header region not included.
+ */
+static inline JAVA_BOOLEAN ptr_in_young_gen(void *ptr) {
+    JavaHeapYoungGen *youngGen = g_heap->youngGenHeader;
+    if (ptr < youngGen->edenStart) {
+        return JAVA_FALSE;
+    }
+
+    if (ptr <= youngGen->youngEnd) {
+        return JAVA_TRUE;
+    }
+
+    return JAVA_FALSE;
+}
+
+static inline JAVA_BOOLEAN ptr_in_old_gen(void *ptr) {
+    JavaHeapOldGen *oldGen = g_heap->oldGenHeader;
+    if (ptr < oldGen->dataStart) {
+        return JAVA_FALSE;
+    }
+
+    if (ptr <= ptr_inc(g_heap, g_heap->heapSize)) {
+        return JAVA_TRUE;
+    }
+
+    return JAVA_FALSE;
+}
+
+static inline JAVA_BOOLEAN ptr_in_heap(void *ptr) {
+    return ptr_in_young_gen(ptr) || ptr_in_old_gen(ptr);
+}
 
 int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     mem_init();
@@ -171,6 +204,7 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
         mem_release(heap_mem, max_heap_size);
         return -1;
     }
+    heap->gcCount = 0;
     heap->gcRequired = gc_type_nop;
     heap->gcLast = gc_type_nop;
     heap->gcThreadRunning = JAVA_FALSE;
@@ -377,6 +411,10 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
  * @return The actual gc type that performed. Can be different to the required type.
  */
 static GCType gc_trigger(VM_PARAM_CURRENT_CONTEXT, GCType type) {
+    if (type < gc_type_minor) {
+        return gc_type_nop;
+    }
+
     // Wake up the gc thread
     monitor_enter(vmCurrentContext, &g_heap->gcThreadObject);
     {
@@ -399,6 +437,22 @@ static GCType gc_trigger(VM_PARAM_CURRENT_CONTEXT, GCType type) {
     // The gc thread finished working and resumed the world.
     // Get the type of gc that performed during this period.
     return g_heap->gcLast;
+}
+
+static JAVA_VOID mark_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN young_only) {
+
+}
+
+static JAVA_VOID gc_minor(uintptr_t gc_flag) {
+    VMThreadContext *thread = NULL;
+
+    while ((thread = thread_managed_next(thread)) != NULL) {
+        // Mark the thread object first
+        mark_object(thread->currentThread, gc_flag, JAVA_TRUE);
+
+        // Then mark the thread heap
+
+    }
 }
 
 static JAVA_VOID gc_thread_entrance(VM_PARAM_CURRENT_CONTEXT) {
@@ -441,7 +495,22 @@ static JAVA_VOID gc_thread_entrance(VM_PARAM_CURRENT_CONTEXT) {
         thread_wait_until_world_stopped(vmCurrentContext);
 
         // World stopped, now the gc can start
-        // TODO: do gc
+        // Increase the gc count
+        uint64_t gc_count = ++g_heap->gcCount;
+        // Pick the gc mark flag based on gc count
+        uintptr_t gc_mark_flag = (gc_count & 1) == 0 ? OBJECT_FLAG_GC_MARK_0 : OBJECT_FLAG_GC_MARK_1;
+
+        // Do actual gc
+        switch (targetGC) {
+            case gc_type_minor:
+                gc_minor(gc_mark_flag);
+                break;
+            case gc_type_major:
+                break;
+            default:
+                g_heap->gcLast = gc_type_nop;
+                break;
+        }
 
         // Re-lock the gc sync
         if (spin_lock_try_enter(&g_heap->gcSync) != JAVA_TRUE) {

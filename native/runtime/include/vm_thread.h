@@ -80,6 +80,8 @@ JAVA_BOOLEAN thread_managed_add(VM_PARAM_CURRENT_CONTEXT);
 
 JAVA_BOOLEAN thread_managed_remove(VM_PARAM_CURRENT_CONTEXT);
 
+VMThreadContext *thread_managed_next(VMThreadContext *cursor);
+
 // TODO: add thread parameters such as priority.
 int thread_start(VM_PARAM_CURRENT_CONTEXT);
 
@@ -231,6 +233,20 @@ static inline void spin_lock_enter_unsafe(VMSpinLock *lock) {
         }
         goto retry;
     }
+}
+
+/**
+ * Acquire a lock then release it immediately.
+ *
+ * Operations will be wrapped inside a whole safe region.
+ */
+static inline void spin_lock_touch(VM_PARAM_CURRENT_CONTEXT, VMSpinLock *lock) {
+    thread_enter_saferegion(vmCurrentContext);
+
+    spin_lock_enter_unsafe(lock);
+    spin_lock_exit(lock);
+
+    thread_leave_saferegion(vmCurrentContext);
 }
 
 /**

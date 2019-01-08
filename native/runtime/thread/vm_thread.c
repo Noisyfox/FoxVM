@@ -134,7 +134,7 @@ JAVA_BOOLEAN thread_managed_remove(VM_PARAM_CURRENT_CONTEXT) {
     return result;
 }
 
-static inline VMThreadContext *next_thread(VMThreadContext *cursor) {
+VMThreadContext *thread_managed_next(VMThreadContext *cursor) {
     if (cursor == NULL) {
         return g_threadList.next;
     }
@@ -148,7 +148,7 @@ JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT) {
 
     VMThreadContext *thread = NULL;
     // Ask all threads to suspend.
-    while ((thread = next_thread(thread)) != NULL) {
+    while ((thread = thread_managed_next(thread)) != NULL) {
         if (thread == vmCurrentContext) {
             continue;
         }
@@ -160,7 +160,7 @@ JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT) {
 JAVA_VOID thread_wait_until_world_stopped(VM_PARAM_CURRENT_CONTEXT) {
     VMThreadContext *thread = NULL;
     // Wait until all thread to be stopped in safe region.
-    while ((thread = next_thread(thread)) != NULL) {
+    while ((thread = thread_managed_next(thread)) != NULL) {
         if (thread == vmCurrentContext) {
             continue;
         }
@@ -172,7 +172,7 @@ JAVA_VOID thread_wait_until_world_stopped(VM_PARAM_CURRENT_CONTEXT) {
 JAVA_VOID thread_resume_the_world(VM_PARAM_CURRENT_CONTEXT) {
     VMThreadContext *thread = NULL;
     // Make a pass through all threads.
-    while ((thread = next_thread(thread)) != NULL) {
+    while ((thread = thread_managed_next(thread)) != NULL) {
         if (thread == vmCurrentContext) {
             continue;
         }

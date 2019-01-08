@@ -28,10 +28,55 @@ typedef struct _JavaClass   JavaClass,      *JAVA_CLASS;
 typedef struct _JavaObject  JavaObjectBase, *JAVA_OBJECT;
 typedef struct _JavaArray   JavaArrayBase,  *JAVA_ARRAY;
 
-// Object prototype
+typedef enum {
+    ACC_PUBLIC = 0x0001,
+    ACC_PRIVATE = 0x0002,
+    ACC_PROTECTED = 0x0004,
+    ACC_STATIC = 0x0008,
+    ACC_FINAL = 0x0010,
+    ACC_VOLATILE = 0x0040,
+    ACC_TRANSIENT = 0x0080,
+    ACC_SYNTHETIC = 0x1000,
+    ACC_ENUM = 0x4000,
+} FieldAccFlag;
+
+typedef enum {
+    TYPE_DESC_BYTE = 'B',
+    TYPE_DESC_CHAR = 'C',
+    TYPE_DESC_DOUBLE = 'D',
+    TYPE_DESC_FLOAT = 'F',
+    TYPE_DESC_INT = 'I',
+    TYPE_DESC_LONG = 'J',
+    TYPE_DESC_SHORT = 'S',
+    TYPE_DESC_BOOLEAN = 'Z',
+    TYPE_DESC_VOID = 'V',
+    TYPE_DESC_REFERENCE = 'L',
+    TYPE_DESC_ARRAY = '[',
+} TypeDescriptor;
+
+typedef struct {
+    uint16_t accessFlags;
+    const char *name;
+    const char *descriptor;
+
+    // TODO: field attributes
+
+    // GC scanning information
+    size_t offset;
+} FieldDesc;
+
+typedef struct {
+    uint16_t fieldCount;
+    FieldDesc *fields;
+} FieldTable;
+
+/**
+ * This class will not be allocated on heap.
+ * Instead it will be stored on native memory.
+ */
 struct _JavaClass {
     OPA_ptr_t ref;
-    OPA_ptr_t clazz;
+    OPA_ptr_t clazz; // Always NULL for class instance
     void *monitor;
 
     const char *className;
@@ -39,8 +84,11 @@ struct _JavaClass {
     JAVA_CLASS parentClass;
     int interfaceCount;
     JAVA_CLASS *parentInterfaces;
+
+    FieldTable* fieldTable;
 };
 
+// Object prototype
 struct _JavaObject {
     OPA_ptr_t ref;
     OPA_ptr_t clazz;
@@ -69,7 +117,19 @@ typedef struct {
     VMStackSlotData data;
 } VMStackSlot;
 
+/*
+ *  11          8 7       6 5 4 3   0
+ * +-------------+---------+---+----+
+ * | young gen   | gc mark | unused |
+ * | survive age | bits    |        |
+ * +-------------+---------+---+----+
+ */
 #define OBJECT_FLAG_MASK ((uintptr_t)0xFFF)
+#define OBJECT_FLAG_AGE_MASK ((uintptr_t)0xF00)
+#define OBJECT_FLAG_AGE_SHIFT 8
+#define OBJECT_FLAG_GC_MARK_MASK ((uintptr_t)0xC0)
+#define OBJECT_FLAG_GC_MARK_0 ((uintptr_t)0x80)
+#define OBJECT_FLAG_GC_MARK_1 ((uintptr_t)0x40)
 
 static inline JAVA_CLASS obj_get_class(JAVA_OBJECT obj) {
     // The class instance is allocated with a alignment of 4096
@@ -116,13 +176,14 @@ static inline void obj_clear_flags(JAVA_OBJECT obj, uintptr_t flags) {
     }
 }
 
-static inline void obj_reset_flags(JAVA_OBJECT obj, uintptr_t flags) {
-    flags &= OBJECT_FLAG_MASK;
+static inline void obj_reset_flags_masked(JAVA_OBJECT obj, uintptr_t mask, uintptr_t flags) {
+    mask &= OBJECT_FLAG_MASK;
+    flags &= mask;
 
     void *orig_ref = OPA_load_ptr(&obj->clazz);
 
     while (1) {
-        uintptr_t new_ref = (((uintptr_t) orig_ref) & (~OBJECT_FLAG_MASK)) | flags;
+        uintptr_t new_ref = (((uintptr_t) orig_ref) & (~mask)) | flags;
         void *prev = OPA_cas_ptr(&obj->clazz, orig_ref, (void *) new_ref);
         if (prev == orig_ref) {
             break;
@@ -130,6 +191,10 @@ static inline void obj_reset_flags(JAVA_OBJECT obj, uintptr_t flags) {
             orig_ref = prev;
         }
     }
+}
+
+static inline void obj_reset_flags(JAVA_OBJECT obj, uintptr_t flags) {
+    obj_reset_flags_masked(obj, OBJECT_FLAG_MASK, flags);
 }
 
 static inline uintptr_t obj_get_flags(JAVA_OBJECT obj) {
