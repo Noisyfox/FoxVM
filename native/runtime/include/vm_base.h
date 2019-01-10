@@ -75,22 +75,20 @@ typedef struct {
     FieldDesc *fields;
 } FieldTable;
 
-/**
- * This class will not be allocated on heap.
- * Instead it will be stored on native memory.
- */
 struct _JavaClass {
-    OPA_ptr_t ref; // Class list ptr
+    OPA_ptr_t ref;
     OPA_ptr_t clazz; // Always NULL for class instance
     void *monitor;
 
     const char *className;
 
+    JAVA_OBJECT classLoader;
+
     JAVA_CLASS parentClass;
     int interfaceCount;
     JAVA_CLASS *parentInterfaces;
 
-    FieldTable* fieldTable; // Fields of parent classes are not included here.
+    FieldTable *fieldTable; // Fields of parent classes are not included here.
 };
 
 // Object prototype

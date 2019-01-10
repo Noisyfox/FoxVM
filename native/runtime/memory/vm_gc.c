@@ -147,6 +147,22 @@ static inline uint8_t *ptr_old_gen_bytemap_slot(void *ptr) {
     return &oldGen->byteMap[slotNum];
 }
 
+static inline JAVA_BOOLEAN ptr_olg_gen_is_clean(void *ptr, JAVA_BOOLEAN young_only) {
+    if (young_only) {
+        uint8_t *bytemap_slot = ptr_old_gen_bytemap_slot(ptr);
+        if (bytemap_slot != NULL) {
+            // Check if it's marked as having ref to young gen
+            uint8_t mark = *bytemap_slot;
+            if ((mark & CARDTABLE_DIRTY) != CARDTABLE_DIRTY) {
+                // Doesn't have reference to young gen
+                return JAVA_TRUE;
+            }
+        }
+    }
+
+    return JAVA_FALSE;
+}
+
 int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     mem_init();
 
@@ -462,23 +478,24 @@ static GCType gc_trigger(VM_PARAM_CURRENT_CONTEXT, GCType type) {
 
 #define obj_marked(obj, flag) obj_test_flags_and((obj), (flag))
 
-static JAVA_VOID mark_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN young_only) {
-    if (obj == JAVA_NULL) {
-        return;
-    }
+static JAVA_VOID mark_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN young_only);
 
-    // Ignore any object that is a Class
-    JAVA_CLASS currentClass = obj_get_class(obj);
-    if (currentClass == (JAVA_CLASS) JAVA_NULL) {
-        return;
-    }
+static JAVA_VOID mark_class(JAVA_CLASS clazz, uintptr_t gc_flag, JAVA_BOOLEAN young_only);
 
-    // Already marked
-    if (obj_marked(obj, gc_flag) == JAVA_TRUE) {
-        return;
+static inline JAVA_VOID mark_dirty_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN young_only) {
+    if (ptr_olg_gen_is_clean(obj, young_only) != JAVA_TRUE) {
+        mark_object(obj, gc_flag, young_only);
     }
+}
 
-    // Mark current obj
+static inline JAVA_VOID mark_dirty_class(JAVA_CLASS clazz, uintptr_t gc_flag, JAVA_BOOLEAN young_only) {
+    if (ptr_olg_gen_is_clean(clazz, young_only) != JAVA_TRUE) {
+        mark_class(clazz, gc_flag, young_only);
+    }
+}
+
+static inline JAVA_VOID do_mark_obj(JAVA_OBJECT obj, uintptr_t gc_flag) {
+    // Mark obj
     obj_reset_flags_masked(obj, OBJECT_FLAG_GC_MARK_MASK, gc_flag);
 
     // Increase living time if it's in young gen
@@ -492,6 +509,30 @@ static JAVA_VOID mark_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN yo
         uintptr_t age_flags = age << OBJECT_FLAG_AGE_SHIFT;
         obj_reset_flags_masked(obj, OBJECT_FLAG_GC_MARK_MASK, age_flags);
     }
+}
+
+static JAVA_VOID mark_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN young_only) {
+    if (obj == JAVA_NULL) {
+        return;
+    }
+
+    // Class instance need to be handled separately
+    JAVA_CLASS currentClass = obj_get_class(obj);
+    if (currentClass == (JAVA_CLASS) JAVA_NULL) {
+        mark_class((JAVA_CLASS) obj, gc_flag, young_only);
+        return;
+    }
+
+    // Already marked
+    if (obj_marked(obj, gc_flag) == JAVA_TRUE) {
+        return;
+    }
+
+    // Mark current obj
+    do_mark_obj(obj, gc_flag);
+
+    // Mark class instance first
+    mark_dirty_class(currentClass, gc_flag, young_only);
 
     // Then walk pass all instance fields and mark reference fields
     while (currentClass != (JAVA_CLASS) JAVA_NULL) {
@@ -510,19 +551,7 @@ static JAVA_VOID mark_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN yo
             }
 
             JAVA_OBJECT referencedObj = *((JAVA_OBJECT *) (ptr_inc(obj, desc->offset)));
-            if (young_only) {
-                uint8_t *bytemap_slot = ptr_old_gen_bytemap_slot(referencedObj);
-                if (bytemap_slot != NULL) {
-                    // Check if it's marked as having ref to young gen
-                    uint8_t mark = *bytemap_slot;
-                    if ((mark & CARDTABLE_DIRTY) != CARDTABLE_DIRTY) {
-                        // Doesn't have reference to young gen, skip
-                        continue;
-                    }
-                }
-            }
-
-            mark_object(referencedObj, gc_flag, young_only);
+            mark_dirty_object(referencedObj, gc_flag, young_only);
         }
 
         // Then mark parent class fields
@@ -541,7 +570,10 @@ static JAVA_VOID mark_class(JAVA_CLASS clazz, uintptr_t gc_flag, JAVA_BOOLEAN yo
     }
 
     // Mark current class
-    obj_reset_flags_masked((JAVA_OBJECT) clazz, OBJECT_FLAG_GC_MARK_MASK, gc_flag);
+    do_mark_obj((JAVA_OBJECT) clazz, gc_flag);
+
+    // Mark classloader first
+    mark_dirty_object(clazz->classLoader, gc_flag, young_only);
 
     // Then walk pass all static fields and mark reference fields
     FieldTable *fieldTable = clazz->fieldTable;
@@ -558,34 +590,24 @@ static JAVA_VOID mark_class(JAVA_CLASS clazz, uintptr_t gc_flag, JAVA_BOOLEAN yo
         }
 
         JAVA_OBJECT referencedObj = *((JAVA_OBJECT *) (ptr_inc(clazz, desc->offset)));
-        if (young_only) {
-            uint8_t *bytemap_slot = ptr_old_gen_bytemap_slot(referencedObj);
-            if (bytemap_slot != NULL) {
-                // Check if it's marked as having ref to young gen
-                uint8_t mark = *bytemap_slot;
-                if ((mark & CARDTABLE_DIRTY) != CARDTABLE_DIRTY) {
-                    // Doesn't have reference to young gen, skip
-                    continue;
-                }
-            }
-        }
-
-        mark_object(referencedObj, gc_flag, young_only);
+        mark_dirty_object(referencedObj, gc_flag, young_only);
     }
 
-    // We don't need to mark parent classes here since we will mark all classes
+    // Mark parent classes
+    mark_dirty_class(clazz->parentClass, gc_flag, young_only);
+    for (int i = 0; i < clazz->interfaceCount; i++) {
+        mark_dirty_class(clazz->parentInterfaces[i], gc_flag, young_only);
+    }
 }
 
 static JAVA_VOID gc_minor(uintptr_t gc_flag) {
     VMThreadContext *thread = NULL;
 
-    // TODO: go through all Class instances first since they are out of heap
-
     while ((thread = thread_managed_next(thread)) != NULL) {
         // Mark the thread object first
         mark_object(thread->currentThread, gc_flag, JAVA_TRUE);
 
-        // Then mark the thread stack
+        // TODO: Then mark the thread stack
 
     }
 }
