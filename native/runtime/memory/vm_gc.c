@@ -7,6 +7,9 @@
 #include "vm_gc.h"
 #include "vm_memory.h"
 
+#define CARDTABLE_COMMITTED 0x80
+#define CARDTABLE_DIRTY 0x01 // Has cross generation reference
+
 typedef enum {
     gc_type_failed = -1,
     gc_type_nop = 0,
@@ -102,7 +105,7 @@ static inline JAVA_BOOLEAN ptr_in_young_gen(void *ptr) {
         return JAVA_FALSE;
     }
 
-    if (ptr <= youngGen->youngEnd) {
+    if (ptr < youngGen->youngEnd) {
         return JAVA_TRUE;
     }
 
@@ -115,7 +118,7 @@ static inline JAVA_BOOLEAN ptr_in_old_gen(void *ptr) {
         return JAVA_FALSE;
     }
 
-    if (ptr <= ptr_inc(g_heap, g_heap->heapSize)) {
+    if (ptr < ptr_inc(g_heap, g_heap->heapSize)) {
         return JAVA_TRUE;
     }
 
@@ -124,6 +127,24 @@ static inline JAVA_BOOLEAN ptr_in_old_gen(void *ptr) {
 
 static inline JAVA_BOOLEAN ptr_in_heap(void *ptr) {
     return ptr_in_young_gen(ptr) || ptr_in_old_gen(ptr);
+}
+
+/**
+ * Get the corresponding byte for the given ptr in old gen bytemap.
+ * @param ptr
+ * @return A pointer to the flag byte, or NULL if ptr not in old gen
+ */
+static inline uint8_t *ptr_old_gen_bytemap_slot(void *ptr) {
+    JavaHeapOldGen *oldGen = g_heap->oldGenHeader;
+    if (ptr < oldGen->dataStart || ptr >= ptr_inc(g_heap, g_heap->heapSize)) {
+        // Ptr not in old gen
+        return NULL;
+    }
+
+    uint64_t offset = ptr_offset(oldGen->dataStart, ptr);
+    uint64_t slotNum = offset / oldGen->chunkSize;
+
+    return &oldGen->byteMap[slotNum];
 }
 
 int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
@@ -446,29 +467,62 @@ static JAVA_VOID mark_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN yo
         return;
     }
 
+    // Ignore any object that is a Class
+    JAVA_CLASS currentClass = obj_get_class(obj);
+    if (currentClass == (JAVA_CLASS) JAVA_NULL) {
+        return;
+    }
+
     // Already marked
     if (obj_marked(obj, gc_flag) == JAVA_TRUE) {
         return;
     }
 
-    // TODO: Mark current obj
+    // Mark current obj
+    obj_reset_flags_masked(obj, OBJECT_FLAG_GC_MARK_MASK, gc_flag);
 
-    // Then walk pass all fields and mark reference fields
-    JAVA_CLASS currentClass = obj_get_class(obj);
+    // Increase living time if it's in young gen
+    if (ptr_in_young_gen(obj) == JAVA_TRUE) {
+        uintptr_t age = (obj_get_flags(obj) & OBJECT_FLAG_AGE_MASK) >> OBJECT_FLAG_AGE_SHIFT;
 
+        // Increase age by 1
+        age++;
+
+        // Save age back
+        uintptr_t age_flags = age << OBJECT_FLAG_AGE_SHIFT;
+        obj_reset_flags_masked(obj, OBJECT_FLAG_GC_MARK_MASK, age_flags);
+    }
+
+    // Then walk pass all instance fields and mark reference fields
     while (currentClass != (JAVA_CLASS) JAVA_NULL) {
         FieldTable *fieldTable = currentClass->fieldTable;
 
         for (int i = 0; i < fieldTable->fieldCount; i++) {
             FieldDesc *desc = &fieldTable->fields[i];
             if (desc->isReference != JAVA_TRUE) {
+                // Ignore non-reference type fields
                 continue;
             }
 
-            // TODO: check if it's static field
+            if (field_is_static(desc) == JAVA_TRUE) {
+                // Ignore static fields since it's processed when marking Class
+                continue;
+            }
 
-            JAVA_OBJECT *fieldPtr = ptr_inc(obj, desc->offset);
-            mark_object(*fieldPtr, gc_flag, young_only);
+            JAVA_OBJECT referencedObj = *((JAVA_OBJECT *) (ptr_inc(obj, desc->offset)));
+            if (young_only) {
+                uint8_t *bytemap_slot = ptr_old_gen_bytemap_slot(referencedObj);
+                if (bytemap_slot != NULL) {
+                    // Check if it's marked as having ref to young gen
+                    uint8_t mark = *bytemap_slot;
+                    if ((mark & CARDTABLE_DIRTY) != CARDTABLE_DIRTY) {
+                        // Doesn't have reference to young gen, skip
+                        continue;
+                    }
+                }
+            }
+
+            mark_object(referencedObj, gc_flag, young_only);
         }
 
         // Then mark parent class fields
@@ -476,14 +530,62 @@ static JAVA_VOID mark_object(JAVA_OBJECT obj, uintptr_t gc_flag, JAVA_BOOLEAN yo
     }
 }
 
+static JAVA_VOID mark_class(JAVA_CLASS clazz, uintptr_t gc_flag, JAVA_BOOLEAN young_only) {
+    if (clazz == (JAVA_CLASS) JAVA_NULL) {
+        return;
+    }
+
+    // Already marked
+    if (obj_marked((JAVA_OBJECT) clazz, gc_flag) == JAVA_TRUE) {
+        return;
+    }
+
+    // Mark current class
+    obj_reset_flags_masked((JAVA_OBJECT) clazz, OBJECT_FLAG_GC_MARK_MASK, gc_flag);
+
+    // Then walk pass all static fields and mark reference fields
+    FieldTable *fieldTable = clazz->fieldTable;
+    for (int i = 0; i < fieldTable->fieldCount; i++) {
+        FieldDesc *desc = &fieldTable->fields[i];
+        if (desc->isReference != JAVA_TRUE) {
+            // Ignore non-reference type fields
+            continue;
+        }
+
+        if (field_is_static(desc) != JAVA_TRUE) {
+            // Ignore non-static fields
+            continue;
+        }
+
+        JAVA_OBJECT referencedObj = *((JAVA_OBJECT *) (ptr_inc(clazz, desc->offset)));
+        if (young_only) {
+            uint8_t *bytemap_slot = ptr_old_gen_bytemap_slot(referencedObj);
+            if (bytemap_slot != NULL) {
+                // Check if it's marked as having ref to young gen
+                uint8_t mark = *bytemap_slot;
+                if ((mark & CARDTABLE_DIRTY) != CARDTABLE_DIRTY) {
+                    // Doesn't have reference to young gen, skip
+                    continue;
+                }
+            }
+        }
+
+        mark_object(referencedObj, gc_flag, young_only);
+    }
+
+    // We don't need to mark parent classes here since we will mark all classes
+}
+
 static JAVA_VOID gc_minor(uintptr_t gc_flag) {
     VMThreadContext *thread = NULL;
+
+    // TODO: go through all Class instances first since they are out of heap
 
     while ((thread = thread_managed_next(thread)) != NULL) {
         // Mark the thread object first
         mark_object(thread->currentThread, gc_flag, JAVA_TRUE);
 
-        // Then mark the thread heap
+        // Then mark the thread stack
 
     }
 }

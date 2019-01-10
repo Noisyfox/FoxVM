@@ -66,6 +66,10 @@ typedef struct {
     JAVA_BOOLEAN isReference;
 } FieldDesc;
 
+static inline JAVA_BOOLEAN field_is_static(FieldDesc *f) {
+    return (f->accessFlags & ACC_STATIC) == ACC_STATIC ? JAVA_TRUE : JAVA_FALSE;
+}
+
 typedef struct {
     uint16_t fieldCount;
     FieldDesc *fields;
@@ -76,7 +80,7 @@ typedef struct {
  * Instead it will be stored on native memory.
  */
 struct _JavaClass {
-    OPA_ptr_t ref;
+    OPA_ptr_t ref; // Class list ptr
     OPA_ptr_t clazz; // Always NULL for class instance
     void *monitor;
 
