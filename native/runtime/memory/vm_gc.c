@@ -7,8 +7,54 @@
 #include "vm_gc.h"
 #include "vm_memory.h"
 
-#define CARDTABLE_COMMITTED 0x80
-#define CARDTABLE_DIRTY 0x01 // Has cross generation reference
+/*
+ * Definition of cardtable bytemap:
+ *
+ *    7     6     5     4     3     2     1      0
+ * +-----+-----+-----+-----+-----+-----+-----+-------+
+ * |   state   |         variable data               |
+ * +-----+-----+-----+-----+-----+-----+-----+-------+
+ * |  0     0  |             free_after              |  free (not committed)
+ * +-----+-----+-----+-----+-----+-----+-----+-------+
+ * |  0     1  |           committed_after           |  committed
+ * +-----+-----+-----+-----+-----+-----+-----+-------+
+ * |  1     0  |          reserved           | dirty |  allocated
+ * +-----+-----+-----+-----+-----+-----+-----+-------+
+ * |  1     1  |                                     |  reserved
+ * +-----+-----+-----+-----+-----+-----+-----+-------+
+ *
+ * state: the allocation status of this chunk.
+ *   - free: the memory chunk is not committed, only reserved from OS.
+ *   - committed: the memory is committed from OS, ready for allocation.
+ *   - allocated: the corresponding memory chunk is already allocated to a managed object.
+ *
+ * free_after: the number of free chunks after current chunk. This field
+ *   has only 6 bits with a maximum value of 0x3F (63). If there are more
+ *   than 63 free chunks afterwards, then this value will be 63, and the
+ *   flag value at [current + 64] will be added to get the total number.
+ *
+ * committed_after: similar as free_after, but for number of committed chunks.
+ *
+ * dirty: the object stored in the corresponding chunk contains reference pointing
+ *   to an object located in young generation heap.
+ *
+ */
+#define CARDTABLE_STATE_MASK ((uint8_t)0xC0)
+#define CARDTABLE_STATE_SHIFT 6
+#define CARDTABLE_STATE_FREE 0
+#define CARDTABLE_STATE_COMMITTED 1
+#define CARDTABLE_STATE_ALLOCATED 2
+
+#define CARDTABLE_FREE_AFTER_MASK ((uint8_t)0x3F)
+#define CARDTABLE_FREE_AFTER_SHIFT 0
+
+#define CARDTABLE_COMMITTED_AFTER_MASK ((uint8_t)0x3F)
+#define CARDTABLE_COMMITTED_AFTER_SHIFT 0
+
+#define CARDTABLE_FLAG_DIRTY ((uint8_t)0x01) // Has cross generation reference
+
+// Object need to be moved to old gen after 5 times of young gen gc
+#define GC_SURVIVOR_AGE_MAX 5
 
 typedef enum {
     gc_type_failed = -1,
@@ -153,7 +199,7 @@ static inline JAVA_BOOLEAN ptr_olg_gen_is_clean(void *ptr, JAVA_BOOLEAN young_on
         if (bytemap_slot != NULL) {
             // Check if it's marked as having ref to young gen
             uint8_t mark = *bytemap_slot;
-            if ((mark & CARDTABLE_DIRTY) != CARDTABLE_DIRTY) {
+            if ((mark & CARDTABLE_FLAG_DIRTY) != CARDTABLE_FLAG_DIRTY) {
                 // Doesn't have reference to young gen
                 return JAVA_TRUE;
             }
@@ -600,6 +646,81 @@ static JAVA_VOID mark_class(JAVA_CLASS clazz, uintptr_t gc_flag, JAVA_BOOLEAN yo
     }
 }
 
+static inline uint64_t bytemap_next_allocated(uint64_t cursor) {
+    JavaHeapOldGen *oldGen = g_heap->oldGenHeader;
+    uint64_t chunkCount = oldGen->chunkCount;
+    uint8_t *byteMap = oldGen->byteMap;
+
+    while (cursor < chunkCount) {
+        uint8_t flag = byteMap[cursor];
+
+        uint8_t state = (flag & CARDTABLE_STATE_MASK) >> CARDTABLE_STATE_SHIFT;
+        switch (state) {
+            case CARDTABLE_STATE_FREE:
+                cursor += ((flag & CARDTABLE_FREE_AFTER_MASK) >> CARDTABLE_FREE_AFTER_SHIFT);
+                break;
+            case CARDTABLE_STATE_COMMITTED:
+                cursor += ((flag & CARDTABLE_COMMITTED_AFTER_MASK) >> CARDTABLE_COMMITTED_AFTER_SHIFT);
+                break;
+            case CARDTABLE_STATE_ALLOCATED:
+                return cursor;
+            default:
+                break;
+        }
+        cursor++;
+    }
+
+    return cursor;
+}
+
+static inline uint64_t bytemap_next_dirty(uint64_t cursor) {
+    JavaHeapOldGen *oldGen = g_heap->oldGenHeader;
+    uint64_t chunkCount = oldGen->chunkCount;
+    uint8_t *byteMap = oldGen->byteMap;
+
+    while ((cursor = bytemap_next_allocated(cursor)) < chunkCount) {
+        uint8_t flag = byteMap[cursor];
+        if ((flag & CARDTABLE_FLAG_DIRTY) == CARDTABLE_FLAG_DIRTY) {
+            return cursor;
+        }
+        cursor++;
+    }
+
+    return cursor;
+}
+
+// Mark old gen objects with card table marked dirty
+static JAVA_VOID mark_old_gen_dirty_objects(uintptr_t gc_flag) {
+    JavaHeapOldGen *oldGen = g_heap->oldGenHeader;
+    uint64_t chunkSize = oldGen->chunkSize;
+    uint64_t chunkCount = oldGen->chunkCount;
+    void *dataStart = oldGen->dataStart;
+    uint64_t chunk = 0;
+    while ((chunk = bytemap_next_dirty(chunk)) < chunkCount) {
+        JAVA_OBJECT obj = ptr_inc(dataStart, chunk * chunkSize + sizeof(ObjectHeapHeader));
+
+        // Mark dirty object
+        mark_object(obj, gc_flag, JAVA_TRUE);
+
+        size_t object_size;
+        JAVA_CLASS clazz = obj_get_class(obj);
+        if (clazz == (JAVA_CLASS) JAVA_NULL) {
+            object_size = ((JAVA_CLASS) obj)->classSize;
+        } else {
+            object_size = clazz->instanceSize;
+        }
+
+        // Chunk number for this object
+        uint64_t chunkNumber = (object_size + sizeof(ObjectHeapHeader) - 1) / chunkSize + 1;
+
+        chunk += chunkNumber;
+    }
+}
+
+static JAVA_VOID gc_scan_young_gen_size(void *start, void *end, uintptr_t gc_flag, uint64_t *size_out) {
+
+}
+
 static JAVA_VOID gc_minor(uintptr_t gc_flag) {
     VMThreadContext *thread = NULL;
 
@@ -610,6 +731,37 @@ static JAVA_VOID gc_minor(uintptr_t gc_flag) {
         // TODO: Then mark the thread stack
 
     }
+
+    // Mark old gen objects with card table marked dirty
+    mark_old_gen_dirty_objects(gc_flag);
+
+    // Calculate size of all survived objects in young gen
+    uint64_t survObjSizeInEden[GC_SURVIVOR_AGE_MAX] = {};
+    uint64_t survObjSizeInSurvivor[GC_SURVIVOR_AGE_MAX] = {};
+    memset(survObjSizeInEden, 0, sizeof(survObjSizeInEden));
+    // Scan Eden region
+    JavaHeapYoungGen *youngGen = g_heap->youngGenHeader;
+    // First, the large object region
+    gc_scan_young_gen_size(youngGen->reservedEnd, youngGen->largeObjIndex, gc_flag, survObjSizeInEden);
+    // Then scan tlabs
+    void *tlabStart = youngGen->tlabIndex;
+    void *tlabEnd = ptr_inc(tlabStart, g_heap->tlabSize);
+    while (tlabEnd <= youngGen->edenEnd) {
+        gc_scan_young_gen_size(tlabStart, tlabEnd, gc_flag, survObjSizeInEden);
+
+        tlabStart = tlabEnd;
+        tlabEnd = ptr_inc(tlabStart, g_heap->tlabSize);
+    }
+    // Then scan active survivor region
+    if (gc_flag == OBJECT_FLAG_GC_MARK_0) {
+        gc_scan_young_gen_size(youngGen->edenEnd, youngGen->survivor0Limit, gc_flag, survObjSizeInSurvivor);
+    } else {
+        gc_scan_young_gen_size(youngGen->survivorMiddle, youngGen->survivor1Limit, gc_flag, survObjSizeInSurvivor);
+    }
+
+    // Determine object age high water mark
+
+    // TODO: Move old object from survivor region to old gen
 }
 
 static JAVA_VOID gc_thread_entrance(VM_PARAM_CURRENT_CONTEXT) {

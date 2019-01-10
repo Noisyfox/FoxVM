@@ -80,6 +80,9 @@ struct _JavaClass {
     OPA_ptr_t clazz; // Always NULL for class instance
     void *monitor;
 
+    size_t classSize;
+    size_t instanceSize;
+
     const char *className;
 
     JAVA_OBJECT classLoader;

@@ -40,12 +40,15 @@ struct _AllocContext {
     uint8_t *tlabLimit; // The end of TLAB
 };
 
+// The data after the header is unused yet
+#define HEAP_FLAG_EMPTY ((uint32_t) 0x0)
+
 // The data after the header is a normal object
-#define HEAP_FLAG_NORMAL ((uint32_t) 0x0)
+#define HEAP_FLAG_NORMAL ((uint32_t) 0x1)
 
 // The original object after the header has been moved to another place and
 // the data now is a forward pointer structure
-#define HEAP_FLAG_FORWARD ((uint32_t) 0x1)
+#define HEAP_FLAG_FORWARD ((uint32_t) 0x2)
 
 /**
  * Heap object header (small structure that immediately precedes every object in the GC heap). Only
