@@ -2,8 +2,8 @@
 // Created by noisyfox on 2018/11/17.
 //
 
-#ifndef FOXVM_VM_MEMORY_STRUCT_H
-#define FOXVM_VM_MEMORY_STRUCT_H
+#ifndef FOXVM_VM_MEMORY_BASE_H
+#define FOXVM_VM_MEMORY_BASE_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -64,4 +64,4 @@ typedef struct {
     size_t remainingSize; // Size of the original object - sizeof(ForwardPointer)
 } ForwardPointer;
 
-#endif //FOXVM_VM_MEMORY_STRUCT_H
+#endif //FOXVM_VM_MEMORY_BASE_H

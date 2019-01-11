@@ -540,13 +540,17 @@ static inline JAVA_VOID mark_dirty_class(JAVA_CLASS clazz, uintptr_t gc_flag, JA
     }
 }
 
+static inline uintptr_t obj_get_gc_age(JAVA_OBJECT obj) {
+    return (obj_get_flags(obj) & OBJECT_FLAG_AGE_MASK) >> OBJECT_FLAG_AGE_SHIFT;
+}
+
 static inline JAVA_VOID do_mark_obj(JAVA_OBJECT obj, uintptr_t gc_flag) {
     // Mark obj
     obj_reset_flags_masked(obj, OBJECT_FLAG_GC_MARK_MASK, gc_flag);
 
     // Increase living time if it's in young gen
     if (ptr_in_young_gen(obj) == JAVA_TRUE) {
-        uintptr_t age = (obj_get_flags(obj) & OBJECT_FLAG_AGE_MASK) >> OBJECT_FLAG_AGE_SHIFT;
+        uintptr_t age = obj_get_gc_age(obj);
 
         // Increase age by 1
         age++;
@@ -689,6 +693,15 @@ static inline uint64_t bytemap_next_dirty(uint64_t cursor) {
     return cursor;
 }
 
+static inline size_t obj_get_size(JAVA_OBJECT obj) {
+    JAVA_CLASS clazz = obj_get_class(obj);
+    if (clazz == (JAVA_CLASS) JAVA_NULL) {
+        return ((JAVA_CLASS) obj)->classSize;
+    } else {
+        return clazz->instanceSize;
+    }
+}
+
 // Mark old gen objects with card table marked dirty
 static JAVA_VOID mark_old_gen_dirty_objects(uintptr_t gc_flag) {
     JavaHeapOldGen *oldGen = g_heap->oldGenHeader;
@@ -702,23 +715,49 @@ static JAVA_VOID mark_old_gen_dirty_objects(uintptr_t gc_flag) {
         // Mark dirty object
         mark_object(obj, gc_flag, JAVA_TRUE);
 
-        size_t object_size;
-        JAVA_CLASS clazz = obj_get_class(obj);
-        if (clazz == (JAVA_CLASS) JAVA_NULL) {
-            object_size = ((JAVA_CLASS) obj)->classSize;
-        } else {
-            object_size = clazz->instanceSize;
-        }
-
         // Chunk number for this object
+        size_t object_size = obj_get_size(obj);
         uint64_t chunkNumber = (object_size + sizeof(ObjectHeapHeader) - 1) / chunkSize + 1;
 
         chunk += chunkNumber;
     }
 }
 
+/**
+ * Calculate the total size of survived objects with different ages in young gen.
+ * The object size includes the size of the object itself and it's heap header.
+ *
+ * @param start the start address of young gen region to be scanned, inclusive
+ * @param end the end of address of young gen region to be scanned, exclusive.
+ * @param gc_flag
+ * @param size_out an array of total size of survived objects with different ages. The index
+ *      of this array is the age of the object - 1.
+ */
 static JAVA_VOID gc_scan_young_gen_size(void *start, void *end, uintptr_t gc_flag, uint64_t *size_out) {
+    ObjectHeapHeader *objectHeader = start;
+    void *objectCursor;
 
+    while ((objectCursor = ptr_inc(objectHeader, sizeof(ObjectHeapHeader))) <= end
+           && objectHeader->flag != HEAP_FLAG_EMPTY) {
+
+        if (objectHeader->flag == HEAP_FLAG_FORWARD) {
+            ForwardPointer *fp = objectCursor;
+            // Skip remaining data
+            objectHeader = ptr_inc(fp, sizeof(ForwardPointer) + fp->remainingSize);
+        } else if (objectHeader->flag == HEAP_FLAG_NORMAL) {
+            JAVA_OBJECT obj = objectCursor;
+            size_t object_size = obj_get_size(obj);
+
+            if (obj_marked(obj, gc_flag)) {
+                uintptr_t age = obj_get_gc_age(obj);
+
+                // Add size. Survived object will have an age of at least 1.
+                size_out[age - 1] += object_size + sizeof(ObjectHeapHeader);
+            }
+
+            objectHeader = ptr_inc(obj, object_size);
+        }
+    }
 }
 
 static JAVA_VOID gc_minor(uintptr_t gc_flag) {
@@ -761,7 +800,7 @@ static JAVA_VOID gc_minor(uintptr_t gc_flag) {
 
     // Determine object age high water mark
 
-    // TODO: Move old object from survivor region to old gen
+    // TODO: Move object older than high water mark from young to old gen
 }
 
 static JAVA_VOID gc_thread_entrance(VM_PARAM_CURRENT_CONTEXT) {
