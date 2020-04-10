@@ -7,7 +7,7 @@
 #ifndef FOXVM_VM_GC_H
 #define FOXVM_VM_GC_H
 
-#include "vm_thread.h"
+#include "vm_base.h"
 
 typedef struct {
     size_t maxSize;
@@ -54,8 +54,6 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config);
 int gc_thread_start(VM_PARAM_CURRENT_CONTEXT);
 
 int gc_thread_shutdown(VM_PARAM_CURRENT_CONTEXT);
-
-void tlab_init(VM_PARAM_CURRENT_CONTEXT, ThreadAllocContext *tlab);
 
 /**
  * @param __vmCurrentThreadContext

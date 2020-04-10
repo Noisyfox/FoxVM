@@ -1,6 +1,8 @@
 //
 // Created by noisyfox on 2018/10/1.
 //
+// Base type defs that will be used everywhere.
+//
 
 #ifndef FOXVM_VM_BASE_H
 #define FOXVM_VM_BASE_H
@@ -224,6 +226,11 @@ static inline JAVA_BOOLEAN obj_test_flags_or(JAVA_OBJECT obj, uintptr_t flags) {
 
     return (flags & current_flags) != 0 ? JAVA_TRUE : JAVA_FALSE;
 }
+
+typedef struct _VMThreadContext VMThreadContext;
+
+#define vmCurrentContext __vmCurrentThreadContext
+#define VM_PARAM_CURRENT_CONTEXT VMThreadContext *vmCurrentContext
 
 
 #endif //FOXVM_VM_BASE_H

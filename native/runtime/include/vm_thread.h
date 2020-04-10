@@ -14,12 +14,8 @@ typedef struct {
 
 extern SystemProcessorInfo g_systemProcessorInfo;
 
+/** Init the thread system. */
 JAVA_BOOLEAN thread_init();
-
-typedef struct _VMThreadContext VMThreadContext;
-
-#define vmCurrentContext __vmCurrentThreadContext
-#define VM_PARAM_CURRENT_CONTEXT VMThreadContext *vmCurrentContext
 
 typedef JAVA_VOID (*VMThreadCallback)(VM_PARAM_CURRENT_CONTEXT);
 

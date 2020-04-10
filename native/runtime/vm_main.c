@@ -7,9 +7,12 @@
 int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
     thread_init();
 
+    // Create main thread
     VMThreadContext thread_main = {0};
     VM_PARAM_CURRENT_CONTEXT = &thread_main;
 
+    // Init main thread
+    tlab_reset(&vmCurrentContext->tlab);
     thread_native_init(vmCurrentContext);
     thread_native_attach_main(vmCurrentContext);
     // register the main thread to global thread list
@@ -23,7 +26,6 @@ int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
 //
 //    heap_init(vmCurrentContext, &heapConfig);
 
-//    tlab_init(vmCurrentContext, &vmCurrentContext->tlab);
     // TODO: create java Thread Object for main thread
 
     // start GC thread

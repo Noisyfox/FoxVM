@@ -10,6 +10,8 @@
 #ifndef FOXVM_VM_TLAB_H
 #define FOXVM_VM_TLAB_H
 
+#include "vm_base.h"
+
 // The size of each TLAB, 8k
 #define TLAB_SIZE_MIN  ((size_t)(8*1024))
 
@@ -23,5 +25,14 @@ struct _AllocContext {
     uint8_t *tlabCurrent;  // current allocation position of TLAB
     uint8_t *tlabLimit; // The end of TLAB
 };
+
+/**
+ * Reset the given tlab to un-allocated.
+ */
+static inline void tlab_reset(ThreadAllocContext *tlab) {
+    tlab->tlabHead = 0;
+    tlab->tlabCurrent = 0;
+    tlab->tlabLimit = 0;
+}
 
 #endif //FOXVM_VM_TLAB_H

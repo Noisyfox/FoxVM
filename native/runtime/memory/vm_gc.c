@@ -354,12 +354,6 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
 // Allocator related functions
 //*********************************************************************************************************
 
-void tlab_init(VM_PARAM_CURRENT_CONTEXT, ThreadAllocContext *tlab) {
-    tlab->tlabHead = 0;
-    tlab->tlabCurrent = 0;
-    tlab->tlabLimit = 0;
-}
-
 /**
  * Get a new TLAB buffer.
  * @param __vmCurrentThreadContext
@@ -904,7 +898,7 @@ int gc_thread_start(VM_PARAM_CURRENT_CONTEXT) {
             result = thrd_success;
         } else {
             thread_native_init(&g_heap->gcThread);
-            tlab_init(vmCurrentContext, &g_heap->gcThread.tlab);
+            tlab_reset(&g_heap->gcThread.tlab);
             g_heap->gcThreadRunning = JAVA_TRUE;
 
             result = thread_start(&g_heap->gcThread);
