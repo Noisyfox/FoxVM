@@ -6,8 +6,7 @@
 #define FOXVM_VM_THREAD_H
 
 #include "vm_base.h"
-#include "vm_memory_base.h"
-
+#include "vm_tlab.h"
 
 typedef struct {
     uint32_t numberOfProcessors;
@@ -40,7 +39,8 @@ struct _VMThreadContext {
 
     JAVA_OBJECT exception;  // Current exception object
 
-//    ThreadAllocContext tlab;
+    // Thread-local allocation buffer. Small objects will be allocated directly on it so no lock is needed.
+    ThreadAllocContext tlab;
 };
 
 enum {

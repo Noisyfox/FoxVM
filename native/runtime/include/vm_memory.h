@@ -8,7 +8,6 @@
 #define FOXVM_VM_MEMORY_H
 
 #include "vm_base.h"
-#include "vm_memory_base.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -71,6 +70,18 @@ static inline void *mem_aligned_malloc(size_t size, size_t alignment) {
 #else
 #error no aligned malloc implementation specified
 #endif
+
+typedef struct {
+    uint32_t pageSize;
+    uint32_t allocGranularity;
+} SystemMemoryInfo;
+
+typedef struct {
+    uint64_t totalPhys;
+    uint64_t availPhys;
+    uint64_t totalVirt;
+    uint64_t availVirt;
+} MemoryStatus;
 
 extern SystemMemoryInfo g_systemMemoryInfo;
 
