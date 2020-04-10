@@ -31,16 +31,16 @@ struct _VMThreadContext {
     VMThreadCallback terminated;
 
     JAVA_LONG threadId;
-    JAVA_OBJECT currentThread;
+    JAVA_OBJECT currentThread;  // A java Thread object of this thread
 
 //    VMStackSlot* stack;
 //    int sta
 
-    void *nativeContext;
+    void *nativeContext;  // Platform specific thread context
 
-    JAVA_OBJECT exception;
+    JAVA_OBJECT exception;  // Current exception object
 
-    ThreadAllocContext tlab;
+//    ThreadAllocContext tlab;
 };
 
 enum {
@@ -116,9 +116,9 @@ JAVA_VOID thread_resume_the_world(VM_PARAM_CURRENT_CONTEXT);
 JAVA_VOID thread_suspend_single(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target);
 
 /**
- * Wait until target thread runs into check point and paused.
+ * Wait until target thread runs into a safe region.
  */
-JAVA_VOID thread_wait_until_checkpoint(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target);
+JAVA_VOID thread_wait_until_saferegion(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target);
 
 /**
  * Tell the target thread that it's safe to leave the check point and keep running.
@@ -127,6 +127,8 @@ JAVA_VOID thread_resume_single(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target
 
 /**
  * Mark current thread is in a safe region, so GC thread can start marking this thread.
+ * A safe region is a piece of code that does not do any heap allocation and also
+ * won't mutate any pointers.
  */
 JAVA_VOID thread_enter_saferegion(VM_PARAM_CURRENT_CONTEXT);
 
@@ -141,24 +143,28 @@ JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT);
  * Check if gc is trying to suspend the thread. If stopTheWorld==true then this function will
  * block until gc is finished.
  *
+ * This function should only be called outside a saferegion. If called inside a saferegion,
+ * this function does nothing but returned immediately.
+ *
  * Equivalent to call thread_leave_saferegion() immediately after thread_enter_saferegion().
  */
 JAVA_VOID thread_checkpoint(VM_PARAM_CURRENT_CONTEXT);
 
+// For object lock
 
-int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
+int monitor_create(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj);
 
-JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
+JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj);
 
-int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
+int monitor_enter(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj);
 
-int monitor_exit(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
+int monitor_exit(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj);
 
-int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_INT nanos);
+int monitor_wait(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj, JAVA_LONG timeout, JAVA_INT nanos);
 
-int monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
+int monitor_notify(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj);
 
-int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
+int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj);
 
 /**
  * Naive & simple Spin Lock based on CAS.
@@ -210,51 +216,51 @@ static inline void spin_lock_enter(VM_PARAM_CURRENT_CONTEXT, VMSpinLock *lock) {
     thread_leave_saferegion(vmCurrentContext);
 }
 
-/**
- * Get the lock without enter safe region
- */
-static inline void spin_lock_enter_unsafe(VMSpinLock *lock) {
-    retry:
-
-    if (spin_lock_try_enter(lock) != JAVA_TRUE) {
-        unsigned int retry_count = 0;
-        while (spin_lock_is_locked(lock)) {
-            if (++retry_count & 7) {
-                int spin_count = 1024 * g_systemProcessorInfo.numberOfProcessors;
-                for (int i = 0; i < spin_count; i++) {
-                    if (spin_lock_is_locked(lock) == JAVA_FALSE) {
-                        break;
-                    }
-                    OPA_busy_wait();
-                }
-            } else {
-                // TODO: wait for a longer time
-            }
-        }
-        goto retry;
-    }
-}
-
-/**
- * Acquire a lock then release it immediately.
- *
- * Operations will be wrapped inside a whole safe region.
- */
-static inline void spin_lock_touch(VM_PARAM_CURRENT_CONTEXT, VMSpinLock *lock) {
-    thread_enter_saferegion(vmCurrentContext);
-
-    spin_lock_enter_unsafe(lock);
-    spin_lock_exit(lock);
-
-    thread_leave_saferegion(vmCurrentContext);
-}
-
-/**
- * Acquire a lock then release it immediately without enter safe region.
- */
-static inline void spin_lock_touch_unsafe(VMSpinLock *lock) {
-    spin_lock_enter_unsafe(lock);
-    spin_lock_exit(lock);
-}
+///**
+// * Get the lock without enter safe region
+// */
+//static inline void spin_lock_enter_unsafe(VMSpinLock *lock) {
+//    retry:
+//
+//    if (spin_lock_try_enter(lock) != JAVA_TRUE) {
+//        unsigned int retry_count = 0;
+//        while (spin_lock_is_locked(lock)) {
+//            if (++retry_count & 7) {
+//                int spin_count = 1024 * g_systemProcessorInfo.numberOfProcessors;
+//                for (int i = 0; i < spin_count; i++) {
+//                    if (spin_lock_is_locked(lock) == JAVA_FALSE) {
+//                        break;
+//                    }
+//                    OPA_busy_wait();
+//                }
+//            } else {
+//                // TODO: wait for a longer time
+//            }
+//        }
+//        goto retry;
+//    }
+//}
+//
+///**
+// * Acquire a lock then release it immediately.
+// *
+// * Operations will be wrapped inside a whole safe region.
+// */
+//static inline void spin_lock_touch(VM_PARAM_CURRENT_CONTEXT, VMSpinLock *lock) {
+//    thread_enter_saferegion(vmCurrentContext);
+//
+//    spin_lock_enter_unsafe(lock);
+//    spin_lock_exit(lock);
+//
+//    thread_leave_saferegion(vmCurrentContext);
+//}
+//
+///**
+// * Acquire a lock then release it immediately without enter safe region.
+// */
+//static inline void spin_lock_touch_unsafe(VMSpinLock *lock) {
+//    spin_lock_enter_unsafe(lock);
+//    spin_lock_exit(lock);
+//}
 
 #endif //FOXVM_VM_THREAD_H

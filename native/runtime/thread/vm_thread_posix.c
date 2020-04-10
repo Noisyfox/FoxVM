@@ -3,7 +3,6 @@
 //
 
 #include "vm_thread.h"
-#include "vm_reference.h"
 #include <pthread.h>
 #include <stdlib.h>
 #include <time.h>
@@ -79,11 +78,20 @@ struct _NativeThreadContext {
     volatile VMThreadState threadState;
 
     // GC specific flags
+    /** Main lock for accessing & updating current thread gc state. */
     pthread_mutex_t gcMutex;
+    /** Condition for waking up the thread after gc finishes. */
     pthread_cond_t gcCondition;
     int safeRegionReentranceCounter;
+    /** Whether this thread is asked for suspend for gc. This is set by `thread_suspend_single()`. */
     JAVA_BOOLEAN stopTheWorld;
-    JAVA_BOOLEAN inCheckPoint;
+    /** Whether current thread is in a safe region. */
+    JAVA_BOOLEAN inSafeRegion;
+    /**
+     * Whether current thread is suspended and needs to be wake up after gc finishes.
+     * A thread in saferegion is not necessarily suspended since the thread can till execute within the saferegion.
+     * Only if the gc hasn't finished when the thread tries to exit the saferegion, the thread will be suspended.
+     */
     JAVA_BOOLEAN waitingForResume;
 };
 
@@ -94,7 +102,7 @@ int thread_native_init(VM_PARAM_CURRENT_CONTEXT) {
     nativeContext->interrupted = JAVA_FALSE;
     nativeContext->threadState = thrd_stat_new;
     nativeContext->stopTheWorld = JAVA_FALSE;
-    nativeContext->inCheckPoint = JAVA_FALSE;
+    nativeContext->inSafeRegion = JAVA_FALSE;
     nativeContext->waitingForResume = JAVA_FALSE;
     nativeContext->safeRegionReentranceCounter = 0;
     // TODO: check return value
@@ -324,11 +332,11 @@ JAVA_VOID thread_suspend_single(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *targe
     }
 }
 
-JAVA_VOID thread_wait_until_checkpoint(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
+JAVA_VOID thread_wait_until_saferegion(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target) {
     NativeThreadContext *nativeContext = target->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
-        while (!nativeContext->inCheckPoint) {
+        while (!nativeContext->inSafeRegion) {
             pthread_cond_wait(&nativeContext->gcCondition, &nativeContext->gcMutex);
         }
         pthread_mutex_unlock(&nativeContext->gcMutex);
@@ -351,7 +359,7 @@ JAVA_VOID thread_enter_saferegion(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
-        nativeContext->inCheckPoint = JAVA_TRUE;
+        nativeContext->inSafeRegion = JAVA_TRUE;
         nativeContext->safeRegionReentranceCounter++;
         if (nativeContext->stopTheWorld) {
             // Notify GC thread
@@ -374,7 +382,7 @@ JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT) {
                 pthread_cond_wait(&nativeContext->gcCondition, &nativeContext->gcMutex);
             }
             nativeContext->waitingForResume = JAVA_FALSE;
-            nativeContext->inCheckPoint = JAVA_FALSE;
+            nativeContext->inSafeRegion = JAVA_FALSE;
         }
 
         pthread_mutex_unlock(&nativeContext->gcMutex);
@@ -385,9 +393,12 @@ JAVA_VOID thread_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
-        // TODO: Make sure we are not in safe region already
+        if (nativeContext->inSafeRegion) {
+            // Do nothing if we already in saferegion.
+            return;
+        }
 
-        nativeContext->inCheckPoint = JAVA_TRUE;
+        nativeContext->inSafeRegion = JAVA_TRUE;
         if (nativeContext->stopTheWorld) {
             // Notify GC thread
             pthread_cond_signal(&nativeContext->gcCondition);
@@ -397,15 +408,17 @@ JAVA_VOID thread_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
             pthread_cond_wait(&nativeContext->gcCondition, &nativeContext->gcMutex);
         }
         nativeContext->waitingForResume = JAVA_FALSE;
-        nativeContext->inCheckPoint = JAVA_FALSE;
+        nativeContext->inSafeRegion = JAVA_FALSE;
 
         pthread_mutex_unlock(&nativeContext->gcMutex);
     }
 }
 
 
-int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
-    if (obj->monitor != NULL) {
+int monitor_create(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj) {
+    // TODO: check stack slot type
+
+    if (obj->data.o->monitor != NULL) {
         return thrd_success;
     }
 
@@ -418,15 +431,17 @@ int monitor_create(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     pthread_mutex_init(&m->masterMutex, NULL);
     pthread_cond_init(&m->blockingCondition, NULL);
 
-    obj->monitor = m;
+    obj->data.o->monitor = m;
 
     return thrd_success;
 }
 
-JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
-    ObjectMonitor *m = obj->monitor;
+JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj) {
+    // TODO: check stack slot type
+
+    ObjectMonitor *m = obj->data.o->monitor;
     if (m != NULL) {
-        obj->monitor = NULL;
+        obj->data.o->monitor = NULL;
 
         // TODO: make sure the blocking list is empty
 
@@ -437,33 +452,41 @@ JAVA_VOID monitor_free(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     }
 }
 
-int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+int monitor_enter(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj) {
+    // TODO: check stack slot type
 
-    if (obj->monitor == NULL) {
-        JAVA_CLASS clazz = obj_get_class(obj);
+    if (obj->data.o->monitor == NULL) {
+        JAVA_CLASS clazz = obj_get_class(obj->data.o);
         if (clazz == (JAVA_CLASS) JAVA_NULL) {
             // Class monitor should be created by class loader
             return thrd_error;
         }
 
-        JAVA_REF obj_ref = ref_obtain(vmCurrentContext, obj); // Save the reference before enter checkpoint
-        int ret = monitor_enter(vmCurrentContext,
-                                (JAVA_OBJECT) clazz); // Class monitor is guaranteed to be inited when class is load.
+        // Push the class object to stack
+        VMStackSlot clazz_slot;
+        clazz_slot.type = VM_SLOT_OBJECT;
+        clazz_slot.data.o = (JAVA_OBJECT) clazz;
+
+        // Lock the class. Class monitor is guaranteed to be inited when class is load.
+        int ret = monitor_enter(vmCurrentContext, &clazz_slot);
         if (ret != thrd_success) {
             return ret;
         }
-        // The monitor_enter() call enters check point, so we need to update the reference
-        obj = ref_dereference(vmCurrentContext, obj_ref);
-        clazz = obj_get_class(obj);
 
+        // Create object monitor
         ret = monitor_create(vmCurrentContext, obj);
-        monitor_exit(vmCurrentContext, (JAVA_OBJECT) clazz);
+
+        // The monitor_enter() call enters check point, so we need to update the reference
+        clazz_slot.data.o = (JAVA_OBJECT) obj_get_class(obj->data.o);
+        // Unlock the clazz
+        monitor_exit(vmCurrentContext, &clazz_slot);
+
         if (ret != thrd_success) {
             return ret;
         }
     }
 
-    ObjectMonitor *m = obj->monitor; // Obtain the monitor before enter checkpoint
+    ObjectMonitor *m = obj->data.o->monitor; // Obtain the monitor before enter checkpoint
 
     // Do lock
     thread_enter_saferegion(vmCurrentContext);
@@ -493,8 +516,10 @@ int monitor_enter(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     return thrd_success;
 }
 
-int monitor_exit(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
-    ObjectMonitor *m = obj->monitor;
+int monitor_exit(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj) {
+    // TODO: check stack slot type
+
+    ObjectMonitor *m = obj->data.o->monitor;
     if (m == NULL) {
         return thrd_error;
     }
@@ -520,8 +545,10 @@ int monitor_exit(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
     return thrd_success;
 }
 
-int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, JAVA_INT nanos) {
-    ObjectMonitor *m = obj->monitor;
+int monitor_wait(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj, JAVA_LONG timeout, JAVA_INT nanos) {
+    // TODO: check stack slot type
+
+    ObjectMonitor *m = obj->data.o->monitor;
     if (m == NULL) {
         return thrd_error;
     }
@@ -622,8 +649,10 @@ int monitor_wait(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_LONG timeout, J
     }
 }
 
-static inline int _monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAVA_BOOLEAN all) {
-    ObjectMonitor *m = obj->monitor;
+static inline int _monitor_notify(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj, JAVA_BOOLEAN all) {
+    // TODO: check stack slot type
+
+    ObjectMonitor *m = obj->data.o->monitor;
     if (m == NULL) {
         return thrd_error;
     }
@@ -656,10 +685,10 @@ static inline int _monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj, JAV
     return thrd_success;
 }
 
-int monitor_notify(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+int monitor_notify(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj) {
     return _monitor_notify(vmCurrentContext, obj, JAVA_FALSE);
 }
 
-int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj) {
     return _monitor_notify(vmCurrentContext, obj, JAVA_TRUE);
 }

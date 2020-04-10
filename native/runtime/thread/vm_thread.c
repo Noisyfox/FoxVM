@@ -165,7 +165,7 @@ JAVA_VOID thread_wait_until_world_stopped(VM_PARAM_CURRENT_CONTEXT) {
             continue;
         }
 
-        thread_wait_until_checkpoint(vmCurrentContext, thread);
+        thread_wait_until_saferegion(vmCurrentContext, thread);
     }
 }
 
