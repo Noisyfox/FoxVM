@@ -6,6 +6,46 @@
 #include "vm_memory.h"
 #include "vm_thread.h"
 
+/*
+ * Card table defs and common functions
+ *
+ * A card table is used for tracking cross-generation references. Since when collecting an older
+ * generation, we guarantee to also collect all younger generations, we only need to track references
+ * from older generation to younger generation.
+ *
+ * The card table uses 1 bit to represent 1<<CARD_BYTE_SHIFT bits of heap. However to prevent
+ * issues when updating each bits concurrently, we simply mark the entire byte in the write barrier,
+ * which means that in actuality the minimum unit tracked by the card table is a 1<<CARD_BYTE_SHIFT bytes
+ * region of the heap.
+ *
+ * If the pointer value being written refers to an object in the ephemeral generation (gen0 + gen1,
+ * which is the only generation from which objects are compacted), then the card table must be updated
+ * to reflect the location of this pointer. The byte location to be updated is obtained using the
+ * `card_byte()` function, and 0xFF is masked into it.
+ */
+
+#ifdef TARGET_64BIT
+// 1 byte in card table -> 1<<11 bytes (2KB) of memory
+#define CARD_BYTE_SHIFT 11
+#else
+// 1 byte in card table -> 1<<10 bytes (1KB) of memory
+#define CARD_BYTE_SHIFT 10
+#endif // TARGET_64BIT
+
+#define card_byte(addr) (((size_t)(addr)) >> CARD_BYTE_SHIFT)
+
+// Returns the number of BYTEs in the card table that cover the
+// range of addresses [from, to[.
+size_t card_count_of(void *from, void *to) {
+    return card_byte(to - 1) - card_byte(from) + 1;
+}
+
+// Returns the number of bytes to allocate for a card table
+// that covers the range of addresses [from, to[.
+size_t card_size_of(void *from, void *to) {
+    return card_count_of(from, to) * sizeof(uint8_t);
+}
+
 // Heap segment default size
 #ifdef TARGET_64BIT
 #define SOH_SEGMENT_ALLOC ((size_t)(1024*1024*256))
@@ -77,6 +117,14 @@ typedef struct {
 
 static JavaHeap g_heap = {0};
 
+/**
+ * Create the initial card table & brick table that covers the current heap address range.
+ */
+static int init_card_table() {
+    size_t cs = card_size_of(g_heap.lowest_addr, g_heap.highest_addr);
+    return 0;
+}
+
 int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     // Init low level memory system first
     if (!mem_init()) {
@@ -98,6 +146,12 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     // Store the current memory range
     g_heap.lowest_addr = ptr_min(soh_seg, loh_seg);
     g_heap.highest_addr = ptr_max(soh_seg->end, loh_seg->end);
+
+    // Create card table from current memory range
+    int res = init_card_table();
+    if (res) {
+        return res;
+    }
 
     return 0;
 }
