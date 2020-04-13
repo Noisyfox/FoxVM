@@ -11,3 +11,31 @@
 #cmakedefine HAVE_SC_NPROCESSORS_ONLN
 
 #cmakedefine HAVE_HW_AVAILCPU
+
+#cmakedefine HOST_AMD64
+
+#cmakedefine HOST_X86
+
+#cmakedefine HOST_ARM
+
+#cmakedefine HOST_ARM64
+
+#cmakedefine HOST_64BIT
+
+#cmakedefine HOST_UNIX
+
+#cmakedefine HOST_WINDOWS
+
+#cmakedefine TARGET_AMD64
+
+#cmakedefine TARGET_X86
+
+#cmakedefine TARGET_ARM
+
+#cmakedefine TARGET_ARM64
+
+#cmakedefine TARGET_64BIT
+
+#cmakedefine TARGET_UNIX
+
+#cmakedefine TARGET_WINDOWS
