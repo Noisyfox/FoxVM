@@ -98,5 +98,9 @@ JAVA_BOOLEAN mem_uncommit(void *addr, size_t size) {
 }
 
 JAVA_BOOLEAN mem_release(void *addr, size_t size) {
+    if (!addr) {
+        return JAVA_TRUE;
+    }
+
     return munmap(addr, size) == 0 ? JAVA_TRUE : JAVA_FALSE;
 }

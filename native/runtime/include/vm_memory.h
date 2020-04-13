@@ -11,6 +11,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define DATA_ALIGNMENT sizeof(uintptr_t)
+#define DATA_ALIGNMENT_LARGE 8
+
 // Helper functions to align pointers
 #define align_up_(value, alignment) (((value) + ((alignment) - 1)) & ~((alignment) - 1))
 #define align_down_(value, alignment) ((value) & ~((alignment) - 1))
@@ -42,6 +45,8 @@ static inline size_t align_size_down(size_t size, size_t alignment) {
 #define ptr_inc(ptr, offset) ((void*)(((uintptr_t)(ptr)) + (offset)))
 #define ptr_dec(ptr, offset) ((void*)(((uintptr_t)(ptr)) - (offset)))
 #define ptr_offset(base, ptr) ((uint64_t)((uintptr_t)(ptr) - (uintptr_t)(base)))
+#define ptr_max(ptr1, ptr2) ((void*)((uintptr_t)(ptr1) > (uintptr_t)(ptr2) ? (ptr1) : (ptr2)))
+#define ptr_min(ptr1, ptr2) ((void*)((uintptr_t)(ptr1) < (uintptr_t)(ptr2) ? (ptr1) : (ptr2)))
 
 #if defined(HAVE_POSIX_MEMALIGN)
 

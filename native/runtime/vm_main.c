@@ -18,13 +18,13 @@ int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
     // register the main thread to global thread list
     thread_managed_add(vmCurrentContext);
 
-//    HeapConfig heapConfig = {
+    HeapConfig heapConfig = {
 //            .maxSize=0,
 //            .newRatio=2,
 //            .survivorRatio=8
-//    };
-//
-//    heap_init(vmCurrentContext, &heapConfig);
+    };
+
+    heap_init(vmCurrentContext, &heapConfig);
 
     // TODO: create java Thread Object for main thread
 
