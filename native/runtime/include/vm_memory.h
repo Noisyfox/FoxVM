@@ -47,6 +47,8 @@ static inline size_t align_size_down(size_t size, size_t alignment) {
 #define ptr_offset(base, ptr) ((uint64_t)((uintptr_t)(ptr) - (uintptr_t)(base)))
 #define ptr_max(ptr1, ptr2) ((void*)((uintptr_t)(ptr1) > (uintptr_t)(ptr2) ? (ptr1) : (ptr2)))
 #define ptr_min(ptr1, ptr2) ((void*)((uintptr_t)(ptr1) < (uintptr_t)(ptr2) ? (ptr1) : (ptr2)))
+#define size_max(s1, s2) ((size_t)((size_t)(s1) > (size_t)(s2) ? (s1) : (s2)))
+#define size_min(s1, s2) ((size_t)((size_t)(s1) < (size_t)(s2) ? (s1) : (s2)))
 
 #if defined(HAVE_POSIX_MEMALIGN)
 

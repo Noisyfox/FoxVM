@@ -20,9 +20,9 @@ JAVA_BOOLEAN mem_init() {
 JAVA_BOOLEAN mem_get_status(MemoryStatus *status) {
     memset(status, 0, sizeof(MemoryStatus));
 
-    status->totalPhys = ((uint64_t) g_systemMemoryInfo.pageSize) * sysconf(_SC_PHYS_PAGES);
+    status->totalPhys = ((uint64_t) mem_page_size()) * sysconf(_SC_PHYS_PAGES);
 #ifdef _SC_AVPHYS_PAGES
-    status->availPhys = ((uint64_t) g_systemMemoryInfo.pageSize) * sysconf(_SC_AVPHYS_PAGES);
+    status->availPhys = ((uint64_t) mem_page_size()) * sysconf(_SC_AVPHYS_PAGES);
 #else
     status->availPhys = status->totalPhys;
 #endif

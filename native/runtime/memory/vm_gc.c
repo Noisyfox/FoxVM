@@ -60,7 +60,7 @@ size_t card_size_of(void *from, void *to) {
 // Make sure the start memory is aligned
 #define SEGMENT_START_OFFSET (align_size_up(sizeof(HeapSegment), DATA_ALIGNMENT))
 // The segment alignment required by card table
-#define SEGMENT_ALIGNMENT DATA_ALIGNMENT
+#define SEGMENT_ALIGNMENT size_max(mem_page_size(), (((size_t)1) << CARD_BYTE_SHIFT))
 
 typedef struct _HeapSegment {
     uint8_t *start; // The start memory that can be used for object alloc
