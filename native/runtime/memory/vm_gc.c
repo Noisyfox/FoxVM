@@ -37,7 +37,7 @@
 // Returns the number of BYTEs in the card table that cover the
 // range of addresses [from, to[.
 size_t card_count_of(void *from, void *to) {
-    return card_byte(to - 1) - card_byte(from) + 1;
+    return card_byte(ptr_dec(to, 1)) - card_byte(from) + 1;
 }
 
 // Returns the number of bytes to allocate for a card table
