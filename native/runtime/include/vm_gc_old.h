@@ -4,8 +4,8 @@
 // High level memory allocation and garbage collection
 //
 
-#ifndef FOXVM_VM_GC_H
-#define FOXVM_VM_GC_H
+#ifndef FOXVM_VM_GC_OLD_H
+#define FOXVM_VM_GC_OLD_H
 
 #include "vm_base.h"
 
@@ -62,4 +62,4 @@ int gc_thread_shutdown(VM_PARAM_CURRENT_CONTEXT);
  */
 void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size);
 
-#endif //FOXVM_VM_GC_H
+#endif //FOXVM_VM_GC_OLD_H

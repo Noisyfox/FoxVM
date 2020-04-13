@@ -4,8 +4,9 @@
 
 #include <string.h>
 #include <stdio.h>
-#include "vm_gc.h"
+#include "vm_gc_old.h"
 #include "vm_memory.h"
+#include "vm_thread.h"
 
 /*
  * Definition of cardtable bytemap:
