@@ -5,7 +5,7 @@ find_package(Threads REQUIRED)
 
 set(HAVE_PTHREADS ${CMAKE_USE_PTHREADS_INIT})
 
-include(configure)
+include(configure.cmake)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/config.h)
 

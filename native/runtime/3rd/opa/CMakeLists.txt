@@ -3,11 +3,9 @@ project(OpenPA C)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads)
 
-list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
 set(OPA_HAVE_PTHREAD_H ${CMAKE_USE_PTHREADS_INIT})
 
-include(configure)
+include(configure.cmake)
 
 configure_file(opa_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/include/opa_config.h)
 
