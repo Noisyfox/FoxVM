@@ -5,6 +5,7 @@
 #include "vm_gc.h"
 #include "vm_memory.h"
 #include "vm_thread.h"
+#include <assert.h>
 
 /*
  * Card table defs and common functions
@@ -46,6 +47,60 @@ size_t card_size_of(void *from, void *to) {
     return card_count_of(from, to) * sizeof(uint8_t);
 }
 
+// codes for the brick entries:
+// entry == 0 -> not assigned
+// entry >0 offset is entry-1
+// entry <0 jump back entry bricks
+
+// 1 brick covers the region of 2 cards
+#define BRICK_SIZE (((size_t)1) << (CARD_BYTE_SHIFT + 1))
+
+size_t brick_count_of(void *from, void *to) {
+    assert(is_ptr_aligned(from, BRICK_SIZE) == JAVA_TRUE);
+    assert(is_ptr_aligned(to, BRICK_SIZE) == JAVA_TRUE);
+
+    return ptr_offset(from, to) / BRICK_SIZE;
+}
+
+size_t brick_size_of(void *from, void *to) {
+    return brick_count_of(from, to) * sizeof(int16_t);
+}
+
+typedef struct _CardTable {
+    // The current max possible memory range covered by this card table
+    uint8_t *lowest_addr;
+    uint8_t *highest_addr;
+
+    int16_t *brick_table;
+
+    size_t size; // Size of the entire card table, include the header and brick table
+    struct _CardTable *next;  // Pointer to next chained card table
+} CardTable;
+
+/**
+ * Since the normal card table covers the memory range of [lowest_addr, highest_addr[,
+ * so to get the index of any give memory address `addr`, you have to subtract `lowest_addr` first
+ * then divide it by the card size (1<<CARD_BYTE_SHIFT), which then means each time you assign a reference,
+ * the write barrier needs to look up the `lowest_addr` from another memory location first which could impact
+ * the performance.
+ *
+ * By 'translating' the card table, we map the table to the entire virtual memory space, so the following two
+ * expressions are equal:
+ * ptr_inc(ct, sizeof(CardTable) + ptr_offset(lowest_addr, addr) >> CARD_BYTE_SHIFT)  // use original card table
+ * ptr_inc(translated_ct, addr >> CARD_BYTE_SHIFT)                                    // use translated card table
+ *
+ * By rearranging the equation, we have:
+ * translated_ct = ptr_inc(ct, sizeof(CardTable) - lowest_addr >> CARD_BYTE_SHIFT)
+ *
+ * After the translate, the card table byte of giving `addr` can be easily found by:
+ * ptr_inc(translated_ct, card_byte(addr))
+ */
+uint8_t *card_table_translate(CardTable *ct) {
+    uint8_t *base_addr = ptr_inc(ct, sizeof(CardTable));
+
+    return ptr_dec(base_addr, card_byte(ct->lowest_addr));
+}
+
 // Heap segment default size
 #ifdef TARGET_64BIT
 #define SOH_SEGMENT_ALLOC ((size_t)(1024*1024*256))
@@ -59,8 +114,8 @@ size_t card_size_of(void *from, void *to) {
 #define SEGMENT_INITIAL_COMMIT (mem_page_size())
 // Make sure the start memory is aligned
 #define SEGMENT_START_OFFSET (align_size_up(sizeof(HeapSegment), DATA_ALIGNMENT))
-// The segment alignment required by card table
-#define SEGMENT_ALIGNMENT size_max(mem_page_size(), (((size_t)1) << CARD_BYTE_SHIFT))
+// The segment alignment required by card table / brick table
+#define SEGMENT_ALIGNMENT size_max(mem_page_size(), BRICK_SIZE)
 
 typedef struct _HeapSegment {
     uint8_t *start; // The start memory that can be used for object alloc
@@ -113,6 +168,9 @@ typedef struct {
     // The current max possible memory range of the heap, which is covered by card table.
     uint8_t *lowest_addr;
     uint8_t *highest_addr;
+
+    CardTable *card_table;
+    uint8_t *card_table_translated;
 } JavaHeap;
 
 static JavaHeap g_heap = {0};
@@ -121,7 +179,38 @@ static JavaHeap g_heap = {0};
  * Create the initial card table & brick table that covers the current heap address range.
  */
 static int init_card_table() {
+    // Required size of the card table content
     size_t cs = card_size_of(g_heap.lowest_addr, g_heap.highest_addr);
+    // Required size of the brick table
+    size_t bs = brick_size_of(g_heap.lowest_addr, g_heap.highest_addr);
+
+    // Allocate memory
+    size_t alloc_size = sizeof(CardTable) + cs + bs;
+    void *mem = mem_reserve(NULL, alloc_size, ANY_ALIGNMENT);
+    if (!mem) {
+        return -1;
+    }
+
+    // Commit memory
+    if (mem_commit(mem, alloc_size) != JAVA_TRUE) {
+        mem_release(mem, alloc_size);
+        return -1;
+    }
+
+    CardTable *card_table = mem;
+
+    // Init the card table
+    card_table->lowest_addr = g_heap.lowest_addr;
+    card_table->highest_addr = g_heap.highest_addr;
+    card_table->brick_table = ptr_inc(mem, sizeof(CardTable) + cs);
+    card_table->size = alloc_size;
+    card_table->next = NULL;
+
+    g_heap.card_table = card_table;
+
+    // Translate card table
+    g_heap.card_table_translated = card_table_translate(card_table);
+
     return 0;
 }
 

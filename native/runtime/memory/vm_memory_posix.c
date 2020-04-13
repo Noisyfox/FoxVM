@@ -52,7 +52,7 @@ void *mem_reserve(void *addr, size_t size, size_t alignment_hint) {
     }
 
     size_t required_size = size;
-    if (addr == NULL) {
+    if (addr == NULL && alignment_hint != ANY_ALIGNMENT) {
         required_size = size + alignment_hint;
     }
 

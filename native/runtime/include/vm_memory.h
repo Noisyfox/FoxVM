@@ -11,6 +11,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define ANY_ALIGNMENT ((size_t)1)
 #define DATA_ALIGNMENT sizeof(uintptr_t)
 #define DATA_ALIGNMENT_LARGE 8
 
@@ -55,7 +56,7 @@ static inline size_t align_size_down(size_t size, size_t alignment) {
 #include <stdlib.h>
 
 static inline void *mem_aligned_malloc(size_t size, size_t alignment) {
-    void *ptr;
+    void *ptr = NULL;
     int ret = posix_memalign(&ptr, alignment, size);
 
     if (!ret) {
