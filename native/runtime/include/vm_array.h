@@ -20,7 +20,6 @@ typedef enum {
 } VMArrayElementType;
 
 struct _JavaArray {
-    OPA_ptr_t ref;
     OPA_ptr_t clazz;
     void *monitor;
 

@@ -78,7 +78,6 @@ typedef struct {
 } FieldTable;
 
 struct _JavaClass {
-    OPA_ptr_t ref;
     OPA_ptr_t clazz; // Always NULL for class instance
     void *monitor;
 
@@ -98,7 +97,6 @@ struct _JavaClass {
 
 // Object prototype
 struct _JavaObject {
-    OPA_ptr_t ref;
     OPA_ptr_t clazz;
     void *monitor;
 };
