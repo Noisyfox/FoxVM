@@ -12,8 +12,10 @@
 #include <stdint.h>
 
 #define ANY_ALIGNMENT ((size_t)1)
-#define DATA_ALIGNMENT sizeof(uintptr_t)
-#define DATA_ALIGNMENT_LARGE 8
+#define DATA_ALIGNMENT ((size_t)sizeof(uintptr_t))
+#define DATA_ALIGNMENT_LARGE ((size_t)8)
+// Size alignment of any managed objects
+#define SIZE_ALIGNMENT MIN_OBJECT_SIZE
 
 // Helper functions to align pointers
 #define align_up_(value, alignment) (((value) + ((alignment) - 1)) & ~((alignment) - 1))

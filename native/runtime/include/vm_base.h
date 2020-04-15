@@ -130,7 +130,7 @@ typedef struct {
  * | survive age | bits    |        |
  * +-------------+---------+---+----+
  */
-#define OBJECT_FLAG_MASK ((uintptr_t)0xFFF)
+#define OBJECT_FLAG_MASK ((uintptr_t)0x3) // lower 2 bits
 #define OBJECT_FLAG_AGE_MASK ((uintptr_t)0xF00)
 #define OBJECT_FLAG_AGE_SHIFT 8
 #define OBJECT_FLAG_GC_MARK_MASK ((uintptr_t)0xC0)
@@ -138,8 +138,8 @@ typedef struct {
 #define OBJECT_FLAG_GC_MARK_1 ((uintptr_t)0x40)
 
 static inline JAVA_CLASS obj_get_class(JAVA_OBJECT obj) {
-    // The class instance is allocated with a alignment of 4096
-    // so the lower 12 bits of the pointer can be used as other
+    // The class instance is allocated with a alignment of `DATA_ALIGNMENT`
+    // so the lower 2 bits (32-bit arch) or 3 bits (64-bit arch) of the pointer can be used as other
     // flags. When we want the real address of the class instance,
     // we need to zero out the lower bits
 
@@ -229,6 +229,9 @@ typedef struct _VMThreadContext VMThreadContext;
 
 #define vmCurrentContext __vmCurrentThreadContext
 #define VM_PARAM_CURRENT_CONTEXT VMThreadContext *vmCurrentContext
+
+// The minimum size of any managed object
+#define MIN_OBJECT_SIZE ((size_t)sizeof(JavaObjectBase))
 
 
 #endif //FOXVM_VM_BASE_H

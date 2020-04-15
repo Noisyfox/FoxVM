@@ -35,4 +35,12 @@ static inline void tlab_reset(ThreadAllocContext *tlab) {
     tlab->tlabLimit = 0;
 }
 
+/**
+ * Fills the current tlab with a dummy filler array to create an illusion
+ * of a contiguous heap.
+ *
+ * The remaining space in the tlab must be at least `MIN_OBJECT_SIZE` bytes.
+ */
+void tlab_retire(ThreadAllocContext *tlab);
+
 #endif //FOXVM_VM_TLAB_H

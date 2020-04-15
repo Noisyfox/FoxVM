@@ -158,6 +158,31 @@ static HeapSegment *alloc_heap_segment(size_t size) {
     return segment;
 }
 
+typedef enum {
+    // small object heap includes generations [0-2], which are "generations" in the general sense.
+    soh_gen0 = 0,
+    soh_gen1 = 1,
+    soh_gen2 = 2,
+    max_generation = soh_gen2,
+
+    // large object heap, technically not a generation, but it is convenient to represent it as such
+    loh_generation = 3,
+
+    // number of ephemeral generations
+    ephemeral_generation_count = max_generation,
+
+    // number of all generations
+    total_generation_count = loh_generation + 1
+} GCGeneration;
+
+// Memory info of each generation
+typedef struct {
+    GCGeneration gen;
+    HeapSegment *start_segment; // The head of the chained segments that used by this generation
+    HeapSegment *allocation_segment; // The segment currently used to allocate
+    uint8_t *allocation_current; // Current allocation address, points to a position on `allocation_segment`
+} Generation;
+
 typedef struct {
     // The size of each SOH segment
     size_t soh_segment_size;
@@ -171,6 +196,9 @@ typedef struct {
 
     CardTable *card_table;
     uint8_t *card_table_translated;
+
+    // The generation table
+    Generation generations[total_generation_count];
 } JavaHeap;
 
 static JavaHeap g_heap = {0};
@@ -178,7 +206,7 @@ static JavaHeap g_heap = {0};
 /**
  * Create the initial card table & brick table that covers the current heap address range.
  */
-static int init_card_table() {
+static int card_table_init() {
     // Required size of the card table content
     size_t cs = card_size_of(g_heap.lowest_addr, g_heap.highest_addr);
     // Required size of the brick table
@@ -214,6 +242,24 @@ static int init_card_table() {
     return 0;
 }
 
+static inline Generation *generation_of(GCGeneration n) {
+    assert (((n < total_generation_count) && (n >= soh_gen0)));
+
+    return &g_heap.generations[n];
+}
+
+#define youngest_generation (generation_of (soh_gen0))
+#define large_object_generation (generation_of (loh_generation))
+
+static void generation_make(GCGeneration gen, HeapSegment *seg) {
+    Generation *generation = generation_of(gen);
+
+    generation->gen = gen;
+    generation->start_segment = seg;
+    generation->allocation_segment = seg;
+    generation->allocation_current = seg->start;
+}
+
 int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     // Init low level memory system first
     if (!mem_init()) {
@@ -221,8 +267,8 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     }
 
     // Determine the size of each heap segment
-    g_heap.soh_segment_size = SOH_SEGMENT_ALLOC;
-    g_heap.min_loh_segment_size = LOH_SEGMENT_ALLOC;
+    g_heap.soh_segment_size = align_size_up(SOH_SEGMENT_ALLOC, SIZE_ALIGNMENT);
+    g_heap.min_loh_segment_size = align_size_up(LOH_SEGMENT_ALLOC, SIZE_ALIGNMENT);
 
     // Create first SOH and LOH segment
     HeapSegment *soh_seg = alloc_heap_segment(g_heap.soh_segment_size);
@@ -237,10 +283,18 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     g_heap.highest_addr = ptr_max(soh_seg->end, loh_seg->end);
 
     // Create card table from current memory range
-    int res = init_card_table();
+    int res = card_table_init();
     if (res) {
         return res;
     }
+
+    // Init soh generations
+    for (int i = max_generation; i >= 0; i--) {
+        generation_make(i, soh_seg);
+    }
+
+    // Init loh generation
+    generation_make(loh_generation, loh_seg);
 
     return 0;
 }
