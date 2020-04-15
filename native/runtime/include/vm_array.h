@@ -20,12 +20,10 @@ typedef enum {
 } VMArrayElementType;
 
 struct _JavaArray {
-    OPA_ptr_t clazz;
+    OPA_ptr_t clazz; // The class contains the info of the element type
     void *monitor;
 
-    int length;
-    int dimensions;
-    VMArrayElementType elementType;
+    uint32_t length;
 };
 
 
