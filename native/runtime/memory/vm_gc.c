@@ -262,6 +262,11 @@ static void generation_make(GCGeneration gen, HeapSegment *seg) {
     generation->allocation_current = seg->start;
 }
 
+size_t heap_gen0_free() {
+    Generation *gen0 = youngest_generation;
+    return ptr_offset(gen0->allocation_current, gen0->allocation_segment->end);
+}
+
 int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     // Init gc constants
     g_fillerArraySizeMax = array_max_size_of_type(VM_TYPE_INT);
@@ -305,6 +310,14 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
 // Allocator related functions
 //*********************************************************************************************************
 
+/** Allocate given size of memory from given gen. */
+static void *heap_alloc_more_space(VM_PARAM_CURRENT_CONTEXT, size_t size, GCGeneration gen) {
+    assert(is_size_aligned(size, SIZE_ALIGNMENT));
+    assert(gen == soh_gen0 || gen == loh_generation);
+
+    return NULL;
+}
+
 // Large objects go directly to old gen
 #define LARGE_OBJECT_SIZE_MIN ((size_t)(85000))
 
@@ -314,6 +327,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
 
     if (size >= LARGE_OBJECT_SIZE_MIN) {
         // Alloc on LOH
+        return heap_alloc_more_space(vmCurrentContext, size, loh_generation);
     } else {
         // Alloc on SOH
         ThreadAllocContext *tlab = &vmCurrentContext->tlab;
@@ -323,7 +337,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
                 // Check if fit in TLAB
                 uint8_t *result = tlab->tlabCurrent;
                 uint8_t *current = ptr_inc(result, size);
-                if (current <= tlab->tlabLimit) {
+                if (current <= tlab_limit(tlab)) {
                     tlab->tlabCurrent = current;
 
                     return result;
@@ -336,15 +350,27 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
             if (tlab_allocated(tlab)) {
                 // Retain tlab and allocate object in LOH directly if
                 // the amount free in the tlab is too large to discard.
-                if (tlab_free(tlab) > tlab->waste_limit) {
-                    // TODO: alloc on LOH
+                if (tlab_free(tlab) > tlab->wasteLimit) {
+                    // Alloc on SOH directly
+                    return heap_alloc_more_space(vmCurrentContext, size, soh_gen0);
                 } else {
                     // Discard current tlab
                     tlab_retire(tlab);
                 }
             }
 
-            // TODO: Alloc a new tlab
+            // Alloc a new tlab
+            {
+                size_t new_tlab_size = tlab_calculate_new_size(tlab, size);
+                void *new_tlab_mem = heap_alloc_more_space(vmCurrentContext, new_tlab_size, soh_gen0);
+                if (new_tlab_mem == NULL) {
+                    // OOM
+                    return NULL;
+                }
+
+                // Setup the tlab with new acquired memory
+                tlab_fill(tlab, new_tlab_mem, new_tlab_size);
+            }
         }
     }
 

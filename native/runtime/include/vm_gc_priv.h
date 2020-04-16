@@ -14,4 +14,10 @@ extern size_t g_fillerSizeMin; // The smallest region that can be filled.
 /** Fill the memory region with a single object. */
 void heap_fill_with_object(void *start, size_t size);
 
+/** Get the free memory size of gen0. */
+size_t heap_gen0_free();
+
+/** Make sure the end of the tlab can fit a fill array. */
+size_t tlab_reserve_size();
+
 #endif //FOXVM_VM_GC_PRIV_H
