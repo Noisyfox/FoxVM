@@ -33,9 +33,10 @@ struct _AllocContext {
     size_t desiredSize; // Desired TLAB size of this thread.
 };
 
-/**
- * Reset the given tlab to un-allocated.
- */
+/** Init the tlab */
+void tlab_init(ThreadAllocContext *tlab);
+
+/** Reset the given tlab to un-allocated. */
 static inline void tlab_reset(ThreadAllocContext *tlab) {
     tlab->tlabHead = 0;
     tlab->tlabCurrent = 0;
@@ -43,7 +44,7 @@ static inline void tlab_reset(ThreadAllocContext *tlab) {
     tlab->wasteLimit = 0;
 }
 
-/** Init the tlab with given memory and size */
+/** Fill the tlab with given memory and size */
 void tlab_fill(ThreadAllocContext *tlab, void *start, size_t size);
 
 static inline uint8_t *tlab_limit(ThreadAllocContext *tlab) {

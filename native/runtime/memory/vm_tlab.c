@@ -10,6 +10,26 @@ size_t tlab_reserve_size() {
     return align_size_up(g_fillerArraySizeMin, SIZE_ALIGNMENT);
 }
 
+/** Minimum size of a TLAB, reserved size included. */
+static inline size_t tlab_size_min() {
+    return align_size_up(TLAB_SIZE_MIN, SIZE_ALIGNMENT) + tlab_reserve_size();
+}
+
+/** Maximum size of a TLAB, reserved size included. */
+static inline size_t tlab_size_max() {
+    // TLABs can't be bigger than we can fill with the filler array.
+    return align_size_down(g_fillerArraySizeMax, SIZE_ALIGNMENT);
+}
+
+void tlab_init(ThreadAllocContext *tlab) {
+    tlab_reset(tlab);
+
+    // Calculate desired size
+    size_t init_size = 0;
+    // TODO: calculate desired size using statistic data
+    tlab->desiredSize = size_min(size_max(init_size, tlab_size_min()), tlab_size_max());
+}
+
 static inline uint8_t *tlab_limit_hard(ThreadAllocContext *tlab) {
     return ptr_inc(tlab_limit(tlab), tlab_reserve_size());
 }
