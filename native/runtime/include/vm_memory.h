@@ -21,7 +21,7 @@
 #define align_up_(value, alignment) (((value) + ((alignment) - 1)) & ~((alignment) - 1))
 #define align_down_(value, alignment) ((value) & ~((alignment) - 1))
 
-static inline JAVA_BOOLEAN is_size_aligned_up(size_t size, size_t alignment) {
+static inline JAVA_BOOLEAN is_size_aligned(size_t size, size_t alignment) {
     return align_up_(size, alignment) == size ? JAVA_TRUE : JAVA_FALSE;
 }
 
@@ -35,10 +35,6 @@ static inline JAVA_BOOLEAN is_ptr_aligned(void *ptr, size_t alignment) {
 
 static inline void *align_ptr(void *ptr, size_t alignment) {
     return (void *) align_up_((intptr_t) ptr, (intptr_t) alignment);
-}
-
-static inline JAVA_BOOLEAN is_size_aligned_down(size_t size, size_t alignment) {
-    return align_down_(size, alignment) == size ? JAVA_TRUE : JAVA_FALSE;
 }
 
 static inline size_t align_size_down(size_t size, size_t alignment) {

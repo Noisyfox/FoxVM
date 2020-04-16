@@ -17,4 +17,13 @@ typedef struct {
  */
 int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config);
 
+/**
+ * Allocates an object with the given size.
+ *
+ * @param __vmCurrentThreadContext
+ * @param size
+ * @return NULL if out of memory, a pointer to a piece of zeroed memory otherwise.
+ */
+void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size);
+
 #endif //FOXVM_VM_GC_H

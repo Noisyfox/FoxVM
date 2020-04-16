@@ -3,9 +3,19 @@
 //
 
 #include "vm_main.h"
+#include "vm_memory.h"
+#include "vm_array.h"
 
 int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
+    // Init low level memory system first
+    if (!mem_init()) {
+        return -1;
+    }
+
     thread_init();
+
+    // Init base type systems
+    array_init();
 
     // Create main thread
     VMThreadContext thread_main = {0};

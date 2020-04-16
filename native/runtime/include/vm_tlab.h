@@ -11,6 +11,7 @@
 #define FOXVM_VM_TLAB_H
 
 #include "vm_base.h"
+#include "vm_memory.h"
 
 // The size of each TLAB, 8k
 #define TLAB_SIZE_MIN  ((size_t)(8*1024))
@@ -24,6 +25,9 @@ struct _AllocContext {
     uint8_t *tlabHead; // beginning of this TLAB
     uint8_t *tlabCurrent;  // current allocation position of TLAB
     uint8_t *tlabLimit; // The end of TLAB
+    size_t waste_limit; // Don't discard TLAB if remaining space is larger than this.
+
+    size_t desired_size; // Desired TLAB size of this thread.
 };
 
 /**
@@ -33,6 +37,20 @@ static inline void tlab_reset(ThreadAllocContext *tlab) {
     tlab->tlabHead = 0;
     tlab->tlabCurrent = 0;
     tlab->tlabLimit = 0;
+    tlab->waste_limit = 0;
+}
+
+static inline size_t tlab_size(ThreadAllocContext *tlab) {
+    return ptr_offset(tlab->tlabLimit, tlab->tlabHead);
+}
+
+static inline size_t tlab_free(ThreadAllocContext *tlab) {
+    return ptr_offset(tlab->tlabCurrent, tlab->tlabLimit);
+}
+
+/** Whether the given tlab is allocated. */
+static inline JAVA_BOOLEAN tlab_allocated(ThreadAllocContext *tlab) {
+    return tlab_size(tlab) == 0 ? JAVA_FALSE : JAVA_TRUE;
 }
 
 /**

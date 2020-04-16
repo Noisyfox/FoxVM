@@ -3,8 +3,10 @@
 //
 
 #include "vm_gc.h"
+#include "vm_gc_priv.h"
 #include "vm_memory.h"
 #include "vm_thread.h"
+#include "vm_array.h"
 #include <assert.h>
 
 /*
@@ -261,10 +263,10 @@ static void generation_make(GCGeneration gen, HeapSegment *seg) {
 }
 
 int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
-    // Init low level memory system first
-    if (!mem_init()) {
-        return -1;
-    }
+    // Init gc constants
+    g_fillerArraySizeMax = array_max_size_of_type(VM_TYPE_INT);
+    g_fillerArraySizeMin = array_min_size_of_type(VM_TYPE_INT);
+    g_fillerSizeMin = MIN_OBJECT_SIZE;
 
     // Determine the size of each heap segment
     g_heap.soh_segment_size = align_size_up(SOH_SEGMENT_ALLOC, SIZE_ALIGNMENT);
@@ -297,4 +299,54 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     generation_make(loh_generation, loh_seg);
 
     return 0;
+}
+
+//*********************************************************************************************************
+// Allocator related functions
+//*********************************************************************************************************
+
+// Large objects go directly to old gen
+#define LARGE_OBJECT_SIZE_MIN ((size_t)(85000))
+
+void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
+    size = align_size_up(size, SIZE_ALIGNMENT);
+    assert(size >= MIN_OBJECT_SIZE);
+
+    if (size >= LARGE_OBJECT_SIZE_MIN) {
+        // Alloc on LOH
+    } else {
+        // Alloc on SOH
+        ThreadAllocContext *tlab = &vmCurrentContext->tlab;
+        while (1) {
+            // Fast path
+            {
+                // Check if fit in TLAB
+                uint8_t *result = tlab->tlabCurrent;
+                uint8_t *current = ptr_inc(result, size);
+                if (current <= tlab->tlabLimit) {
+                    tlab->tlabCurrent = current;
+
+                    return result;
+                }
+            }
+
+            // Can't fit in current TLAB, this can because of:
+            // 1. TLAB is not allocated
+            // 2. TLAB is almost full
+            if (tlab_allocated(tlab)) {
+                // Retain tlab and allocate object in LOH directly if
+                // the amount free in the tlab is too large to discard.
+                if (tlab_free(tlab) > tlab->waste_limit) {
+                    // TODO: alloc on LOH
+                } else {
+                    // Discard current tlab
+                    tlab_retire(tlab);
+                }
+            }
+
+            // TODO: Alloc a new tlab
+        }
+    }
+
+    return NULL;
 }

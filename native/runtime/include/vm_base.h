@@ -30,6 +30,47 @@ typedef struct _JavaClass   JavaClass,      *JAVA_CLASS;
 typedef struct _JavaObject  JavaObjectBase, *JAVA_OBJECT;
 typedef struct _JavaArray   JavaArrayBase,  *JAVA_ARRAY;
 
+// Additional Java primary types
+typedef uint8_t     JAVA_UBYTE;
+typedef uint16_t    JAVA_USHORT;
+typedef uint32_t    JAVA_UINT;
+typedef uint64_t    JAVA_ULONG;
+
+#define JAVA_INT_MIN ((JAVA_INT)1 << (sizeof(JAVA_INT)*8-1))    // 0x80000000 == smallest jint
+#define JAVA_INT_MAX ((JAVA_UINT)(JAVA_INT_MIN) - 1)            // 0x7FFFFFFF == largest jint
+
+typedef enum {
+    VM_TYPE_BOOLEAN = 4,
+    VM_TYPE_CHAR    = 5,
+    VM_TYPE_FLOAT   = 6,
+    VM_TYPE_DOUBLE  = 7,
+    VM_TYPE_BYTE    = 8,
+    VM_TYPE_SHORT   = 9,
+    VM_TYPE_INT     = 10,
+    VM_TYPE_LONG    = 11,
+    VM_TYPE_OBJECT  = 12,
+    VM_TYPE_ARRAY   = 13,
+    VM_TYPE_VOID    = 14,
+    VM_TYPE_ILLEGAL = 99
+} BasicType;
+
+static inline size_t type_size(BasicType t) {
+    switch (t) {
+        case VM_TYPE_BOOLEAN:   return sizeof(JAVA_BOOLEAN);
+        case VM_TYPE_CHAR:      return sizeof(JAVA_CHAR);
+        case VM_TYPE_FLOAT:     return sizeof(JAVA_FLOAT);
+        case VM_TYPE_DOUBLE:    return sizeof(JAVA_DOUBLE);
+        case VM_TYPE_BYTE:      return sizeof(JAVA_BYTE);
+        case VM_TYPE_SHORT:     return sizeof(JAVA_SHORT);
+        case VM_TYPE_INT:       return sizeof(JAVA_INT);
+        case VM_TYPE_LONG:      return sizeof(JAVA_LONG);
+        case VM_TYPE_OBJECT:    return sizeof(JAVA_OBJECT);
+        case VM_TYPE_ARRAY:     return sizeof(JAVA_ARRAY);
+    }
+
+    return 0;
+}
+
 typedef enum {
     ACC_PUBLIC = 0x0001,
     ACC_PRIVATE = 0x0002,
@@ -55,6 +96,28 @@ typedef enum {
     TYPE_DESC_REFERENCE = 'L',
     TYPE_DESC_ARRAY = '[',
 } TypeDescriptor;
+
+static inline JAVA_BOOLEAN is_java_primitive(BasicType t) {
+    return VM_TYPE_BOOLEAN <= t && t <= VM_TYPE_LONG ? JAVA_TRUE : JAVA_FALSE;
+}
+
+/// Convert a TypeDescriptor from a classfile signature to a BasicType
+static inline BasicType type_from_descriptor(TypeDescriptor d) {
+    switch (d) {
+        case TYPE_DESC_BYTE:        return VM_TYPE_BYTE;
+        case TYPE_DESC_CHAR:        return VM_TYPE_CHAR;
+        case TYPE_DESC_DOUBLE:      return VM_TYPE_DOUBLE;
+        case TYPE_DESC_FLOAT:       return VM_TYPE_FLOAT;
+        case TYPE_DESC_INT:         return VM_TYPE_INT;
+        case TYPE_DESC_LONG:        return VM_TYPE_LONG;
+        case TYPE_DESC_SHORT:       return VM_TYPE_SHORT;
+        case TYPE_DESC_BOOLEAN:     return VM_TYPE_BOOLEAN;
+        case TYPE_DESC_VOID:        return VM_TYPE_VOID;
+        case TYPE_DESC_REFERENCE:   return VM_TYPE_OBJECT;
+        case TYPE_DESC_ARRAY:       return VM_TYPE_ARRAY;
+    }
+    return VM_TYPE_ILLEGAL;
+}
 
 typedef struct {
     uint16_t accessFlags;
@@ -122,6 +185,16 @@ typedef struct {
     VMStackSlotType type;
     VMStackSlotData data;
 } VMStackSlot;
+
+/**
+ * Types that are stored as VM_SLOT_INT in a VMStackSlot.
+ */
+static inline JAVA_BOOLEAN is_subword_type(BasicType t) {
+    return (t == VM_TYPE_BOOLEAN ||
+            t == VM_TYPE_CHAR ||
+            t == VM_TYPE_BYTE ||
+            t == VM_TYPE_SHORT) ? JAVA_TRUE : JAVA_FALSE;
+}
 
 /*
  *  11          8 7       6 5 4 3   0
