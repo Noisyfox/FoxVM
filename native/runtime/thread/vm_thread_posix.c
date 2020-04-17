@@ -357,60 +357,78 @@ JAVA_VOID thread_resume_single(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target
 
 JAVA_VOID thread_enter_saferegion(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
-    pthread_mutex_lock(&nativeContext->gcMutex);
-    {
-        nativeContext->inSafeRegion = JAVA_TRUE;
-        nativeContext->safeRegionReentranceCounter++;
-        if (nativeContext->stopTheWorld) {
-            // Notify GC thread
-            pthread_cond_signal(&nativeContext->gcCondition);
+
+    // This is only used by the owner thread, so no lock needed here
+    nativeContext->safeRegionReentranceCounter++;
+    if (nativeContext->inSafeRegion != JAVA_TRUE) {
+        pthread_mutex_lock(&nativeContext->gcMutex);
+        {
+            nativeContext->inSafeRegion = JAVA_TRUE;
+            if (nativeContext->stopTheWorld) {
+                // Notify GC thread
+                pthread_cond_signal(&nativeContext->gcCondition);
+            }
+            pthread_mutex_unlock(&nativeContext->gcMutex);
         }
-        pthread_mutex_unlock(&nativeContext->gcMutex);
     }
 }
 
 JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
-    pthread_mutex_lock(&nativeContext->gcMutex);
-    {
-        nativeContext->safeRegionReentranceCounter--;
-        if (nativeContext->safeRegionReentranceCounter <= 0) {
-            nativeContext->safeRegionReentranceCounter = 0;
 
+    // This is only used by the owner thread, so no lock needed here
+    nativeContext->safeRegionReentranceCounter--;
+
+    if (nativeContext->safeRegionReentranceCounter <= 0) {
+        nativeContext->safeRegionReentranceCounter = 0;
+
+        pthread_mutex_lock(&nativeContext->gcMutex);
+        {
             nativeContext->waitingForResume = JAVA_TRUE;
             while (nativeContext->stopTheWorld) {
                 pthread_cond_wait(&nativeContext->gcCondition, &nativeContext->gcMutex);
             }
             nativeContext->waitingForResume = JAVA_FALSE;
             nativeContext->inSafeRegion = JAVA_FALSE;
-        }
 
-        pthread_mutex_unlock(&nativeContext->gcMutex);
+            pthread_mutex_unlock(&nativeContext->gcMutex);
+        }
     }
 }
 
-JAVA_VOID thread_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
+JAVA_BOOLEAN thread_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     pthread_mutex_lock(&nativeContext->gcMutex);
     {
-        if (nativeContext->inSafeRegion) {
-            // Do nothing if we already in saferegion.
-            return;
-        }
+        // Check if GC is running
+        JAVA_BOOLEAN gc_running = nativeContext->stopTheWorld;
+        if (gc_running) {
+            // Enter safe region
+            nativeContext->inSafeRegion = JAVA_TRUE;
+            nativeContext->safeRegionReentranceCounter++;
 
-        nativeContext->inSafeRegion = JAVA_TRUE;
-        if (nativeContext->stopTheWorld) {
             // Notify GC thread
             pthread_cond_signal(&nativeContext->gcCondition);
-        }
-        nativeContext->waitingForResume = JAVA_TRUE;
-        while (nativeContext->stopTheWorld) {
-            pthread_cond_wait(&nativeContext->gcCondition, &nativeContext->gcMutex);
-        }
-        nativeContext->waitingForResume = JAVA_FALSE;
-        nativeContext->inSafeRegion = JAVA_FALSE;
 
+            // Wait until GC complete
+            nativeContext->waitingForResume = JAVA_TRUE;
+            while (nativeContext->stopTheWorld) {
+                pthread_cond_wait(&nativeContext->gcCondition, &nativeContext->gcMutex);
+            }
+            nativeContext->waitingForResume = JAVA_FALSE;
+
+            // Leave safe region
+            nativeContext->safeRegionReentranceCounter--;
+            if (nativeContext->safeRegionReentranceCounter <= 0) {
+                nativeContext->safeRegionReentranceCounter = 0;
+                nativeContext->inSafeRegion = JAVA_FALSE;
+            }
+        } else {
+            // No GC running, do noting
+        }
         pthread_mutex_unlock(&nativeContext->gcMutex);
+
+        return gc_running;
     }
 }
 

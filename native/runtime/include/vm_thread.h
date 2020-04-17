@@ -125,13 +125,23 @@ JAVA_VOID thread_resume_single(VM_PARAM_CURRENT_CONTEXT, VMThreadContext *target
  * Mark current thread is in a safe region, so GC thread can start marking this thread.
  * A safe region is a piece of code that does not do any heap allocation and also
  * won't mutate any pointers.
+ *
+ * This function is reentrant so you can call this even if it's already in a safe region.
+ * There is a counter tracking the reentrance.
  */
 JAVA_VOID thread_enter_saferegion(VM_PARAM_CURRENT_CONTEXT);
 
 /**
- * Mark the current thread is gonna leave the safe region. If the GC thread is currently
- * working on this thread (by calling thread_stop_the_world() on this thread without calling
- * thread_resume_the_world()), then this method will block until GC thread finishes its work.
+ * Try leaving the safe region.
+ *
+ * This function will first decrease the safe region reentrance counter. If the counter
+ * is still larger than 0, then the thread is still in safe region and this function will
+ * return.
+ *
+ * Otherwise when the counter reaches 0, it will first check if the GC thread is currently
+ * working on this thread (by calling thread_suspend_single() on this thread without calling
+ * thread_resume_single()). If so, this method will block until GC thread finishes its work.
+ * Then this function marks the thread as not in safe region.
  */
 JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT);
 
@@ -139,12 +149,15 @@ JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT);
  * Check if gc is trying to suspend the thread. If stopTheWorld==true then this function will
  * block until gc is finished.
  *
- * This function should only be called outside a saferegion. If called inside a saferegion,
- * this function does nothing but returned immediately.
+ * If this function is called outside the safe region, then it's roughly equivalent to call
+ * thread_leave_saferegion() immediately after thread_enter_saferegion().
  *
- * Equivalent to call thread_leave_saferegion() immediately after thread_enter_saferegion().
+ * If this function is called inside the safe region, then it will block if stopTheWorld==true
+ * even though the counter is larger than 0, which is different from thread_enter_saferegion().
+ *
+ * @return JAVA_TRUE if it's been blocked by GC, JAVA_FALSE otherwise.
  */
-JAVA_VOID thread_checkpoint(VM_PARAM_CURRENT_CONTEXT);
+JAVA_BOOLEAN thread_checkpoint(VM_PARAM_CURRENT_CONTEXT);
 
 // For object lock
 
@@ -164,6 +177,7 @@ int monitor_notify_all(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj);
 
 /**
  * Naive & simple Spin Lock based on CAS.
+ * Non-reentrant!
  */
 #define VM_SPIN_LOCK_FREE 0
 #define VM_SPIN_LOCK_HELD 1
@@ -203,7 +217,12 @@ static inline void spin_lock_enter(VM_PARAM_CURRENT_CONTEXT, VMSpinLock *lock) {
                     OPA_busy_wait();
                 }
             } else {
-                // TODO: wait for a longer time
+                // If we're waiting for gc to finish, we should block immediately
+                if (thread_checkpoint(vmCurrentContext) != JAVA_TRUE) {
+                    // Not blocked, then wait for a longer time (5ms)
+                    // TODO: handle error
+                    thread_sleep(vmCurrentContext, 5, 0);
+                }
             }
         }
         goto retry;
