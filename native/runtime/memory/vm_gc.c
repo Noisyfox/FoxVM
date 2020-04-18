@@ -425,6 +425,26 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
                 alloc_state = a_state_try_fit;
                 break;
             }
+            case a_state_try_fit: {
+                switch (heap_soh_try_fit(size, out)) {
+                    case f_can_fit:
+                        // Success
+                        alloc_state = a_state_can_allocate;
+                        break;
+                    case f_too_large:
+                        // Can't fit into current segment, need a gen0 gc
+                        alloc_state = a_state_trigger_ephemeral_gc;
+                        break;
+                    case f_commit_failed:
+                        // Can't commit required size, do a full gc
+                        alloc_state = a_state_trigger_full_gc;
+                        break;
+                }
+                break;
+            }
+            case a_state_trigger_ephemeral_gc: {
+                break;
+            }
             case a_state_can_allocate: {
                 // Release the lock
                 spin_lock_exit(&g_heap.more_space_lock_soh);
@@ -450,26 +470,6 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
             case a_state_cant_allocate: {
                 spin_lock_exit(&g_heap.more_space_lock_soh);
                 goto exit;
-            }
-            case a_state_try_fit: {
-                switch (heap_soh_try_fit(size, out)) {
-                    case f_can_fit:
-                        // Success
-                        alloc_state = a_state_can_allocate;
-                        break;
-                    case f_too_large:
-                        // Can't fit into current segment, need a gen0 gc
-                        alloc_state = a_state_trigger_ephemeral_gc;
-                        break;
-                    case f_commit_failed:
-                        // Can't commit required size, do a full gc
-                        alloc_state = a_state_trigger_full_gc;
-                        break;
-                }
-                break;
-            }
-            case a_state_trigger_ephemeral_gc: {
-                break;
             }
         }
     }
