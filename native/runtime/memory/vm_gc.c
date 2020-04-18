@@ -40,13 +40,13 @@
 
 // Returns the number of BYTEs in the card table that cover the
 // range of addresses [from, to[.
-size_t card_count_of(void *from, void *to) {
+static inline size_t card_count_of(void *from, void *to) {
     return card_byte(ptr_dec(to, 1)) - card_byte(from) + 1;
 }
 
 // Returns the number of bytes to allocate for a card table
 // that covers the range of addresses [from, to[.
-size_t card_size_of(void *from, void *to) {
+static inline size_t card_size_of(void *from, void *to) {
     return card_count_of(from, to) * sizeof(uint8_t);
 }
 
@@ -57,15 +57,17 @@ size_t card_size_of(void *from, void *to) {
 
 // 1 brick covers the region of 2 cards
 #define BRICK_SIZE (((size_t)1) << (CARD_BYTE_SHIFT + 1))
+// Value to jump back to previous brick
+#define BRICK_VAL_PREVIOUS ((int16_t)-1)
 
-size_t brick_count_of(void *from, void *to) {
+static inline size_t brick_count_of(void *from, void *to) {
     assert(is_ptr_aligned(from, BRICK_SIZE) == JAVA_TRUE);
     assert(is_ptr_aligned(to, BRICK_SIZE) == JAVA_TRUE);
 
     return ptr_offset(from, to) / BRICK_SIZE;
 }
 
-size_t brick_size_of(void *from, void *to) {
+static inline size_t brick_size_of(void *from, void *to) {
     return brick_count_of(from, to) * sizeof(int16_t);
 }
 
@@ -98,7 +100,7 @@ typedef struct _CardTable {
  * After the translate, the card table byte of giving `addr` can be easily found by:
  * ptr_inc(translated_ct, card_byte(addr))
  */
-uint8_t *card_table_translate(CardTable *ct) {
+static inline uint8_t *card_table_translate(CardTable *ct) {
     uint8_t *base_addr = ptr_inc(ct, sizeof(CardTable));
 
     return ptr_dec(base_addr, card_byte(ct->lowest_addr));
@@ -276,6 +278,23 @@ static int card_table_init() {
     return 0;
 }
 
+typedef size_t Brick;
+
+/** Get the index of brick of given address */
+static inline Brick brick_of(void *addr) {
+    return ptr_offset(g_heap.card_table->lowest_addr, addr) / BRICK_SIZE;
+}
+
+/** Get the start address of the region covered by brick b */
+static inline void *brick_start_addr_of(Brick b) {
+    return ptr_inc(g_heap.card_table->lowest_addr, b * BRICK_SIZE);
+}
+
+/** Set the given block b to value val */
+static inline void brick_set(Brick b, int16_t val) {
+    g_heap.card_table->brick_table[b] = val;
+}
+
 static inline Generation *generation_of(GCGeneration n) {
     assert (((n < total_generation_count) && (n >= soh_gen0)));
 
@@ -407,9 +426,25 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
                 break;
             }
             case a_state_can_allocate: {
+                // Release the lock
                 spin_lock_exit(&g_heap.more_space_lock_soh);
+
+                void *result = *out;
+                assert(result != NULL);
+
                 // Zero out memory
-                memset(*out, 0, size);
+                memset(result, 0, size);
+
+                // Mark brick table
+                Brick b = brick_of(result);
+                // Mark first brick
+                brick_set(b, ptr_offset(brick_start_addr_of(b), result) + 1);
+                // Fill the rest bricks
+                void *end = align_ptr(ptr_inc(result, size), BRICK_SIZE);
+                Brick end_brick = brick_of(end);
+                for (b++; b <= end_brick; b++) {
+                    brick_set(b, BRICK_VAL_PREVIOUS);
+                }
                 goto exit;
             }
             case a_state_cant_allocate: {
