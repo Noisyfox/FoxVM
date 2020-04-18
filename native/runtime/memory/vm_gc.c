@@ -9,6 +9,7 @@
 #include "vm_array.h"
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
 /*
  * Card table defs and common functions
@@ -367,11 +368,13 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
 
 typedef enum {
     a_state_start = 0,
+    a_state_check_budget,
     a_state_can_allocate,
     a_state_cant_allocate,
     a_state_try_fit,
-    a_state_trigger_full_gc,
+    a_state_trigger_gen0_gc,
     a_state_trigger_ephemeral_gc,
+    a_state_trigger_full_gc,
 } AllocationState;
 
 typedef enum {
@@ -417,11 +420,18 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
     AllocationState alloc_state = a_state_start;
 
     while (1) {
+        printf("SOH alloc state: %d\n", alloc_state);
+
         switch (alloc_state) {
             case a_state_start: {
                 // Lock the generation
                 spin_lock_enter(vmCurrentContext, &g_heap.more_space_lock_soh);
 
+                alloc_state = a_state_check_budget;
+                break;
+            }
+            case a_state_check_budget: {
+                // TODO: check gen0 budget and determine if a gen0 gc is needed
                 alloc_state = a_state_try_fit;
                 break;
             }
@@ -432,7 +442,7 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
                         alloc_state = a_state_can_allocate;
                         break;
                     case f_too_large:
-                        // Can't fit into current segment, need a gen0 gc
+                        // Can't fit into current segment, need a ephemeral (gen1) gc
                         alloc_state = a_state_trigger_ephemeral_gc;
                         break;
                     case f_commit_failed:
@@ -442,7 +452,13 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
                 }
                 break;
             }
+            case a_state_trigger_gen0_gc: {
+                break;
+            }
             case a_state_trigger_ephemeral_gc: {
+                break;
+            }
+            case a_state_trigger_full_gc: {
                 break;
             }
             case a_state_can_allocate: {
