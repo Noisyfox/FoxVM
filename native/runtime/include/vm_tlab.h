@@ -16,9 +16,6 @@
 // The minimum size of each TLAB, 8k
 #define TLAB_SIZE_MIN  ((size_t)(8*1024))
 
-// Object larger than 1/4 of TLAB_SIZE will alloc out of TLAB
-#define TLAB_MAX_ALLOC_RATIO 4
-
 // By default the waste limit is 1/64 of the size
 #define TLAB_WASTE_FRACTION 64
 

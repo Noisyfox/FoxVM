@@ -8,6 +8,7 @@
 #include "vm_thread.h"
 #include "vm_array.h"
 #include <assert.h>
+#include <string.h>
 
 /*
  * Card table defs and common functions
@@ -135,7 +136,7 @@ typedef struct _HeapSegment {
  * @return NULL if can't allocate new memory. Otherwise a new HeapSegment* will be returned,
  * the address is aligned with `SEGMENT_ALIGNMENT`.
  */
-static HeapSegment *alloc_heap_segment(size_t size) {
+static HeapSegment *heap_segment_alloc(size_t size) {
     // Reserve memory
     void *mem = mem_reserve(NULL, size, SEGMENT_ALIGNMENT);
     if (!mem) {
@@ -158,6 +159,33 @@ static HeapSegment *alloc_heap_segment(size_t size) {
     segment->next = NULL;
 
     return segment;
+}
+
+/**
+ * Commit more space to the end of the given segment.
+ *
+ * @return the actual space that is committed. 0 means commit failure.
+ */
+static size_t heap_segment_grow(HeapSegment *segment, size_t required_size) {
+    assert(ptr_inc(segment->committed, required_size) <= (void *) segment->end);
+
+    // Calculate new committed end
+    void *committed = ptr_inc(segment->committed, required_size);
+    committed = align_ptr(committed, mem_page_size());
+    committed = ptr_min(committed, segment->end);
+
+    // Commit the memory
+    size_t commit_size = ptr_offset(segment->committed, committed);
+    assert(commit_size >= required_size);
+    if (mem_commit(segment->committed, commit_size) != JAVA_TRUE) {
+        // Commit failed
+        return 0;
+    }
+
+    // Update segment info
+    segment->committed = committed;
+
+    return required_size;
 }
 
 typedef enum {
@@ -201,6 +229,10 @@ typedef struct {
 
     // The generation table
     Generation generations[total_generation_count];
+
+    // Lock when alloc directly from heap
+    VMSpinLock more_space_lock_soh;
+    VMSpinLock more_space_lock_loh;
 } JavaHeap;
 
 static JavaHeap g_heap = {0};
@@ -278,8 +310,8 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     g_heap.min_loh_segment_size = align_size_up(LOH_SEGMENT_ALLOC, SIZE_ALIGNMENT);
 
     // Create first SOH and LOH segment
-    HeapSegment *soh_seg = alloc_heap_segment(g_heap.soh_segment_size);
-    HeapSegment *loh_seg = alloc_heap_segment(g_heap.min_loh_segment_size);
+    HeapSegment *soh_seg = heap_segment_alloc(g_heap.soh_segment_size);
+    HeapSegment *loh_seg = heap_segment_alloc(g_heap.min_loh_segment_size);
     if (!soh_seg || !loh_seg) {
         // Something went wrong
         return -1;
@@ -303,6 +335,10 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     // Init loh generation
     generation_make(loh_generation, loh_seg);
 
+    // Init alloc locks
+    spin_lock_init(&g_heap.more_space_lock_soh);
+    spin_lock_init(&g_heap.more_space_lock_loh);
+
     return 0;
 }
 
@@ -310,12 +346,118 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
 // Allocator related functions
 //*********************************************************************************************************
 
+typedef enum {
+    a_state_start = 0,
+    a_state_can_allocate,
+    a_state_cant_allocate,
+    a_state_try_fit,
+    a_state_trigger_full_gc,
+    a_state_trigger_ephemeral_gc,
+} AllocationState;
+
+typedef enum {
+    f_can_fit,
+    f_too_large,
+    f_commit_failed,
+} FitResult;
+
+static FitResult heap_soh_try_fit(size_t size, void **out) {
+    Generation *gen0 = youngest_generation;
+    uint8_t *result = gen0->allocation_current;
+    HeapSegment *segment = gen0->allocation_segment;
+    assert(segment->start <= result && result <= segment->committed);
+
+    uint8_t *current = ptr_inc(result, size);
+    if (current <= segment->committed) {
+        // Success
+        gen0->allocation_current = current;
+        *out = result;
+        return f_can_fit;
+    } else if (current <= segment->end) {
+        // Need to commit more space
+        size_t extra_size = ptr_offset(segment->committed, current);
+        if (heap_segment_grow(segment, extra_size) < extra_size) {
+            // Can't commit required size
+            return f_commit_failed;
+        } else {
+            assert(current <= segment->committed);
+            gen0->allocation_current = current;
+            *out = result;
+            return f_can_fit;
+        }
+    } else {
+        // Can't fit into current segment
+        return f_too_large;
+    }
+}
+
+static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void **out) {
+    assert(out != NULL);
+
+    Generation *gen0 = youngest_generation;
+    AllocationState alloc_state = a_state_start;
+
+    while (1) {
+        switch (alloc_state) {
+            case a_state_start: {
+                // Lock the generation
+                spin_lock_enter(vmCurrentContext, &g_heap.more_space_lock_soh);
+
+                alloc_state = a_state_try_fit;
+                break;
+            }
+            case a_state_can_allocate: {
+                spin_lock_exit(&g_heap.more_space_lock_soh);
+                // Zero out memory
+                memset(*out, 0, size);
+                goto exit;
+            }
+            case a_state_cant_allocate: {
+                spin_lock_exit(&g_heap.more_space_lock_soh);
+                goto exit;
+            }
+            case a_state_try_fit: {
+                switch (heap_soh_try_fit(size, out)) {
+                    case f_can_fit:
+                        // Success
+                        alloc_state = a_state_can_allocate;
+                        break;
+                    case f_too_large:
+                        // Can't fit into current segment, need a gen0 gc
+                        alloc_state = a_state_trigger_ephemeral_gc;
+                        break;
+                    case f_commit_failed:
+                        // Can't commit required size, do a full gc
+                        alloc_state = a_state_trigger_full_gc;
+                        break;
+                }
+                break;
+            }
+            case a_state_trigger_ephemeral_gc: {
+                break;
+            }
+        }
+    }
+
+    exit:
+    return alloc_state == a_state_can_allocate ? JAVA_TRUE : JAVA_FALSE;
+}
+
 /** Allocate given size of memory from given gen. */
 static void *heap_alloc_more_space(VM_PARAM_CURRENT_CONTEXT, size_t size, GCGeneration gen) {
     assert(is_size_aligned(size, SIZE_ALIGNMENT));
     assert(gen == soh_gen0 || gen == loh_generation);
 
-    return NULL;
+    // Give GC a chance to run before we try alloc more space
+    thread_checkpoint(vmCurrentContext);
+
+    void *result = NULL;
+
+    if (gen == soh_gen0) {
+        heap_alloc_soh(vmCurrentContext, size, &result);
+    }
+
+    return result;
 }
 
 // Large objects go directly to old gen
