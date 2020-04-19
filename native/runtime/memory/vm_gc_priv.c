@@ -19,7 +19,7 @@ void heap_fill_with_object(void *start, size_t size) {
     if (size >= g_fillerArraySizeMin) {
         // Fill the memory using int array
         JAVA_ARRAY array = start;
-        size_t element_size = ptr_offset(start, array_base(array, VM_TYPE_INT));
+        size_t element_size = ptr_offset(array_base(array, VM_TYPE_INT), ptr_inc(start, size));
         size_t element_count = element_size / type_size(VM_TYPE_INT);
         assert(size == array_size_of_type(VM_TYPE_INT, element_count));
 
