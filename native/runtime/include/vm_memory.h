@@ -30,20 +30,20 @@ static inline size_t align_size_up(size_t size, size_t alignment) {
 }
 
 static inline JAVA_BOOLEAN is_ptr_aligned(void *ptr, size_t alignment) {
-    return align_up_((intptr_t) ptr, (intptr_t) alignment) == (intptr_t) ptr ? JAVA_TRUE : JAVA_FALSE;
+    return align_up_((uintptr_t) ptr, (uintptr_t) alignment) == (uintptr_t) ptr ? JAVA_TRUE : JAVA_FALSE;
 }
 
 static inline void *align_ptr(void *ptr, size_t alignment) {
-    return (void *) align_up_((intptr_t) ptr, (intptr_t) alignment);
+    return (void *) align_up_((uintptr_t) ptr, (uintptr_t) alignment);
 }
 
 static inline size_t align_size_down(size_t size, size_t alignment) {
     return align_down_(size, alignment);
 }
 
-#define ptr_inc(ptr, offset) ((void*)(((uintptr_t)(ptr)) + (offset)))
-#define ptr_dec(ptr, offset) ((void*)(((uintptr_t)(ptr)) - (offset)))
-#define ptr_offset(base, ptr) ((uint64_t)((uintptr_t)(ptr) - (uintptr_t)(base)))
+#define ptr_inc(ptr, offset) ((void*)(((intptr_t)(ptr)) + (ptrdiff_t)(offset)))
+#define ptr_dec(ptr, offset) ((void*)(((intptr_t)(ptr)) - (ptrdiff_t)(offset)))
+#define ptr_offset(base, ptr) ((ptrdiff_t)((intptr_t)(ptr) - (intptr_t)(base)))
 #define ptr_max(ptr1, ptr2) ((void*)((uintptr_t)(ptr1) > (uintptr_t)(ptr2) ? (ptr1) : (ptr2)))
 #define ptr_min(ptr1, ptr2) ((void*)((uintptr_t)(ptr1) < (uintptr_t)(ptr2) ? (ptr1) : (ptr2)))
 #define size_max(s1, s2) ((size_t)((size_t)(s1) > (size_t)(s2) ? (s1) : (s2)))
