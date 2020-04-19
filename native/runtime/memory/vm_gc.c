@@ -125,6 +125,7 @@ static inline uint8_t *card_table_translate(CardTable *ct) {
 
 typedef struct _HeapSegment {
     uint8_t *start; // The start memory that can be used for object alloc
+    uint8_t *allocated; // The end of allocated memory
     uint8_t *committed; // The end of committed memory
     uint8_t *end; // The end of the segment
     uint32_t flags;
@@ -156,6 +157,7 @@ static HeapSegment *heap_segment_alloc(size_t size) {
 
     // Init each field
     segment->start = ptr_inc(mem, SEGMENT_START_OFFSET);
+    segment->allocated = segment->start;
     segment->committed = ptr_inc(mem, SEGMENT_INITIAL_COMMIT);
     segment->end = ptr_inc(mem, size);
     segment->flags = 0;
@@ -224,7 +226,7 @@ typedef struct {
     GCGeneration gen;
     HeapSegment *startSegment; // The head of the chained segments that used by this generation
     HeapSegment *allocationSegment; // The segment currently used to allocate
-    uint8_t *allocationCurrent; // Current allocation address, points to a position on `allocationSegment`
+    uint8_t *allocationStart; // The start address of this generation
 
     StaticData staticData;
     DynamicData dynamicData;
@@ -325,12 +327,12 @@ static void generation_make(GCGeneration gen, HeapSegment *seg) {
     generation->gen = gen;
     generation->startSegment = seg;
     generation->allocationSegment = seg;
-    generation->allocationCurrent = seg->start;
+    generation->allocationStart = seg->start;
 }
 
 size_t heap_gen0_free() {
     Generation *gen0 = youngest_generation;
-    return ptr_offset(gen0->allocationCurrent, gen0->allocationSegment->end);
+    return ptr_offset(gen0->allocationSegment->allocated, gen0->allocationSegment->end);
 }
 
 int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
@@ -445,27 +447,26 @@ typedef enum {
     f_commit_failed,
 } FitResult;
 
-static FitResult heap_soh_try_fit(size_t size, void **out) {
-    Generation *gen0 = youngest_generation;
-    uint8_t *result = gen0->allocationCurrent;
-    HeapSegment *segment = gen0->allocationSegment;
+/** Try fit the given size at the end of the segment */
+static FitResult heap_segment_try_fit_end(HeapSegment *segment, size_t size, void **out) {
+    uint8_t *result = segment->allocated;
     assert(segment->start <= result && result <= segment->committed);
 
-    uint8_t *current = ptr_inc(result, size);
-    if (current <= segment->committed) {
+    uint8_t *allocated = ptr_inc(result, size);
+    if (allocated <= segment->committed) {
         // Success
-        gen0->allocationCurrent = current;
+        segment->allocated = allocated;
         *out = result;
         return f_can_fit;
-    } else if (current <= segment->end) {
+    } else if (allocated <= segment->end) {
         // Need to commit more space
-        size_t extra_size = ptr_offset(segment->committed, current);
+        size_t extra_size = ptr_offset(segment->committed, allocated);
         if (heap_segment_grow(segment, extra_size) < extra_size) {
             // Can't commit required size
             return f_commit_failed;
         } else {
-            assert(current <= segment->committed);
-            gen0->allocationCurrent = current;
+            assert(allocated <= segment->committed);
+            segment->allocated = allocated;
             *out = result;
             return f_can_fit;
         }
@@ -473,6 +474,10 @@ static FitResult heap_soh_try_fit(size_t size, void **out) {
         // Can't fit into current segment
         return f_too_large;
     }
+}
+
+static FitResult heap_soh_try_fit(size_t size, void **out) {
+    return heap_segment_try_fit_end(youngest_generation->allocationSegment, size, out);
 }
 
 static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void **out) {
