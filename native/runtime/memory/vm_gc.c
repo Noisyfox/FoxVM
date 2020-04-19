@@ -208,12 +208,26 @@ typedef enum {
     total_generation_count = loh_generation + 1
 } GCGeneration;
 
+typedef struct {
+    size_t minSize; // Minimum allocation budget
+    size_t maxSize; // Maximum allocation budget
+} StaticData;
+
+// Statistic data of the generation
+typedef struct {
+    size_t allocBudget;  // Desired allocation size before triggering a GC
+    ptrdiff_t runningBudget; // The size of how much space is left for allocations until the next GC under the current allocation budget
+} DynamicData;
+
 // Memory info of each generation
 typedef struct {
     GCGeneration gen;
     HeapSegment *startSegment; // The head of the chained segments that used by this generation
     HeapSegment *allocationSegment; // The segment currently used to allocate
     uint8_t *allocationCurrent; // Current allocation address, points to a position on `allocationSegment`
+
+    StaticData staticData;
+    DynamicData dynamicData;
 } Generation;
 
 typedef struct {
@@ -348,12 +362,52 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     }
 
     // Init soh generations
-    for (int i = max_generation; i >= 0; i--) {
+    for (int i = max_generation; i >= soh_gen0; i--) {
         generation_make(i, soh_seg);
     }
 
     // Init loh generation
     generation_make(loh_generation, loh_seg);
+
+    // Init generation static & dynamic data
+    {
+        // Gen0 max size is between 6MB and 200 MB, and also won't be larger than half of the SOH segment size
+        size_t gen0_max_size = size_max(
+                6 * 1024 * 1024,
+                size_min(
+                        align_size_up(g_heap.sohSegmentSize / 2, SIZE_ALIGNMENT),
+                        200 * 1024 * 1024
+                )
+        );
+        // Gen0 max size is larger than 6 MB, and also won't be larger than half of the SOH segment size
+        size_t gen1_max_size = size_max(
+                6 * 1024 * 1024,
+                align_size_up(g_heap.sohSegmentSize / 2, SIZE_ALIGNMENT)
+        );
+        generation_of(soh_gen0)->staticData = (StaticData) {
+                .minSize = 256 * 1024,
+                .maxSize = gen0_max_size,
+        };
+        generation_of(soh_gen1)->staticData = (StaticData) {
+                .minSize = 160 * 1024,
+                .maxSize = gen1_max_size,
+        };
+        generation_of(soh_gen2)->staticData = (StaticData) {
+                .minSize = 256 * 1024,
+                .maxSize = SSIZE_MAX,
+        };
+        generation_of(loh_generation)->staticData = (StaticData) {
+                .minSize = 3 * 1024 * 1024,
+                .maxSize = SSIZE_MAX,
+        };
+
+        // Init alloc budget
+        for (int i = total_generation_count - 1; i >= soh_gen0; i--) {
+            Generation *gen = generation_of(i);
+            gen->dynamicData.allocBudget = gen->staticData.minSize;
+            gen->dynamicData.runningBudget = gen->dynamicData.allocBudget;
+        }
+    }
 
     // Init alloc locks
     spin_lock_init(&g_heap.moreSpaceLockSoh);
@@ -365,6 +419,14 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
 //*********************************************************************************************************
 // Allocator related functions
 //*********************************************************************************************************
+
+static JAVA_BOOLEAN generation_alloc_allowed(GCGeneration gen) {
+    if (generation_of(gen)->dynamicData.runningBudget < 0) {
+        // Run out of budget
+        return JAVA_FALSE;
+    }
+    return JAVA_TRUE;
+}
 
 typedef enum {
     a_state_start = 0,
@@ -431,8 +493,12 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
                 break;
             }
             case a_state_check_budget: {
-                // TODO: check gen0 budget and determine if a gen0 gc is needed
-                alloc_state = a_state_try_fit;
+                // Check gen0 budget and determine if a gen0 gc is needed
+                if (generation_alloc_allowed(soh_gen0) == JAVA_TRUE) {
+                    alloc_state = a_state_try_fit;
+                } else {
+                    alloc_state = a_state_trigger_gen0_gc;
+                }
                 break;
             }
             case a_state_try_fit: {
@@ -453,15 +519,21 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
                 break;
             }
             case a_state_trigger_gen0_gc: {
+                alloc_state = a_state_cant_allocate;
                 break;
             }
             case a_state_trigger_ephemeral_gc: {
+                alloc_state = a_state_cant_allocate;
                 break;
             }
             case a_state_trigger_full_gc: {
+                alloc_state = a_state_cant_allocate;
                 break;
             }
             case a_state_can_allocate: {
+                // Consume alloc budget
+                gen0->dynamicData.runningBudget -= size;
+
                 // Release the lock
                 spin_lock_exit(&g_heap.moreSpaceLockSoh);
 

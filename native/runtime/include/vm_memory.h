@@ -17,6 +17,9 @@
 // Size alignment of any managed objects
 #define SIZE_ALIGNMENT ((size_t)8)
 
+// Signed size max
+#define SSIZE_MAX ((ptrdiff_t)(SIZE_MAX / 2))
+
 // Helper functions to align pointers
 #define align_up_(value, alignment) (((value) + ((alignment) - 1)) & ~((alignment) - 1))
 #define align_down_(value, alignment) ((value) & ~((alignment) - 1))

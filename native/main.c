@@ -5,6 +5,12 @@
 JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz, void *args) {
     printf("Hello, World!\n");
 
+    int count = 0;
+    while(heap_alloc(vmCurrentContext, /*85000 - 100*/ 20)) {
+        count ++;
+    }
+    printf("Total alloc count: %d\n", count);
+
     thread_sleep(vmCurrentContext, 5000, 0);
 }
 
