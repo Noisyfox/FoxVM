@@ -74,29 +74,29 @@ static inline size_t brick_size_of(void *from, void *to) {
 
 typedef struct _CardTable {
     // The current max possible memory range covered by this card table
-    uint8_t *lowest_addr;
-    uint8_t *highest_addr;
+    uint8_t *lowestAddr;
+    uint8_t *highestAddr;
 
-    int16_t *brick_table;
+    int16_t *brickTable;
 
     size_t size; // Size of the entire card table, include the header and brick table
     struct _CardTable *next;  // Pointer to next chained card table
 } CardTable;
 
 /**
- * Since the normal card table covers the memory range of [lowest_addr, highest_addr[,
- * so to get the index of any give memory address `addr`, you have to subtract `lowest_addr` first
+ * Since the normal card table covers the memory range of [lowestAddr, highestAddr[,
+ * so to get the index of any give memory address `addr`, you have to subtract `lowestAddr` first
  * then divide it by the card size (1<<CARD_BYTE_SHIFT), which then means each time you assign a reference,
- * the write barrier needs to look up the `lowest_addr` from another memory location first which could impact
+ * the write barrier needs to look up the `lowestAddr` from another memory location first which could impact
  * the performance.
  *
  * By 'translating' the card table, we map the table to the entire virtual memory space, so the following two
  * expressions are equal:
- * ptr_inc(ct, sizeof(CardTable) + ptr_offset(lowest_addr, addr) >> CARD_BYTE_SHIFT)  // use original card table
+ * ptr_inc(ct, sizeof(CardTable) + ptr_offset(lowestAddr, addr) >> CARD_BYTE_SHIFT)  // use original card table
  * ptr_inc(translated_ct, addr >> CARD_BYTE_SHIFT)                                    // use translated card table
  *
  * By rearranging the equation, we have:
- * translated_ct = ptr_inc(ct, sizeof(CardTable) - lowest_addr >> CARD_BYTE_SHIFT)
+ * translated_ct = ptr_inc(ct, sizeof(CardTable) - lowestAddr >> CARD_BYTE_SHIFT)
  *
  * After the translate, the card table byte of giving `addr` can be easily found by:
  * ptr_inc(translated_ct, card_byte(addr))
@@ -104,7 +104,7 @@ typedef struct _CardTable {
 static inline uint8_t *card_table_translate(CardTable *ct) {
     uint8_t *base_addr = ptr_inc(ct, sizeof(CardTable));
 
-    return ptr_dec(base_addr, card_byte(ct->lowest_addr));
+    return ptr_dec(base_addr, card_byte(ct->lowestAddr));
 }
 
 // Heap segment default size
@@ -211,31 +211,31 @@ typedef enum {
 // Memory info of each generation
 typedef struct {
     GCGeneration gen;
-    HeapSegment *start_segment; // The head of the chained segments that used by this generation
-    HeapSegment *allocation_segment; // The segment currently used to allocate
-    uint8_t *allocation_current; // Current allocation address, points to a position on `allocation_segment`
+    HeapSegment *startSegment; // The head of the chained segments that used by this generation
+    HeapSegment *allocationSegment; // The segment currently used to allocate
+    uint8_t *allocationCurrent; // Current allocation address, points to a position on `allocationSegment`
 } Generation;
 
 typedef struct {
     // The size of each SOH segment
-    size_t soh_segment_size;
+    size_t sohSegmentSize;
 
     // Minimum LOH segment size
-    size_t min_loh_segment_size;
+    size_t minLohSegmentSize;
 
     // The current max possible memory range of the heap, which is covered by card table.
-    uint8_t *lowest_addr;
-    uint8_t *highest_addr;
+    uint8_t *lowestAddr;
+    uint8_t *highestAddr;
 
-    CardTable *card_table;
-    uint8_t *card_table_translated;
+    CardTable *cardTable;
+    uint8_t *cardTableTranslated;
 
     // The generation table
     Generation generations[total_generation_count];
 
     // Lock when alloc directly from heap
-    VMSpinLock more_space_lock_soh;
-    VMSpinLock more_space_lock_loh;
+    VMSpinLock moreSpaceLockSoh;
+    VMSpinLock moreSpaceLockLoh;
 } JavaHeap;
 
 static JavaHeap g_heap = {0};
@@ -245,9 +245,9 @@ static JavaHeap g_heap = {0};
  */
 static int card_table_init() {
     // Required size of the card table content
-    size_t cs = card_size_of(g_heap.lowest_addr, g_heap.highest_addr);
+    size_t cs = card_size_of(g_heap.lowestAddr, g_heap.highestAddr);
     // Required size of the brick table
-    size_t bs = brick_size_of(g_heap.lowest_addr, g_heap.highest_addr);
+    size_t bs = brick_size_of(g_heap.lowestAddr, g_heap.highestAddr);
 
     // Allocate memory
     size_t alloc_size = sizeof(CardTable) + cs + bs;
@@ -265,16 +265,16 @@ static int card_table_init() {
     CardTable *card_table = mem;
 
     // Init the card table
-    card_table->lowest_addr = g_heap.lowest_addr;
-    card_table->highest_addr = g_heap.highest_addr;
-    card_table->brick_table = ptr_inc(mem, sizeof(CardTable) + cs);
+    card_table->lowestAddr = g_heap.lowestAddr;
+    card_table->highestAddr = g_heap.highestAddr;
+    card_table->brickTable = ptr_inc(mem, sizeof(CardTable) + cs);
     card_table->size = alloc_size;
     card_table->next = NULL;
 
-    g_heap.card_table = card_table;
+    g_heap.cardTable = card_table;
 
     // Translate card table
-    g_heap.card_table_translated = card_table_translate(card_table);
+    g_heap.cardTableTranslated = card_table_translate(card_table);
 
     return 0;
 }
@@ -283,17 +283,17 @@ typedef size_t Brick;
 
 /** Get the index of brick of given address */
 static inline Brick brick_of(void *addr) {
-    return ptr_offset(g_heap.card_table->lowest_addr, addr) / BRICK_SIZE;
+    return ptr_offset(g_heap.cardTable->lowestAddr, addr) / BRICK_SIZE;
 }
 
 /** Get the start address of the region covered by brick b */
 static inline void *brick_start_addr_of(Brick b) {
-    return ptr_inc(g_heap.card_table->lowest_addr, b * BRICK_SIZE);
+    return ptr_inc(g_heap.cardTable->lowestAddr, b * BRICK_SIZE);
 }
 
 /** Set the given block b to value val */
 static inline void brick_set(Brick b, int16_t val) {
-    g_heap.card_table->brick_table[b] = val;
+    g_heap.cardTable->brickTable[b] = val;
 }
 
 static inline Generation *generation_of(GCGeneration n) {
@@ -309,14 +309,14 @@ static void generation_make(GCGeneration gen, HeapSegment *seg) {
     Generation *generation = generation_of(gen);
 
     generation->gen = gen;
-    generation->start_segment = seg;
-    generation->allocation_segment = seg;
-    generation->allocation_current = seg->start;
+    generation->startSegment = seg;
+    generation->allocationSegment = seg;
+    generation->allocationCurrent = seg->start;
 }
 
 size_t heap_gen0_free() {
     Generation *gen0 = youngest_generation;
-    return ptr_offset(gen0->allocation_current, gen0->allocation_segment->end);
+    return ptr_offset(gen0->allocationCurrent, gen0->allocationSegment->end);
 }
 
 int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
@@ -326,20 +326,20 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     g_fillerSizeMin = MIN_OBJECT_SIZE;
 
     // Determine the size of each heap segment
-    g_heap.soh_segment_size = align_size_up(SOH_SEGMENT_ALLOC, SIZE_ALIGNMENT);
-    g_heap.min_loh_segment_size = align_size_up(LOH_SEGMENT_ALLOC, SIZE_ALIGNMENT);
+    g_heap.sohSegmentSize = align_size_up(SOH_SEGMENT_ALLOC, SIZE_ALIGNMENT);
+    g_heap.minLohSegmentSize = align_size_up(LOH_SEGMENT_ALLOC, SIZE_ALIGNMENT);
 
     // Create first SOH and LOH segment
-    HeapSegment *soh_seg = heap_segment_alloc(g_heap.soh_segment_size);
-    HeapSegment *loh_seg = heap_segment_alloc(g_heap.min_loh_segment_size);
+    HeapSegment *soh_seg = heap_segment_alloc(g_heap.sohSegmentSize);
+    HeapSegment *loh_seg = heap_segment_alloc(g_heap.minLohSegmentSize);
     if (!soh_seg || !loh_seg) {
         // Something went wrong
         return -1;
     }
 
     // Store the current memory range
-    g_heap.lowest_addr = ptr_min(soh_seg, loh_seg);
-    g_heap.highest_addr = ptr_max(soh_seg->end, loh_seg->end);
+    g_heap.lowestAddr = ptr_min(soh_seg, loh_seg);
+    g_heap.highestAddr = ptr_max(soh_seg->end, loh_seg->end);
 
     // Create card table from current memory range
     int res = card_table_init();
@@ -356,8 +356,8 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     generation_make(loh_generation, loh_seg);
 
     // Init alloc locks
-    spin_lock_init(&g_heap.more_space_lock_soh);
-    spin_lock_init(&g_heap.more_space_lock_loh);
+    spin_lock_init(&g_heap.moreSpaceLockSoh);
+    spin_lock_init(&g_heap.moreSpaceLockLoh);
 
     return 0;
 }
@@ -385,14 +385,14 @@ typedef enum {
 
 static FitResult heap_soh_try_fit(size_t size, void **out) {
     Generation *gen0 = youngest_generation;
-    uint8_t *result = gen0->allocation_current;
-    HeapSegment *segment = gen0->allocation_segment;
+    uint8_t *result = gen0->allocationCurrent;
+    HeapSegment *segment = gen0->allocationSegment;
     assert(segment->start <= result && result <= segment->committed);
 
     uint8_t *current = ptr_inc(result, size);
     if (current <= segment->committed) {
         // Success
-        gen0->allocation_current = current;
+        gen0->allocationCurrent = current;
         *out = result;
         return f_can_fit;
     } else if (current <= segment->end) {
@@ -403,7 +403,7 @@ static FitResult heap_soh_try_fit(size_t size, void **out) {
             return f_commit_failed;
         } else {
             assert(current <= segment->committed);
-            gen0->allocation_current = current;
+            gen0->allocationCurrent = current;
             *out = result;
             return f_can_fit;
         }
@@ -425,7 +425,7 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
         switch (alloc_state) {
             case a_state_start: {
                 // Lock the generation
-                spin_lock_enter(vmCurrentContext, &g_heap.more_space_lock_soh);
+                spin_lock_enter(vmCurrentContext, &g_heap.moreSpaceLockSoh);
 
                 alloc_state = a_state_check_budget;
                 break;
@@ -463,7 +463,7 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
             }
             case a_state_can_allocate: {
                 // Release the lock
-                spin_lock_exit(&g_heap.more_space_lock_soh);
+                spin_lock_exit(&g_heap.moreSpaceLockSoh);
 
                 void *result = *out;
                 assert(result != NULL);
@@ -484,7 +484,7 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
                 goto exit;
             }
             case a_state_cant_allocate: {
-                spin_lock_exit(&g_heap.more_space_lock_soh);
+                spin_lock_exit(&g_heap.moreSpaceLockSoh);
                 goto exit;
             }
         }
