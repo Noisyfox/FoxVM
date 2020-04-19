@@ -54,6 +54,7 @@ typedef enum {
     VM_TYPE_ILLEGAL = 99
 } BasicType;
 
+/** Element size of array of specified element type */
 static inline size_t type_size(BasicType t) {
     switch (t) {
         case VM_TYPE_BOOLEAN:   return sizeof(JAVA_BOOLEAN);
