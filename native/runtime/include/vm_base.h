@@ -36,8 +36,8 @@ typedef uint16_t    JAVA_USHORT;
 typedef uint32_t    JAVA_UINT;
 typedef uint64_t    JAVA_ULONG;
 
-#define JAVA_INT_MIN ((JAVA_INT)1 << (sizeof(JAVA_INT)*8-1))    // 0x80000000 == smallest jint
-#define JAVA_INT_MAX ((JAVA_UINT)(JAVA_INT_MIN) - 1)            // 0x7FFFFFFF == largest jint
+#define JAVA_INT_MIN ((JAVA_INT)1 << (sizeof(JAVA_INT)*8-1))        // 0x80000000 == smallest jint
+#define JAVA_INT_MAX ((JAVA_INT)((JAVA_UINT)(JAVA_INT_MIN) - 1))    // 0x7FFFFFFF == largest jint
 
 typedef enum {
     VM_TYPE_BOOLEAN = 4,

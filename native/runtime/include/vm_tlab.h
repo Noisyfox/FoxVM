@@ -28,6 +28,9 @@ struct _AllocContext {
     size_t wasteLimit; // Don't discard TLAB if remaining space is larger than this.
 
     size_t desiredSize; // Desired TLAB size of this thread.
+    size_t refillCount; // Refill count since last GC.
+    size_t refillSize; // Total refilled size since last GC.
+    size_t wastedSize; // Total wasted size since last GC.
 };
 
 /** Init the tlab */
@@ -79,6 +82,6 @@ size_t tlab_calculate_new_size(ThreadAllocContext *tlab, size_t obj_size);
  * The remaining space in the tlab is guaranteed to be larger than `g_fillerArraySizeMin`
  * so a fill array can be fit.
  */
-void tlab_retire(ThreadAllocContext *tlab);
+void tlab_retire(ThreadAllocContext *tlab, JAVA_BOOLEAN for_gc);
 
 #endif //FOXVM_VM_TLAB_H

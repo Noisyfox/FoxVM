@@ -28,14 +28,20 @@ void tlab_init(ThreadAllocContext *tlab) {
     size_t init_size = 0;
     // TODO: calculate desired size using statistic data
     tlab->desiredSize = size_min(size_max(init_size, tlab_size_min()), tlab_size_max());
+    tlab->refillCount = 0;
+    tlab->refillSize = 0;
+    tlab->wastedSize = 0;
 }
 
 static inline uint8_t *tlab_limit_hard(ThreadAllocContext *tlab) {
     return ptr_inc(tlab_limit(tlab), tlab_reserve_size());
 }
 
-void tlab_retire(ThreadAllocContext *tlab) {
+void tlab_retire(ThreadAllocContext *tlab, JAVA_BOOLEAN for_gc) {
     size_t remaining = ptr_offset(tlab->tlabCurrent, tlab_limit_hard(tlab));
+    if (!for_gc) {
+        tlab->wastedSize += remaining;
+    }
 
     // Fill the remaining memory with a dummy object
     heap_fill_with_object(tlab->tlabCurrent, remaining);
@@ -64,4 +70,6 @@ void tlab_fill(ThreadAllocContext *tlab, void *start, size_t size) {
     tlab->tlabCurrent = start;
     tlab->tlabLimit = ptr_inc(start, size - tlab_reserve_size());
     tlab->wasteLimit = tlab->desiredSize / TLAB_WASTE_FRACTION;
+    tlab->refillCount++;
+    tlab->refillSize += size;
 }

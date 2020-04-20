@@ -217,8 +217,10 @@ typedef struct {
 
 // Statistic data of the generation
 typedef struct {
-    size_t allocBudget;  // Desired allocation size before triggering a GC
+    size_t allocBudget; // Desired allocation size before triggering a GC
     ptrdiff_t runningBudget; // The size of how much space is left for allocations until the next GC under the current allocation budget
+
+    size_t collectionCount; // GC count of this generation
 } DynamicData;
 
 // Memory info of each generation
@@ -252,6 +254,9 @@ typedef struct {
     // Lock when alloc directly from heap
     VMSpinLock moreSpaceLockSoh;
     VMSpinLock moreSpaceLockLoh;
+
+    // Fields used by GC
+    VMSpinLock gcLock;
 } JavaHeap;
 
 static JavaHeap g_heap = {0};
@@ -403,11 +408,15 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
                 .maxSize = SSIZE_MAX,
         };
 
-        // Init alloc budget
+        // Init dynamic data
         for (int i = total_generation_count - 1; i >= soh_gen0; i--) {
             Generation *gen = generation_of(i);
+            // Init alloc budget
             gen->dynamicData.allocBudget = gen->staticData.minSize;
             gen->dynamicData.runningBudget = gen->dynamicData.allocBudget;
+
+            // Init some other fields
+            gen->dynamicData.collectionCount = 0;
         }
     }
 
@@ -415,7 +424,92 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
     spin_lock_init(&g_heap.moreSpaceLockSoh);
     spin_lock_init(&g_heap.moreSpaceLockLoh);
 
+    // Init GC data
+    spin_lock_init(&g_heap.gcLock);
+
     return 0;
+}
+
+//*********************************************************************************************************
+// GC related functions
+//*********************************************************************************************************
+
+/** Retire all tlabs. */
+static void gc_reclaim_tlabs() {
+    HeapSegment *ephemeral_seg = youngest_generation->allocationSegment;
+
+    VMThreadContext *thread = NULL;
+    while ((thread = thread_managed_next(thread)) != NULL) {
+        ThreadAllocContext *tlab = &thread->tlab;
+        if (!tlab_allocated(tlab)) {
+            continue;
+        }
+
+        tlab_retire(tlab, JAVA_TRUE);
+    }
+}
+
+/** Real GC work once the world is stopped */
+static void heap_gc(GCGeneration gen) {
+    // Retire all TLABs
+    gc_reclaim_tlabs();
+
+    // Check alloc budget to see if any older gen needs GC as well
+    for (int i = total_generation_count - 1; i > (int) gen; i--) {
+        if (generation_of(i)->dynamicData.runningBudget < 0) {
+            gen = i;
+            if (gen == loh_generation) {
+                gen = max_generation;
+            }
+            printf("Gen %d run out of budget, trigger gen %dd GC instead.\n", i, gen);
+            break;
+        }
+    }
+
+    // TODO: merge card table
+
+    // TODO: Mark phase
+
+    // Update collect counts
+    for (int i = soh_gen0; i <= (int) gen; i++) {
+        generation_of(i)->dynamicData.collectionCount++;
+        if (i == max_generation) {
+            // Also collect LOH
+            generation_of(loh_generation)->dynamicData.collectionCount++;
+        }
+    }
+}
+
+/** Trigger a GC of given generation. */
+static size_t gc(VM_PARAM_CURRENT_CONTEXT, GCGeneration gen) {
+    DynamicData *dd = &generation_of(gen)->dynamicData;
+    size_t count_before_lock = dd->collectionCount;
+
+    spin_lock_enter(vmCurrentContext, &g_heap.gcLock);
+
+    // don't trigger another GC if one was already in progress
+    // while waiting for the lock
+    {
+        size_t count_after_lock = dd->collectionCount;
+        if (count_before_lock != count_after_lock) {
+            spin_lock_exit(&g_heap.gcLock);
+
+            return count_after_lock;
+        }
+    }
+
+    // Suspend all threads except this one
+    thread_stop_the_world(vmCurrentContext);
+    thread_wait_until_world_stopped(vmCurrentContext);
+
+    // Do the real GC work
+    heap_gc(gen);
+
+    // Resume the world
+    thread_resume_the_world(vmCurrentContext);
+
+    spin_lock_exit(&g_heap.gcLock);
+    return dd->collectionCount;
 }
 
 //*********************************************************************************************************
@@ -524,7 +618,8 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
                 break;
             }
             case a_state_trigger_gen0_gc: {
-                alloc_state = a_state_cant_allocate;
+                gc(vmCurrentContext, soh_gen0);
+                alloc_state = a_state_try_fit;
                 break;
             }
             case a_state_trigger_ephemeral_gc: {
@@ -625,7 +720,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
                     return heap_alloc_more_space(vmCurrentContext, size, soh_gen0);
                 } else {
                     // Discard current tlab
-                    tlab_retire(tlab);
+                    tlab_retire(tlab, JAVA_FALSE);
                 }
             }
 
