@@ -13,6 +13,7 @@ set(SOURCE_FILES_RUNTIME
         vm_base.c
         vm_array.c
         vm_exception.c
+        vm_stack.c
 
         thread/vm_thread.c
 

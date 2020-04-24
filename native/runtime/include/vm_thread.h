@@ -7,6 +7,7 @@
 
 #include "vm_base.h"
 #include "vm_tlab.h"
+#include "vm_stack.h"
 
 typedef struct {
     uint32_t numberOfProcessors;
@@ -28,8 +29,7 @@ struct _VMThreadContext {
     JAVA_LONG threadId;
     JAVA_OBJECT currentThread;  // A java Thread object of this thread
 
-//    VMStackSlot* stack;
-//    int sta
+    VMStackFrame frameRoot;  // Root of the call stack
 
     void *nativeContext;  // Platform specific thread context
 

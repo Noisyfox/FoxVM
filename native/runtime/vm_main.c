@@ -22,6 +22,7 @@ int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
     VM_PARAM_CURRENT_CONTEXT = &thread_main;
 
     // Init main thread
+    stack_frame_make_root(&vmCurrentContext->frameRoot);
     thread_native_init(vmCurrentContext);
     thread_native_attach_main(vmCurrentContext);
     // register the main thread to global thread list
