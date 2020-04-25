@@ -41,13 +41,22 @@ void stack_frame_push(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame);
 /** Pop the top of the call stack frame */
 void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT);
 
-#define STACK_FRAME_START(max_stack, max_locals)                            \
+#define stack_frame_start(max_stack, max_locals)                            \
     VMStackFrame __stackFrame;                                              \
     VMStackSlot __slots[(max_stack) + (max_locals)];                        \
     stack_frame_init(&__stackFrame, __slots, (max_stack), (max_locals));    \
     stack_frame_push(vmCurrentContext, &__stackFrame)
 
-#define STACK_FRAME_END() \
+#define stack_frame_end() \
     stack_frame_pop(vmCurrentContext)
+
+#define stack_frame_iterate(thread, frame) \
+    for (VMStackFrame *frame = stack_frame_top(thread); frame != &thread->frameRoot; frame = frame->prev)
+
+#define stack_frame_operand_stack_iterate(frame, slot) \
+    for (VMStackSlot *slot = frame->operandStack.slots; slot < frame->operandStack.top; slot++)
+
+#define stack_frame_local_iterate(frame, slot) \
+    for(VMStackSlot* slot = frame->locals.slots; slot < frame->locals.slots + frame->locals.maxLocals; slot++)
 
 #endif //FOXVM_VM_STACK_H

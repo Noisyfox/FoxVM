@@ -8,7 +8,7 @@
 #include "vm_base.h"
 
 struct _JavaArray {
-    OPA_ptr_t clazz; // The class contains the info of the element type
+    JAVA_CLASS clazz; // The class contains the info of the element type
     void *monitor;
 
     JAVA_INT length;

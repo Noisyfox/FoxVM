@@ -30,6 +30,11 @@ void stack_frame_init(VMStackFrame *frame, VMStackSlot *slot_base, uint16_t max_
             .maxLocals = max_locals,
             .slots = slot_base + max_stack,
     };
+
+    // Init local slots to empty
+    stack_frame_local_iterate(frame, slot) {
+        slot->type = VM_SLOT_INVALID;
+    }
 }
 
 void stack_frame_push(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame) {

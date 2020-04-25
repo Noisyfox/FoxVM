@@ -8,6 +8,7 @@
 #include "vm_base.h"
 #include "vm_tlab.h"
 #include "vm_stack.h"
+#include "opa_primitives.h"
 
 typedef struct {
     uint32_t numberOfProcessors;
@@ -77,6 +78,10 @@ JAVA_BOOLEAN thread_managed_add(VM_PARAM_CURRENT_CONTEXT);
 JAVA_BOOLEAN thread_managed_remove(VM_PARAM_CURRENT_CONTEXT);
 
 VMThreadContext *thread_managed_next(VMThreadContext *cursor);
+
+#define thread_iterate(thread)                              \
+    VMThreadContext *thread = NULL;                         \
+    while ((thread = thread_managed_next(thread)) != NULL)
 
 // TODO: add thread parameters such as priority.
 int thread_start(VM_PARAM_CURRENT_CONTEXT);

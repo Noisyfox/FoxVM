@@ -3,7 +3,7 @@
 
 
 JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz, void *args) {
-    STACK_FRAME_START(0, 0);
+    stack_frame_start(0, 0);
 
     printf("Hello, World!\n");
 
@@ -15,7 +15,7 @@ JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz, void *args) {
 
     thread_sleep(vmCurrentContext, 5000, 0);
 
-    STACK_FRAME_END();
+    stack_frame_end();
 }
 
 int main(int argc, char *argv[]) {

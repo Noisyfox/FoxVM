@@ -9,7 +9,7 @@
 
 #include "config.h"
 #include <stdint.h>
-#include "opa_primitives.h"
+#include <stddef.h>
 
 // Java primary type def
 typedef void        JAVA_VOID;
@@ -142,7 +142,7 @@ typedef struct {
 } FieldTable;
 
 struct _JavaClass {
-    OPA_ptr_t clazz; // Always NULL for class instance
+    JAVA_CLASS clazz; // Always NULL for class instance
     void *monitor;
 
     size_t classSize;
@@ -161,7 +161,7 @@ struct _JavaClass {
 
 // Object prototype
 struct _JavaObject {
-    OPA_ptr_t clazz;
+    JAVA_CLASS clazz;
     void *monitor;
 };
 
@@ -198,79 +198,38 @@ static inline JAVA_BOOLEAN is_subword_type(BasicType t) {
 }
 
 /*
- *  11          8 7       6 5 4 3   0
- * +-------------+---------+---+----+
- * | young gen   | gc mark | unused |
- * | survive age | bits    |        |
- * +-------------+---------+---+----+
+ *      1       0
+ * +--------+--------+
+ * | pinned | marked |
+ * +--------+--------+
  */
 #define OBJECT_FLAG_MASK ((uintptr_t)0x3) // lower 2 bits
-#define OBJECT_FLAG_AGE_MASK ((uintptr_t)0xF00)
-#define OBJECT_FLAG_AGE_SHIFT 8
-#define OBJECT_FLAG_GC_MARK_MASK ((uintptr_t)0xC0)
-#define OBJECT_FLAG_GC_MARK_0 ((uintptr_t)0x80)
-#define OBJECT_FLAG_GC_MARK_1 ((uintptr_t)0x40)
+#define OBJECT_FLAG_GC_MARKED ((uintptr_t)0x1)
+#define OBJECT_FLAG_GC_PINNED ((uintptr_t)0x2)
 
 static inline JAVA_CLASS obj_get_class(JAVA_OBJECT obj) {
     // The class instance is allocated with a alignment of `DATA_ALIGNMENT`
     // so the lower 2 bits (32-bit arch) or 3 bits (64-bit arch) of the pointer can be used as other
     // flags. When we want the real address of the class instance,
     // we need to zero out the lower bits
-
-    uintptr_t ref = (uintptr_t) OPA_load_ptr(&obj->clazz);
-    ref = ref & (~OBJECT_FLAG_MASK);
-
-    return (void *) ref;
+    return (void *) (((uintptr_t) obj->clazz) & (~OBJECT_FLAG_MASK));
 }
 
 static inline void obj_set_flags(JAVA_OBJECT obj, uintptr_t flags) {
     flags &= OBJECT_FLAG_MASK;
-
-    void *orig_ref = OPA_load_ptr(&obj->clazz);
-
-    while (1) {
-        uintptr_t new_ref = ((uintptr_t) orig_ref) | flags;
-        void *prev = OPA_cas_ptr(&obj->clazz, orig_ref, (void *) new_ref);
-        if (prev == orig_ref) {
-            break;
-        } else {
-            orig_ref = prev;
-        }
-    }
+    obj->clazz = (void *) (((uintptr_t) obj->clazz) | flags);
 }
 
 static inline void obj_clear_flags(JAVA_OBJECT obj, uintptr_t flags) {
     flags &= OBJECT_FLAG_MASK;
     flags = ~flags;
-
-    void *orig_ref = OPA_load_ptr(&obj->clazz);
-
-    while (1) {
-        uintptr_t new_ref = ((uintptr_t) orig_ref) & flags;
-        void *prev = OPA_cas_ptr(&obj->clazz, orig_ref, (void *) new_ref);
-        if (prev == orig_ref) {
-            break;
-        } else {
-            orig_ref = prev;
-        }
-    }
+    obj->clazz = (void *) (((uintptr_t) obj->clazz) & flags);
 }
 
 static inline void obj_reset_flags_masked(JAVA_OBJECT obj, uintptr_t mask, uintptr_t flags) {
     mask &= OBJECT_FLAG_MASK;
     flags &= mask;
-
-    void *orig_ref = OPA_load_ptr(&obj->clazz);
-
-    while (1) {
-        uintptr_t new_ref = (((uintptr_t) orig_ref) & (~mask)) | flags;
-        void *prev = OPA_cas_ptr(&obj->clazz, orig_ref, (void *) new_ref);
-        if (prev == orig_ref) {
-            break;
-        } else {
-            orig_ref = prev;
-        }
-    }
+    obj->clazz = (void *) ((((uintptr_t) obj->clazz) & (~mask)) | flags);
 }
 
 static inline void obj_reset_flags(JAVA_OBJECT obj, uintptr_t flags) {
@@ -278,7 +237,7 @@ static inline void obj_reset_flags(JAVA_OBJECT obj, uintptr_t flags) {
 }
 
 static inline uintptr_t obj_get_flags(JAVA_OBJECT obj) {
-    uintptr_t ref = (uintptr_t) OPA_load_ptr(&obj->clazz);
+    uintptr_t ref = (uintptr_t) obj->clazz;
 
     return ref & OBJECT_FLAG_MASK;
 }
@@ -298,6 +257,13 @@ static inline JAVA_BOOLEAN obj_test_flags_or(JAVA_OBJECT obj, uintptr_t flags) {
 
     return (flags & current_flags) != 0 ? JAVA_TRUE : JAVA_FALSE;
 }
+
+#define obj_is_marked(obj) obj_test_flags_and((obj), OBJECT_FLAG_GC_MARKED)
+#define obj_set_marked(obj) obj_set_flags((obj), OBJECT_FLAG_GC_MARKED)
+#define obj_clear_marked(obj) obj_clear_flags((obj), OBJECT_FLAG_GC_MARKED)
+#define obj_is_pinned(obj) obj_test_flags_and((obj), OBJECT_FLAG_GC_PINNED)
+#define obj_set_pinned(obj) obj_set_flags((obj), OBJECT_FLAG_GC_PINNED)
+#define obj_clear_pinned(obj) obj_clear_flags((obj), OBJECT_FLAG_GC_PINNED)
 
 typedef struct _VMThreadContext VMThreadContext;
 

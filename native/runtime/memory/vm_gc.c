@@ -235,6 +235,11 @@ typedef struct {
 } Generation;
 
 typedef struct {
+    void *addressLow; // Lowest address being condemned
+    void *addressHigh; // Highest address being condemned
+} GCContext;
+
+typedef struct {
     // The size of each SOH segment
     size_t sohSegmentSize;
 
@@ -257,6 +262,7 @@ typedef struct {
 
     // Fields used by GC
     VMSpinLock gcLock;
+    GCContext gcContext;
 } JavaHeap;
 
 static JavaHeap g_heap = {0};
@@ -438,8 +444,7 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
 static void gc_reclaim_tlabs() {
     HeapSegment *ephemeral_seg = youngest_generation->allocationSegment;
 
-    VMThreadContext *thread = NULL;
-    while ((thread = thread_managed_next(thread)) != NULL) {
+    thread_iterate(thread) {
         ThreadAllocContext *tlab = &thread->tlab;
         if (!tlab_allocated(tlab)) {
             continue;
@@ -447,6 +452,55 @@ static void gc_reclaim_tlabs() {
 
         tlab_retire(tlab, JAVA_TRUE);
     }
+}
+
+typedef void (*scan_func)(JAVA_OBJECT *, void *);
+
+/** Scan GC roots */
+static void scan_roots(scan_func fn, void *scan_context) {
+    assert(fn != NULL);
+
+    // Scan thread stacks
+    thread_iterate(thread) {
+        // Scan each frame
+        stack_frame_iterate(thread, frame) {
+            // Scan operand stack
+            stack_frame_operand_stack_iterate(frame, slot) {
+                if (slot->type == VM_SLOT_OBJECT) {
+                    fn(&slot->data.o, scan_context);
+                }
+            }
+            // Scan local slots
+            stack_frame_local_iterate(frame, slot) {
+                if (slot->type == VM_SLOT_OBJECT) {
+                    fn(&slot->data.o, scan_context);
+                }
+            }
+        }
+    }
+}
+
+/** Promote an object */
+static void object_promote(JAVA_OBJECT *obj_p, void *scan_context) {
+    JAVA_OBJECT obj = *obj_p;
+
+    // Check if obj is in our gc range
+    if ((void *) obj < g_heap.gcContext.addressLow || (void *) obj >= g_heap.gcContext.addressHigh) {
+        return;
+    }
+
+    // Mark object
+    if(obj_is_marked(obj) == JAVA_FALSE) {
+        obj_set_marked(obj);
+
+        // TODO: mark object fields
+    }
+}
+
+/** Mark living objects */
+static void heap_mark(GCGeneration gen) {
+    printf("Marking roots\n");
+    scan_roots(object_promote, NULL);
 }
 
 /** Real GC work once the world is stopped */
@@ -466,9 +520,21 @@ static void heap_gc(GCGeneration gen) {
         }
     }
 
+    // Set GC address range
+    if (gen == max_generation) {
+        // Process the whole heap
+        g_heap.gcContext.addressLow = g_heap.lowestAddr;
+        g_heap.gcContext.addressHigh = g_heap.highestAddr;
+    } else {
+        // Process ephemeral segment only
+        g_heap.gcContext.addressLow = youngest_generation->allocationSegment->start;
+        g_heap.gcContext.addressHigh = youngest_generation->allocationSegment->allocated;
+    }
+
     // TODO: merge card table
 
-    // TODO: Mark phase
+    // Mark phase
+    heap_mark(gen);
 
     // Update collect counts
     for (int i = soh_gen0; i <= (int) gen; i++) {

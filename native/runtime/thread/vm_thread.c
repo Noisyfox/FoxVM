@@ -146,9 +146,8 @@ JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT) {
     // Acquire the global thread lock.  We will hold this until the we resume the world.
     spin_lock_enter(vmCurrentContext, &g_threadGlobalLock);
 
-    VMThreadContext *thread = NULL;
     // Ask all threads to suspend.
-    while ((thread = thread_managed_next(thread)) != NULL) {
+    thread_iterate(thread) {
         if (thread == vmCurrentContext) {
             continue;
         }
@@ -158,9 +157,8 @@ JAVA_VOID thread_stop_the_world(VM_PARAM_CURRENT_CONTEXT) {
 }
 
 JAVA_VOID thread_wait_until_world_stopped(VM_PARAM_CURRENT_CONTEXT) {
-    VMThreadContext *thread = NULL;
     // Wait until all thread to be stopped in safe region.
-    while ((thread = thread_managed_next(thread)) != NULL) {
+    thread_iterate(thread) {
         if (thread == vmCurrentContext) {
             continue;
         }
@@ -170,9 +168,8 @@ JAVA_VOID thread_wait_until_world_stopped(VM_PARAM_CURRENT_CONTEXT) {
 }
 
 JAVA_VOID thread_resume_the_world(VM_PARAM_CURRENT_CONTEXT) {
-    VMThreadContext *thread = NULL;
     // Make a pass through all threads.
-    while ((thread = thread_managed_next(thread)) != NULL) {
+    thread_iterate(thread) {
         if (thread == vmCurrentContext) {
             continue;
         }
