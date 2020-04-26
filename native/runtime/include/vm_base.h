@@ -36,6 +36,10 @@ typedef uint16_t    JAVA_USHORT;
 typedef uint32_t    JAVA_UINT;
 typedef uint64_t    JAVA_ULONG;
 
+// CString types, NULL terminated
+typedef char*       C_STR;
+typedef const char* C_CSTR;
+
 #define JAVA_INT_MIN ((JAVA_INT)1 << (sizeof(JAVA_INT)*8-1))        // 0x80000000 == smallest jint
 #define JAVA_INT_MAX ((JAVA_INT)((JAVA_UINT)(JAVA_INT_MIN) - 1))    // 0x7FFFFFFF == largest jint
 
@@ -73,18 +77,6 @@ static inline size_t type_size(BasicType t) {
 }
 
 typedef enum {
-    ACC_PUBLIC = 0x0001,
-    ACC_PRIVATE = 0x0002,
-    ACC_PROTECTED = 0x0004,
-    ACC_STATIC = 0x0008,
-    ACC_FINAL = 0x0010,
-    ACC_VOLATILE = 0x0040,
-    ACC_TRANSIENT = 0x0080,
-    ACC_SYNTHETIC = 0x1000,
-    ACC_ENUM = 0x4000,
-} FieldAccFlag;
-
-typedef enum {
     TYPE_DESC_BYTE = 'B',
     TYPE_DESC_CHAR = 'C',
     TYPE_DESC_DOUBLE = 'D',
@@ -120,43 +112,168 @@ static inline BasicType type_from_descriptor(TypeDescriptor d) {
     return VM_TYPE_ILLEGAL;
 }
 
+//*********************************************************************************************************
+// JVM .class file related structs & types that represent a class file, with some extra info
+// that can be statically resolved.
+//*********************************************************************************************************
+
+typedef struct _JavaClassInfo JavaClassInfo;
+
+typedef enum {
+    FIELD_ACC_PUBLIC = 0x0001,
+    FIELD_ACC_PRIVATE = 0x0002,
+    FIELD_ACC_PROTECTED = 0x0004,
+    FIELD_ACC_STATIC = 0x0008,
+    FIELD_ACC_FINAL = 0x0010,
+    FIELD_ACC_VOLATILE = 0x0040,
+    FIELD_ACC_TRANSIENT = 0x0080,
+    FIELD_ACC_SYNTHETIC = 0x1000,
+    FIELD_ACC_ENUM = 0x4000,
+} FieldAccFlag;
+
+/** Java .class field_info */
 typedef struct {
     uint16_t accessFlags;
-    const char *name;
-    const char *descriptor;
+    C_CSTR name; // UTF-8 string of the field name
+    C_CSTR descriptor; // Type descriptor of this field
 
-    // TODO: field attributes
+    // TODO: Add field attributes
+} FieldInfo;
+
+typedef struct {
+    uint16_t fieldIndex; // The index of `JavaClassInfo.fields`
+
+    JAVA_BOOLEAN isReference;
+} PreResolvedStaticFieldInfo;
+
+typedef struct {
+    JavaClassInfo *declaringClass; // The class that declares this field, NULL means this class
+    uint16_t fieldIndex; // The index of `JavaClassInfo.fields`
+
+    JAVA_BOOLEAN isReference;
+} PreResolvedInstanceFieldInfo;
+
+typedef enum {
+    METHOD_ACC_PUBLIC = 0x0001,
+    METHOD_ACC_PRIVATE = 0x0002,
+    METHOD_ACC_PROTECTED = 0x0004,
+    METHOD_ACC_STATIC = 0x0008,
+    METHOD_ACC_FINAL = 0x0010,
+    METHOD_ACC_SYNCHRONIZED = 0x0020,
+    METHOD_ACC_BRIDGE = 0x0040,
+    METHOD_ACC_VARARGS = 0x0080,
+    METHOD_ACC_NATIVE = 0x0100,
+    METHOD_ACC_ABSTRACT = 0x0400,
+    METHOD_ACC_STRICTFP = 0x0800,
+    METHOD_ACC_SYNTHETIC = 0x1000,
+} MethodAccFlag;
+
+/** Java .class method_info */
+typedef struct {
+    uint16_t accessFlags;
+    C_CSTR name; // UTF-8 string of the method name
+    C_CSTR descriptor; // Type descriptor of this method
+
+    void *code; // Pointer to the function
+} MethodInfo;
+
+/** A reference to a static field that used by this class */
+typedef struct {
+    JavaClassInfo *declaringClass; // The class that declares this field, NULL means this class
+    uint16_t fieldIndex; // The index of `JavaClassInfo.preResolvedStaticFields`
+} PreResolvedStaticFieldReference;
+
+typedef enum {
+    CLASS_ACC_PUBLIC = 0x0001,
+    CLASS_ACC_FINAL = 0x0010,
+    CLASS_ACC_SUPER = 0x0020,
+    CLASS_ACC_INTERFACE = 0x0200,
+    CLASS_ACC_ABSTRACT = 0x0400,
+    CLASS_ACC_SYNTHETIC = 0x1000,
+    CLASS_ACC_ANNOTATION = 0x2000,
+    CLASS_ACC_ENUM = 0x4000,
+} ClassAccFlag;
+
+/** Stores info of a Java .class file */
+struct _JavaClassInfo{
+    uint16_t accessFlags;
+    C_CSTR thisClass; // UTF-8 string of the fully qualified name of this class
+    JavaClassInfo *superClass; // The parent class
+    uint16_t interfaceCount; // Number of interfaces
+    JavaClassInfo **interfaces; // Array of interfaces
+
+    // Fields of this class, fields from super class / interfaces not included.
+    uint16_t fieldCount; // Number of fields of this class
+    FieldInfo *fields;
+
+    // Methods of this class, methods from super class / interfaces not included.
+    uint16_t methodCount; // Number of methods of this class
+    MethodInfo *methods;
+
+    //*****************************************************************************************************
+    // Info resolved by .class to c translator
+    //*****************************************************************************************************
+    uint16_t preResolvedStaticFieldCount; // All static fields from this class ONLY
+    PreResolvedStaticFieldInfo *preResolvedStaticFields;
+
+    uint16_t preResolvedInstanceFieldCount; // Include ALL instance fields from super classes
+    PreResolvedInstanceFieldInfo *preResolvedInstanceFields;
+
+    uint16_t preResolvedStaticFieldRefCount; // All static field references used by current class
+    PreResolvedStaticFieldReference *preResolvedStaticFieldReferences;
+};
+
+//*********************************************************************************************************
+// Resolved runtime type info, contain data resolved by class loader
+//*********************************************************************************************************
+
+typedef struct {
+    PreResolvedStaticFieldInfo *info;
 
     // GC scanning information
     size_t offset;
-    JAVA_BOOLEAN isReference;
-} FieldDesc;
-
-static inline JAVA_BOOLEAN field_is_static(FieldDesc *f) {
-    return (f->accessFlags & ACC_STATIC) == ACC_STATIC ? JAVA_TRUE : JAVA_FALSE;
-}
+} ResolvedStaticField;
 
 typedef struct {
-    uint16_t fieldCount;
-    FieldDesc *fields;
-} FieldTable;
+    PreResolvedInstanceFieldInfo *info;
+
+    // GC scanning information
+    size_t offset; // Offset to where the field data is stored
+} ResolvedInstanceField;
+
+/** The reference to a static field, resolved from a symbolic reference. */
+typedef struct {
+    JAVA_CLASS clazz;
+    uint16_t fieldIndex; // The index of `JavaClass.staticFields`
+} ResolvedStaticFieldReference;
 
 struct _JavaClass {
     JAVA_CLASS clazz; // Always NULL for class instance
     void *monitor;
 
+    JavaClassInfo *info;
+
     size_t classSize;
     size_t instanceSize;
 
-    const char *className;
-
     JAVA_OBJECT classLoader;
 
-    JAVA_CLASS parentClass;
+    // Resolved data
+    JAVA_CLASS superClass;
     int interfaceCount;
-    JAVA_CLASS *parentInterfaces;
+    JAVA_CLASS *interfaces;
 
-    FieldTable *fieldTable; // Fields of parent classes are not included here.
+    // Static fields of this class, fields from super class / interfaces not included.
+    uint16_t staticFieldCount; // Number of resolved static fields of this class
+    ResolvedStaticField *staticFields;
+    JAVA_BOOLEAN hasStaticReference;
+
+    uint32_t fieldCount; // Number of resolved instance fields, includes ALL fields from super classes and interfaces
+    ResolvedInstanceField *fields;
+    JAVA_BOOLEAN hasReference;
+
+    uint32_t staticFieldRefCount; // Number of static field references used by this class
+    ResolvedStaticFieldReference *staticFieldReferences;
 };
 
 // Object prototype
