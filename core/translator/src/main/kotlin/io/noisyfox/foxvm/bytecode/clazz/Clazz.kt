@@ -19,6 +19,10 @@ class Clazz(
             classHandler.handleApplicationClass(this)
         }
     }
+
+    override fun toString(): String {
+        return "Class [${className}] (from: $filePath)"
+    }
 }
 
 

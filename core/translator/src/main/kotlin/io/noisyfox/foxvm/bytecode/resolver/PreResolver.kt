@@ -26,8 +26,13 @@ class PreResolver(
             return
         }
 
+        LOGGER.debug("Pre-resolving class [{}].", clazz.className)
         resolvedClasses++
         clazz.accept(PreResolverClassVisitor(classPool, this, clazz), ClassReader.SKIP_CODE)
+    }
+
+    companion object {
+        private val LOGGER = LoggerFactory.getLogger(PreResolver::class.java)!!
     }
 }
 
@@ -101,6 +106,8 @@ private class PreResolverClassVisitor(
         // Do pre-resolving
         val info = requireNotNull(clazz.classInfo)
 
+        val instanceFields = mutableListOf<PreResolvedInstanceFieldInfo>()
+
         info.fields.forEachIndexed { i, f ->
             if (f.isStatic) {
                 info.preResolvedStaticFields.add(
@@ -110,7 +117,7 @@ private class PreResolverClassVisitor(
                     )
                 )
             } else {
-                info.preResolvedInstanceFields.add(
+                instanceFields.add(
                     PreResolvedInstanceFieldInfo(
                         declaringClass = clazz,
                         fieldIndex = i,
@@ -119,6 +126,12 @@ private class PreResolverClassVisitor(
                 )
             }
         }
+
+        // Sort fields based on types
+        info.preResolvedStaticFields.sortWith(compareBy(FieldLayout, { info.fields[it.fieldIndex].descriptor }))
+        instanceFields.sortWith(compareBy(FieldLayout, { info.fields[it.fieldIndex].descriptor }))
+
+        info.preResolvedInstanceFields.addAll(instanceFields)
     }
 
     companion object {
