@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'org.jetbrains.kotlin.jvm'
+    id "org.jetbrains.kotlin.kapt"
     id 'application'
     id "com.github.johnrengelman.shadow" version "5.2.0"
 }
@@ -10,6 +11,15 @@ sourceCompatibility = 1.8
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     implementation "org.jetbrains.kotlin:kotlin-reflect"
+
+    implementation group: 'org.slf4j', name:'slf4j-api', version: '1.7.30'
+    implementation group: 'ch.qos.logback', name:'logback-classic', version: '1.2.3'
+    implementation group: 'ch.qos.logback', name:'logback-core', version: '1.2.3'
+
+    implementation 'info.picocli:picocli:4.2.0'
+    kapt 'info.picocli:picocli-codegen:4.2.0'
+
+    implementation 'org.apache.ant:ant:1.10.7'
 
     implementation 'org.ow2.asm:asm:8.0.1'
     implementation 'org.ow2.asm:asm-tree:8.0.1'
