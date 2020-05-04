@@ -17,7 +17,7 @@ class ClassWriter(
         val info = requireNotNull(clazz.classInfo)
 
         // Generate C file
-        File(outputDir, "${info.cIdentifier}.c").bufferedWriter().use { cWriter ->
+        File(outputDir, "_${info.cIdentifier}.c").bufferedWriter().use { cWriter ->
             cWriter.write(
                 """
                     |// Generated from class [${clazz.className}] at ${clazz.filePath}
@@ -180,7 +180,7 @@ class ClassWriter(
         }
 
         // Generate header file
-        File(outputDir, "${info.cIdentifier}.h").bufferedWriter().use { headerWriter ->
+        File(outputDir, "_${info.cIdentifier}.h").bufferedWriter().use { headerWriter ->
             val includeGuard = "_${info.cIdentifier.toUpperCase()}_H"
             headerWriter.write(
                 """

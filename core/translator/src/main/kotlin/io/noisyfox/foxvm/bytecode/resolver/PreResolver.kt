@@ -69,7 +69,7 @@ private class PreResolverClassVisitor(
         assert(clazz.classInfo == null)
 
         val info = ClassInfo(
-            cIdentifier = clazz.className.asCIdentifier(),
+            cIdentifier = mangleClassName(clazz.className),
             version = version,
             superClass = superName?.let(this::ensureResolved),
             interfaces = interfaces?.map(this::ensureResolved)?.toList() ?: emptyList()
@@ -95,7 +95,7 @@ private class PreResolverClassVisitor(
         val field = FieldInfo(
             access = access,
             name = name.intern(),
-            cIdentifier = name.asCIdentifier(),
+            cIdentifier = mangleFieldName(name),
             descriptor = Type.getType(descriptor.intern()),
             defaultValue = value
         )
@@ -139,5 +139,31 @@ private class PreResolverClassVisitor(
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(PreResolverClassVisitor::class.java)!!
+
+        /**
+         * <package_name>/<class_name> ->
+         * <package_identifier_len>P<package_identifier><class_identifier_len>C<class_identifier>
+         *
+         * aaa/bbbb/ccccc/DDD$EE$FFF -> 14Paaa_bbbb_ccccc10CDDD_EE_FFF
+         * for class name does not have a package:
+         * DDD$EE$FFF -> 0P10CDDD_EE_FFF
+         */
+        private fun mangleClassName(className: String): String {
+            val comp = className.split('/')
+
+            val packageIdentifier = comp.subList(0, comp.size - 1).joinToString("/").asCIdentifier()
+
+            val classIdentifier = comp.last().asCIdentifier()
+
+            return "${packageIdentifier.length}P$packageIdentifier${classIdentifier.length}C$classIdentifier".intern()
+        }
+
+        /**
+         * <field_name> -> <field_identifier_len>F<field_identifier>
+         */
+        private fun mangleFieldName(fieldName: String): String {
+            val fieldIdentifier = fieldName.asCIdentifier()
+            return "${fieldIdentifier.length}F$fieldIdentifier".intern()
+        }
     }
 }

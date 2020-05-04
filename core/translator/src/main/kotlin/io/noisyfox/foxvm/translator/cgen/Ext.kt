@@ -108,7 +108,7 @@ val ClassInfo.cNameInstanceFields: String
 fun PreResolvedStaticFieldInfo.cNameEnum(info: ClassInfo): String {
     val field = info.fields[this.fieldIndex]
 
-    return "field_static_${info.cIdentifier}_${field.cIdentifier}"
+    return "field_static_${info.cIdentifier}${field.cIdentifier}"
 }
 
 /**
@@ -118,5 +118,5 @@ fun PreResolvedInstanceFieldInfo.cNameEnum(): String {
     val info = requireNotNull(declaringClass.classInfo)
     val field = info.fields[this.fieldIndex]
 
-    return "field_instance_${info.cIdentifier}_${field.cIdentifier}"
+    return "field_instance_${info.cIdentifier}${field.cIdentifier}"
 }
