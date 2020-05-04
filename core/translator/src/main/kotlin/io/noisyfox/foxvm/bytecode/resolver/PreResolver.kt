@@ -1,6 +1,7 @@
 package io.noisyfox.foxvm.bytecode.resolver
 
 import io.noisyfox.foxvm.bytecode.ClassPool
+import io.noisyfox.foxvm.bytecode.asCIdentifier
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.FieldInfo
@@ -68,6 +69,7 @@ private class PreResolverClassVisitor(
         assert(clazz.classInfo == null)
 
         val info = ClassInfo(
+            cIdentifier = clazz.className.asCIdentifier(),
             version = version,
             superClass = superName?.let(this::ensureResolved),
             interfaces = interfaces?.map(this::ensureResolved)?.toList() ?: emptyList()
@@ -93,6 +95,7 @@ private class PreResolverClassVisitor(
         val field = FieldInfo(
             access = access,
             name = name.intern(),
+            cIdentifier = name.asCIdentifier(),
             descriptor = Type.getType(descriptor.intern()),
             defaultValue = value
         )

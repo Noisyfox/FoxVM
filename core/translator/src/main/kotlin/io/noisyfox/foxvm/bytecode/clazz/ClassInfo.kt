@@ -1,6 +1,7 @@
 package io.noisyfox.foxvm.bytecode.clazz
 
 data class ClassInfo(
+    val cIdentifier: String,
     val version: Int,
     val superClass: Clazz?,
     val interfaces: List<Clazz>,

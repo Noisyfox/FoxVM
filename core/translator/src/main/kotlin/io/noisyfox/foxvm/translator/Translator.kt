@@ -6,8 +6,10 @@ import io.noisyfox.foxvm.bytecode.SimpleClassPool
 import io.noisyfox.foxvm.bytecode.resolver.PreResolver
 import io.noisyfox.foxvm.bytecode.visitor.ClassPoolFiller
 import io.noisyfox.foxvm.bytecode.visitor.ClassPresenceFilter
+import io.noisyfox.foxvm.translator.cgen.ClassWriter
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.IOException
 
 class Translator(
     private val runtimeClasspath: Array<File>,
@@ -22,6 +24,14 @@ class Translator(
     fun execute() {
         loadClasses()
         preResolve()
+
+        // Create output dir
+        if (!outputPath.exists() && !outputPath.mkdirs()) {
+            LOGGER.error("Unable to create output directory {}.", outputPath)
+            throw IOException("Unable to create output directory ${outputPath}.")
+        }
+
+        writeClasses()
     }
 
     /**
@@ -48,6 +58,13 @@ class Translator(
         val preResolver = PreResolver(fullClassPool)
         applicationClassPool.accept(preResolver)
         LOGGER.info("Pre-resolved {} classes.", preResolver.resolvedClasses)
+    }
+
+    /**
+     * Write all application classes to C file
+     */
+    private fun writeClasses() {
+        applicationClassPool.accept(ClassWriter(fullClassPool, outputPath))
     }
 
     companion object {

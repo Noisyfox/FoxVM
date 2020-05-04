@@ -7,6 +7,7 @@ import org.objectweb.asm.Type
 data class FieldInfo(
     val access: Int,
     val name: String,
+    val cIdentifier: String,
     val descriptor: Type,
     val defaultValue: Any?
 ) {
