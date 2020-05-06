@@ -41,3 +41,47 @@ fun String.asCIdentifier(): String {
 
     return sb.toString().intern()
 }
+
+/**
+ * Convert the given string to a C string that is encoded in UTF-8.
+ */
+fun String.asCString(): String {
+    val sb = StringBuilder(length)
+
+    var lastIsHexEscape = false
+    this.forEach { c ->
+        when (c) {
+            // Common escapes
+            '\b' -> sb.append("\\b")
+            '\n' -> sb.append("\\n")
+            '\r' -> sb.append("\\r")
+            '\t' -> sb.append("\\t")
+            '\\' -> sb.append("\\\\")
+            '\"' -> sb.append("\\\"")
+
+            // Printable ascii characters
+            in 0x20.toChar()..0x7F.toChar() -> {
+                if (lastIsHexEscape) {
+                    lastIsHexEscape = false
+                    // Add two double quote to force terminating an hex escape
+                    sb.append("\"\"")
+                }
+
+                sb.append(c)
+            }
+            // Encode all other characters using "\x00" sequence
+            else -> {
+                if (!lastIsHexEscape) {
+                    // Start escaping with double quote
+                    sb.append("\"\"")
+                }
+                lastIsHexEscape = true
+
+                val bytes = c.toString().toByteArray()
+                sb.append("\\x" + bytes.joinToString("\\x") { "%02x".format(it) })
+            }
+        }
+    }
+
+    return sb.toString().intern()
+}

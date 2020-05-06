@@ -1,6 +1,7 @@
 package io.noisyfox.foxvm.translator.cgen
 
 import io.noisyfox.foxvm.bytecode.ClassPool
+import io.noisyfox.foxvm.bytecode.asCString
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.slf4j.LoggerFactory
@@ -72,8 +73,8 @@ class ClassWriter(
                         """
                     |   {
                     |       .accessFlags = ${AccFlag.translateFieldAcc(it.access)},
-                    |       .name = "${it.name}",
-                    |       .descriptor = "${it.descriptor}",
+                    |       .name = "${it.name.asCString()}",
+                    |       .descriptor = "${it.descriptor.toString().asCString()}",
                     |   },
                     |""".trimMargin()
                     )
@@ -159,7 +160,7 @@ class ClassWriter(
                     |// Class info
                     |JavaClassInfo ${info.cName} = {
                     |   .accessFlags = ${AccFlag.translateClassAcc(clazz.access)},
-                    |   .thisClass = "${clazz.className}",
+                    |   .thisClass = "${clazz.className.asCString()}",
                     |   .superClass = ${info.cSuperClass},
                     |   .interfaceCount = ${info.interfaces.size},
                     |   .interfaces = ${info.cNameInterfaces},
