@@ -195,7 +195,7 @@ typedef enum {
 } ClassAccFlag;
 
 /** Stores info of a Java .class file */
-struct _JavaClassInfo{
+struct _JavaClassInfo {
     uint16_t accessFlags;
     C_CSTR thisClass; // UTF-8 string of the fully qualified name of this class
     JavaClassInfo *superClass; // The parent class
@@ -213,6 +213,9 @@ struct _JavaClassInfo{
     //*****************************************************************************************************
     // Info resolved by .class to c translator
     //*****************************************************************************************************
+    size_t classSize; // Size of the class struct
+    size_t instanceSize; // Size of the object struct
+
     uint16_t preResolvedStaticFieldCount; // All static fields from this class ONLY
     PreResolvedStaticFieldInfo *preResolvedStaticFields;
 
@@ -252,9 +255,6 @@ struct _JavaClass {
     void *monitor;
 
     JavaClassInfo *info;
-
-    size_t classSize;
-    size_t instanceSize;
 
     JAVA_OBJECT classLoader;
 

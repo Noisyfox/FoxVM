@@ -164,14 +164,22 @@ class ClassWriter(
                     |    .superClass = ${info.cSuperClass},
                     |    .interfaceCount = ${info.interfaces.size},
                     |    .interfaces = ${info.cNameInterfaces},
+                    |
                     |    .fieldCount = ${info.fields.size},
                     |    .fields = ${info.cNameFields},
+                    |
                     |    .methodCount = 0,
                     |    .methods = ${CNull},
+                    |
+                    |    .classSize = sizeof(${info.cClassName}),
+                    |    .instanceSize = sizeof(${info.cObjectName}),
+                    |
                     |    .preResolvedStaticFieldCount = ${info.preResolvedStaticFields.size},
                     |    .preResolvedStaticFields = ${info.cNameStaticFields},
+                    |
                     |    .preResolvedInstanceFieldCount = ${info.preResolvedInstanceFields.size},
                     |    .preResolvedInstanceFields = ${info.cNameInstanceFields},
+                    |
                     |    .preResolvedStaticFieldRefCount = 0,
                     |    .preResolvedStaticFieldReferences = ${CNull},
                     |};
@@ -262,9 +270,6 @@ class ClassWriter(
                     |    void *monitor;
                     |
                     |    JavaClassInfo *info;
-                    |
-                    |    size_t classSize;
-                    |    size_t instanceSize;
                     |
                     |    JAVA_OBJECT classLoader;
                     |
