@@ -131,6 +131,12 @@ val ClassInfo.cNameInstanceFields: String
     }
 
 /**
+ * The C function name of the class resolve handler.
+ */
+val ClassInfo.cNameResolveHandler: String
+    get() = "resolve_${this.cIdentifier}"
+
+/**
  * The C enum name for referencing the given static field
  */
 fun PreResolvedStaticFieldInfo.cNameEnum(info: ClassInfo): String {

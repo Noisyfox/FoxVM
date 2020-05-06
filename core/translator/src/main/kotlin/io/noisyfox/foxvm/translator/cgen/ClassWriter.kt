@@ -138,21 +138,21 @@ class ClassWriter(
         if (info.interfaces.isNotEmpty()) {
             headerWriter.write(
                 """
-                    |    JAVA_CLASS backingInterfaces[${info.interfaces.size}];
+                    |    JAVA_CLASS $CNAME_BACKING_INTERFACES[${info.interfaces.size}];
                     |""".trimMargin()
             )
         }
         if (info.preResolvedStaticFields.isNotEmpty()) {
             headerWriter.write(
                 """
-                    |    ResolvedStaticField backingStaticFields[${info.preResolvedStaticFields.size}];
+                    |    ResolvedStaticField $CNAME_BACKING_STATIC_FIELDS[${info.preResolvedStaticFields.size}];
                     |""".trimMargin()
             )
         }
         if (info.preResolvedInstanceFields.isNotEmpty()) {
             headerWriter.write(
                 """
-                    |    ResolvedInstanceField backingFields[${info.preResolvedInstanceFields.size}];
+                    |    ResolvedInstanceField $CNAME_BACKING_INSTANCE_FIELDS[${info.preResolvedInstanceFields.size}];
                     |""".trimMargin()
             )
         }
@@ -230,6 +230,15 @@ class ClassWriter(
         cWriter.write(
             """
                     |#include "_${info.cIdentifier}.h"
+                    |
+                    |""".trimMargin()
+        )
+
+        // Write declarations
+        cWriter.write(
+            """
+                    |// Declaration of the class resolve handler
+                    |static JAVA_VOID ${info.cNameResolveHandler}(JAVA_CLASS c);
                     |
                     |""".trimMargin()
         )
@@ -371,6 +380,7 @@ class ClassWriter(
                     |    .methodCount = 0,
                     |    .methods = ${CNull},
                     |
+                    |    .resolveHandler = ${info.cNameResolveHandler},
                     |    .classSize = sizeof(${info.cClassName}),
                     |    .instanceSize = sizeof(${info.cObjectName}),
                     |
@@ -386,9 +396,122 @@ class ClassWriter(
                     |
                     |""".trimMargin()
         )
+
+        // Write definition of class resolve handler
+        cWriter.write(
+            """
+                    |static JAVA_VOID ${info.cNameResolveHandler}(JAVA_CLASS c) {
+                    |    ${info.cClassName} *clazz = (${info.cClassName} *)c;
+                    |
+                    |""".trimMargin()
+        )
+
+        // Setup interfaces
+        if (info.interfaces.isNotEmpty()) {
+            cWriter.write(
+                """
+                    |    clazz->interfaceCount = ${info.interfaces.size};
+                    |    clazz->interfaces = clazz->$CNAME_BACKING_INTERFACES;
+                    |
+                    |""".trimMargin()
+            )
+        } else {
+            cWriter.write(
+                """
+                    |    clazz->interfaceCount = 0;
+                    |    clazz->interfaces = $CNull;
+                    |
+                    |""".trimMargin()
+            )
+        }
+
+        // Resolve static fields
+        if (info.preResolvedStaticFields.isNotEmpty()) {
+            cWriter.write(
+                """
+                    |    clazz->staticFieldCount = ${info.preResolvedStaticFields.size};
+                    |    clazz->staticFields = clazz->$CNAME_BACKING_STATIC_FIELDS;
+                    |""".trimMargin()
+            )
+            // Resolve offset
+            var hasRef = false
+            info.preResolvedStaticFields.forEachIndexed { i, field ->
+                cWriter.write(
+                    """
+                    |    clazz->staticFields[$i].info = &${info.cNameStaticFields}[$i];
+                    |    clazz->staticFields[$i].offset = offsetof(${info.cClassName}, ${field.cName(info)});
+                    |""".trimMargin()
+                )
+                hasRef = hasRef || field.isReference
+            }
+            cWriter.write(
+                """
+                    |    clazz->hasStaticReference = ${hasRef.translate()};
+                    |
+                    |""".trimMargin()
+            )
+        } else {
+            cWriter.write(
+                """
+                    |    clazz->staticFieldCount = 0;
+                    |    clazz->staticFields = $CNull;
+                    |    clazz->hasStaticReference = ${false.translate()};
+                    |
+                    |""".trimMargin()
+            )
+        }
+
+        // Resolve instance fields
+        if (info.preResolvedInstanceFields.isNotEmpty()) {
+            cWriter.write(
+                """
+                    |    clazz->fieldCount = ${info.preResolvedInstanceFields.size};
+                    |    clazz->fields = clazz->$CNAME_BACKING_INSTANCE_FIELDS;
+                    |""".trimMargin()
+            )
+            // Resolve offset
+            var hasRef = false
+            info.preResolvedInstanceFields.forEachIndexed { i, field ->
+                cWriter.write(
+                    """
+                    |    clazz->fields[$i].info = &${info.cNameInstanceFields}[$i];
+                    |    clazz->fields[$i].offset = offsetof(${info.cObjectName}, ${field.cName()});
+                    |""".trimMargin()
+                )
+                hasRef = hasRef || field.isReference
+            }
+            cWriter.write(
+                """
+                    |    clazz->hasReference = ${hasRef.translate()};
+                    |
+                    |""".trimMargin()
+            )
+        } else {
+            cWriter.write(
+                """
+                    |    clazz->fieldCount = 0;
+                    |    clazz->fields = $CNull;
+                    |    clazz->hasReference = ${false.translate()};
+                    |
+                    |""".trimMargin()
+            )
+        }
+
+        // TODO: resolve staticFieldReferences
+
+        cWriter.write(
+            """
+                    |}
+                    |
+                    |""".trimMargin()
+        )
     }
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(ClassWriter::class.java)!!
+
+        private const val CNAME_BACKING_INTERFACES = "backingInterfaces"
+        private const val CNAME_BACKING_STATIC_FIELDS = "backingStaticFields"
+        private const val CNAME_BACKING_INSTANCE_FIELDS = "backingFields"
     }
 }

@@ -194,6 +194,8 @@ typedef enum {
     CLASS_ACC_ENUM = 0x4000,
 } ClassAccFlag;
 
+typedef JAVA_VOID (*ClassResolveHandler)(JAVA_CLASS c);
+
 /** Stores info of a Java .class file */
 struct _JavaClassInfo {
     uint16_t accessFlags;
@@ -213,6 +215,7 @@ struct _JavaClassInfo {
     //*****************************************************************************************************
     // Info resolved by .class to c translator
     //*****************************************************************************************************
+    ClassResolveHandler resolveHandler; // Function that handles class instance pre-init
     size_t classSize; // Size of the class struct
     size_t instanceSize; // Size of the object struct
 
