@@ -29,7 +29,7 @@ class ClassWriter(
             // Write includes
             cWriter.write(
                 """
-                    |#include "vm_base.h"
+                    |#include "_${info.cIdentifier}.h"
                     |
                     |""".trimMargin()
             )
@@ -193,6 +193,14 @@ class ClassWriter(
                     |""".trimMargin()
             )
 
+            // Write includes
+            headerWriter.write(
+                """
+                    |#include "vm_base.h"
+                    |
+                    |""".trimMargin()
+            )
+
             // Generate static field index enum
             if (info.preResolvedStaticFields.isNotEmpty()) {
                 headerWriter.write(
@@ -248,7 +256,7 @@ class ClassWriter(
             // Generate class definition
             headerWriter.write(
                 """
-                    |// Class definition of [${clazz.className}]
+                    |// Class definition
                     |typedef struct _${info.cClassName} {
                     |    JAVA_CLASS clazz;
                     |    void *monitor;
@@ -323,6 +331,35 @@ class ClassWriter(
             headerWriter.write(
                 """
                     |} ${info.cClassName};
+                    |
+                    |""".trimMargin()
+            )
+
+            // Generate object definition
+            headerWriter.write(
+                """
+                    |// Object definition
+                    |typedef struct _${info.cObjectName} {
+                    |    JAVA_CLASS clazz;
+                    |    void *monitor;
+                    |
+                    |    // Start of instance field storage
+                    |""".trimMargin()
+            )
+
+            if (info.preResolvedInstanceFields.isNotEmpty()) {
+                info.preResolvedInstanceFields.forEach {
+                    headerWriter.write(
+                        """
+                    |    ${it.cStorageType()} ${it.cName()};
+                    |""".trimMargin()
+                    )
+                }
+            }
+
+            headerWriter.write(
+                """
+                    |} ${info.cObjectName};
                     |
                     |""".trimMargin()
             )

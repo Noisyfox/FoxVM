@@ -175,3 +175,13 @@ fun PreResolvedInstanceFieldInfo.cName(): String {
 
     return "field_storage_${info.cIdentifier}${field.cIdentifier}"
 }
+
+/**
+ * The C type name for storing the given instance field
+ */
+fun PreResolvedInstanceFieldInfo.cStorageType(): String {
+    val info = requireNotNull(declaringClass.classInfo)
+    val field = info.fields[this.fieldIndex]
+
+    return field.descriptor.toCStorageTypeName()
+}
