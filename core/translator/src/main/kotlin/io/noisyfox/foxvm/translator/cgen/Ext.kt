@@ -63,19 +63,19 @@ fun Type.toCBaseTypeName(): String = when (sort) {
  * The C reference name to the given [ClassInfo]
  */
 val ClassInfo.cName: String
-    get() = "classInfo_${this.cIdentifier}"
+    get() = "classInfo${this.cIdentifier}"
 
 /**
  * The C type name of the class created from given [ClassInfo]
  */
 val ClassInfo.cClassName: String
-    get() = "class_${this.cIdentifier}"
+    get() = "Class${this.cIdentifier}"
 
 /**
  * The C type name of the object created from given [ClassInfo]
  */
 val ClassInfo.cObjectName: String
-    get() = "object_${this.cIdentifier}"
+    get() = "Object${this.cIdentifier}"
 
 /**
  * The C reference name to the given [ClassInfo.superClass]'s [ClassInfo],
@@ -94,7 +94,7 @@ val ClassInfo.cNameInterfaces: String
     get() = if (interfaces.isEmpty()) {
         CNull
     } else {
-        "interfaces_${cIdentifier}"
+        "interfaces${cIdentifier}"
     }
 
 /**
@@ -105,7 +105,7 @@ val ClassInfo.cNameFields: String
     get() = if (fields.isEmpty()) {
         CNull
     } else {
-        "fields_${cIdentifier}"
+        "fields${cIdentifier}"
     }
 
 /**
@@ -116,7 +116,7 @@ val ClassInfo.cNameStaticFields: String
     get() = if (preResolvedStaticFields.isEmpty()) {
         CNull
     } else {
-        "fields_static_${cIdentifier}"
+        "fieldsStatic${cIdentifier}"
     }
 
 /**
@@ -127,7 +127,7 @@ val ClassInfo.cNameInstanceFields: String
     get() = if (preResolvedInstanceFields.isEmpty()) {
         CNull
     } else {
-        "fields_instance_${cIdentifier}"
+        "fieldsInstance${cIdentifier}"
     }
 
 /**
@@ -136,7 +136,7 @@ val ClassInfo.cNameInstanceFields: String
 fun PreResolvedStaticFieldInfo.cNameEnum(info: ClassInfo): String {
     val field = info.fields[this.fieldIndex]
 
-    return "field_static_${info.cIdentifier}${field.cIdentifier}"
+    return "FIELD_STATIC_${info.cIdentifier}${field.cIdentifier}"
 }
 
 /**
@@ -145,7 +145,7 @@ fun PreResolvedStaticFieldInfo.cNameEnum(info: ClassInfo): String {
 fun PreResolvedStaticFieldInfo.cName(info: ClassInfo): String {
     val field = info.fields[this.fieldIndex]
 
-    return "field_storage_${field.cIdentifier}"
+    return "fieldStorage${field.cIdentifier}"
 }
 
 /**
@@ -164,7 +164,7 @@ fun PreResolvedInstanceFieldInfo.cNameEnum(): String {
     val info = requireNotNull(declaringClass.classInfo)
     val field = info.fields[this.fieldIndex]
 
-    return "field_instance_${info.cIdentifier}${field.cIdentifier}"
+    return "FIELD_INSTANCE_${info.cIdentifier}${field.cIdentifier}"
 }
 
 /**
@@ -174,7 +174,7 @@ fun PreResolvedInstanceFieldInfo.cName(): String {
     val info = requireNotNull(declaringClass.classInfo)
     val field = info.fields[this.fieldIndex]
 
-    return "field_storage_${info.cIdentifier}${field.cIdentifier}"
+    return "fieldStorage${info.cIdentifier}${field.cIdentifier}"
 }
 
 /**
