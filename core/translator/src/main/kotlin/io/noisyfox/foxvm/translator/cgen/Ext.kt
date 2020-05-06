@@ -3,6 +3,7 @@ package io.noisyfox.foxvm.translator.cgen
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedInstanceFieldInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedStaticFieldInfo
+import org.objectweb.asm.Type
 
 fun Int.toCEnum(flagMap: Map<Int, String>): String {
     var f2 = this
@@ -43,11 +44,37 @@ fun Boolean.translate(): String = if (this) {
  */
 const val CNull = "NULL"
 
+fun Type.toCStorageTypeName(): String = when (sort) {
+    Type.BOOLEAN -> "JAVA_BOOLEAN"
+    Type.CHAR -> "JAVA_CHAR"
+    Type.BYTE -> "JAVA_BYTE"
+    Type.SHORT -> "JAVA_SHORT"
+    Type.INT -> "JAVA_INT"
+    Type.FLOAT -> "JAVA_FLOAT"
+    Type.LONG -> "JAVA_LONG"
+    Type.DOUBLE -> "JAVA_DOUBLE"
+    Type.ARRAY -> "JAVA_ARRAY"
+    Type.OBJECT -> "JAVA_OBJECT"
+    else -> throw IllegalArgumentException("Unknown type ${sort}.")
+}
+
 /**
  * The C reference name to the given [ClassInfo]
  */
 val ClassInfo.cName: String
     get() = "classInfo_${this.cIdentifier}"
+
+/**
+ * The C type name of the class created from given [ClassInfo]
+ */
+val ClassInfo.cClassName: String
+    get() = "class_${this.cIdentifier}"
+
+/**
+ * The C type name of the object created from given [ClassInfo]
+ */
+val ClassInfo.cObjectName: String
+    get() = "object_${this.cIdentifier}"
 
 /**
  * The C reference name to the given [ClassInfo.superClass]'s [ClassInfo],
@@ -112,6 +139,24 @@ fun PreResolvedStaticFieldInfo.cNameEnum(info: ClassInfo): String {
 }
 
 /**
+ * The C field name for storing the given static field
+ */
+fun PreResolvedStaticFieldInfo.cName(info: ClassInfo): String {
+    val field = info.fields[this.fieldIndex]
+
+    return "field_storage_${field.cIdentifier}"
+}
+
+/**
+ * The C type name for storing the given static field
+ */
+fun PreResolvedStaticFieldInfo.cStorageType(info: ClassInfo): String {
+    val field = info.fields[this.fieldIndex]
+
+    return field.descriptor.toCStorageTypeName()
+}
+
+/**
  * The C enum name for referencing the given instance field
  */
 fun PreResolvedInstanceFieldInfo.cNameEnum(): String {
@@ -119,4 +164,14 @@ fun PreResolvedInstanceFieldInfo.cNameEnum(): String {
     val field = info.fields[this.fieldIndex]
 
     return "field_instance_${info.cIdentifier}${field.cIdentifier}"
+}
+
+/**
+ * The C field name for storing the given instance field
+ */
+fun PreResolvedInstanceFieldInfo.cName(): String {
+    val info = requireNotNull(declaringClass.classInfo)
+    val field = info.fields[this.fieldIndex]
+
+    return "field_storage_${info.cIdentifier}${field.cIdentifier}"
 }

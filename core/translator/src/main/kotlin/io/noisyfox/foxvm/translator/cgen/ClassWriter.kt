@@ -46,7 +46,7 @@ class ClassWriter(
                 info.interfaces.forEach {
                     cWriter.write(
                         """
-                    |   ${it.classInfo!!.cName},
+                    |    ${it.classInfo!!.cName},
                     |""".trimMargin()
                     )
                 }
@@ -71,11 +71,11 @@ class ClassWriter(
                 info.fields.forEach {
                     cWriter.write(
                         """
-                    |   {
-                    |       .accessFlags = ${AccFlag.translateFieldAcc(it.access)},
-                    |       .name = "${it.name.asCString()}",
-                    |       .descriptor = "${it.descriptor.toString().asCString()}",
-                    |   },
+                    |    {
+                    |        .accessFlags = ${AccFlag.translateFieldAcc(it.access)},
+                    |        .name = "${it.name.asCString()}",
+                    |        .descriptor = "${it.descriptor.toString().asCString()}",
+                    |    },
                     |""".trimMargin()
                     )
                 }
@@ -102,10 +102,10 @@ class ClassWriter(
                 info.preResolvedStaticFields.forEach {
                     cWriter.write(
                         """
-                    |   {
-                    |       .fieldIndex = ${it.fieldIndex},
-                    |       .isReference = ${it.isReference.translate()},
-                    |   },
+                    |    {
+                    |        .fieldIndex = ${it.fieldIndex},
+                    |        .isReference = ${it.isReference.translate()},
+                    |    },
                     |""".trimMargin()
                     )
                 }
@@ -135,11 +135,11 @@ class ClassWriter(
                     }
                     cWriter.write(
                         """
-                    |   {
-                    |       .declaringClass = $dc,
-                    |       .fieldIndex = ${it.fieldIndex},
-                    |       .isReference = ${it.isReference.translate()},
-                    |   },
+                    |    {
+                    |        .declaringClass = $dc,
+                    |        .fieldIndex = ${it.fieldIndex},
+                    |        .isReference = ${it.isReference.translate()},
+                    |    },
                     |""".trimMargin()
                     )
                 }
@@ -159,21 +159,21 @@ class ClassWriter(
                 """
                     |// Class info
                     |JavaClassInfo ${info.cName} = {
-                    |   .accessFlags = ${AccFlag.translateClassAcc(clazz.access)},
-                    |   .thisClass = "${clazz.className.asCString()}",
-                    |   .superClass = ${info.cSuperClass},
-                    |   .interfaceCount = ${info.interfaces.size},
-                    |   .interfaces = ${info.cNameInterfaces},
-                    |   .fieldCount = ${info.fields.size},
-                    |   .fields = ${info.cNameFields},
-                    |   .methodCount = 0,
-                    |   .methods = ${CNull},
-                    |   .preResolvedStaticFieldCount = ${info.preResolvedStaticFields.size},
-                    |   .preResolvedStaticFields = ${info.cNameStaticFields},
-                    |   .preResolvedInstanceFieldCount = ${info.preResolvedInstanceFields.size},
-                    |   .preResolvedInstanceFields = ${info.cNameInstanceFields},
-                    |   .preResolvedStaticFieldRefCount = 0,
-                    |   .preResolvedStaticFieldReferences = ${CNull},
+                    |    .accessFlags = ${AccFlag.translateClassAcc(clazz.access)},
+                    |    .thisClass = "${clazz.className.asCString()}",
+                    |    .superClass = ${info.cSuperClass},
+                    |    .interfaceCount = ${info.interfaces.size},
+                    |    .interfaces = ${info.cNameInterfaces},
+                    |    .fieldCount = ${info.fields.size},
+                    |    .fields = ${info.cNameFields},
+                    |    .methodCount = 0,
+                    |    .methods = ${CNull},
+                    |    .preResolvedStaticFieldCount = ${info.preResolvedStaticFields.size},
+                    |    .preResolvedStaticFields = ${info.cNameStaticFields},
+                    |    .preResolvedInstanceFieldCount = ${info.preResolvedInstanceFields.size},
+                    |    .preResolvedInstanceFields = ${info.cNameInstanceFields},
+                    |    .preResolvedStaticFieldRefCount = 0,
+                    |    .preResolvedStaticFieldReferences = ${CNull},
                     |};
                     |
                     |""".trimMargin()
@@ -205,7 +205,7 @@ class ClassWriter(
                 info.preResolvedStaticFields.forEachIndexed { i, field ->
                     headerWriter.write(
                         """
-                    |   ${field.cNameEnum(info)} = ${i},
+                    |    ${field.cNameEnum(info)} = ${i},
                     |""".trimMargin()
                     )
                 }
@@ -231,7 +231,7 @@ class ClassWriter(
                     if (field.declaringClass == clazz) {
                         headerWriter.write(
                             """
-                    |   ${field.cNameEnum()} = ${i},
+                    |    ${field.cNameEnum()} = ${i},
                     |""".trimMargin()
                         )
                     }
@@ -244,6 +244,89 @@ class ClassWriter(
                     |""".trimMargin()
                 )
             }
+
+            // Generate class definition
+            headerWriter.write(
+                """
+                    |// Class definition of [${clazz.className}]
+                    |typedef struct _${info.cClassName} {
+                    |    JAVA_CLASS clazz;
+                    |    void *monitor;
+                    |
+                    |    JavaClassInfo *info;
+                    |
+                    |    size_t classSize;
+                    |    size_t instanceSize;
+                    |
+                    |    JAVA_OBJECT classLoader;
+                    |
+                    |    JAVA_CLASS superClass;
+                    |    int interfaceCount;
+                    |    JAVA_CLASS *interfaces;
+                    |
+                    |    uint16_t staticFieldCount;
+                    |    ResolvedStaticField *staticFields;
+                    |    JAVA_BOOLEAN hasStaticReference;
+                    |
+                    |    uint32_t fieldCount;
+                    |    ResolvedInstanceField *fields;
+                    |    JAVA_BOOLEAN hasReference;
+                    |
+                    |    uint32_t staticFieldRefCount;
+                    |    ResolvedStaticFieldReference *staticFieldReferences;
+                    |
+                    |    // Start of resolved data storage
+                    |""".trimMargin()
+            )
+
+            // Write field of storing the resolved data
+            if (info.interfaces.isNotEmpty()) {
+                headerWriter.write(
+                    """
+                    |    JAVA_CLASS backingInterfaces[${info.interfaces.size}];
+                    |""".trimMargin()
+                )
+            }
+            if (info.preResolvedStaticFields.isNotEmpty()) {
+                headerWriter.write(
+                    """
+                    |    ResolvedStaticField backingStaticFields[${info.preResolvedStaticFields.size}];
+                    |""".trimMargin()
+                )
+            }
+            if (info.preResolvedInstanceFields.isNotEmpty()) {
+                headerWriter.write(
+                    """
+                    |    ResolvedInstanceField backingFields[${info.preResolvedInstanceFields.size}];
+                    |""".trimMargin()
+                )
+            }
+            // TODO: Write resolved static field reference
+
+            // Write static field data storage
+            headerWriter.write(
+                """
+                    |
+                    |    // Start of static field storage
+                    |""".trimMargin()
+            )
+            if (info.preResolvedStaticFields.isNotEmpty()) {
+                info.preResolvedStaticFields.forEach {
+                    headerWriter.write(
+                        """
+                    |    ${it.cStorageType(info)} ${it.cName(info)};
+                    |""".trimMargin()
+                    )
+                }
+            }
+
+            headerWriter.write(
+                """
+                    |} ${info.cClassName};
+                    |
+                    |""".trimMargin()
+            )
+
 
             headerWriter.write(
                 """
