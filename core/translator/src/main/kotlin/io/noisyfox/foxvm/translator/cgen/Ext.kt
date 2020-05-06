@@ -44,7 +44,8 @@ fun Boolean.translate(): String = if (this) {
  */
 const val CNull = "NULL"
 
-fun Type.toCStorageTypeName(): String = when (sort) {
+fun Type.toCBaseTypeName(): String = when (sort) {
+    Type.VOID -> "JAVA_VOID"
     Type.BOOLEAN -> "JAVA_BOOLEAN"
     Type.CHAR -> "JAVA_CHAR"
     Type.BYTE -> "JAVA_BYTE"
@@ -153,7 +154,7 @@ fun PreResolvedStaticFieldInfo.cName(info: ClassInfo): String {
 fun PreResolvedStaticFieldInfo.cStorageType(info: ClassInfo): String {
     val field = info.fields[this.fieldIndex]
 
-    return field.descriptor.toCStorageTypeName()
+    return field.descriptor.toCBaseTypeName()
 }
 
 /**
@@ -183,5 +184,5 @@ fun PreResolvedInstanceFieldInfo.cStorageType(): String {
     val info = requireNotNull(declaringClass.classInfo)
     val field = info.fields[this.fieldIndex]
 
-    return field.descriptor.toCStorageTypeName()
+    return field.descriptor.toCBaseTypeName()
 }
