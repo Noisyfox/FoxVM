@@ -72,6 +72,7 @@ private class PreResolverClassVisitor(
         assert(clazz.classInfo == null)
 
         val info = ClassInfo(
+            thisClass = clazz,
             cIdentifier = mangleClassName(clazz.className),
             version = version,
             superClass = superName?.let(this::ensureResolved),
@@ -93,7 +94,7 @@ private class PreResolverClassVisitor(
         signature: String?,
         value: Any?
     ): FieldVisitor? {
-        val info = requireNotNull(clazz.classInfo)
+        val info = clazz.requireClassInfo()
 
         val field = FieldInfo(
             access = access,
@@ -115,7 +116,7 @@ private class PreResolverClassVisitor(
         signature: String?,
         exceptions: Array<out String>?
     ): MethodVisitor {
-        val info = requireNotNull(clazz.classInfo)
+        val info = clazz.requireClassInfo()
 
         // Signature and exceptions are ignored atm
         val method = MethodInfo(
@@ -137,7 +138,7 @@ private class PreResolverClassVisitor(
 
     override fun visitEnd() {
         // Do pre-resolving
-        val info = requireNotNull(clazz.classInfo)
+        val info = clazz.requireClassInfo()
 
         val instanceFields = mutableListOf<PreResolvedInstanceFieldInfo>()
 

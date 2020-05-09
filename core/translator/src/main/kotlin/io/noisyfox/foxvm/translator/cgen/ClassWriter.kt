@@ -18,7 +18,7 @@ class ClassWriter(
 ) : ClassHandler {
 
     override fun handleApplicationClass(clazz: Clazz) {
-        val info = requireNotNull(clazz.classInfo)
+        val info = clazz.requireClassInfo()
 
         // Generate header file
         File(outputDir, "_${info.cIdentifier}.h").bufferedWriter().use { headerWriter ->
@@ -444,6 +444,8 @@ class ClassWriter(
                     |
                     |    .preResolvedStaticFieldRefCount = 0,
                     |    .preResolvedStaticFieldReferences = ${CNull},
+                    |
+                    |    .finalizer = ${info.cNameFinalizer},
                     |};
                     |
                     |""".trimMargin()
