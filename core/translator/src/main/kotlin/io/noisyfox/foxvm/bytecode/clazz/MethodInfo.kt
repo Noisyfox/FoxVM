@@ -2,12 +2,14 @@ package io.noisyfox.foxvm.bytecode.clazz
 
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
+import org.objectweb.asm.tree.MethodNode
 
 data class MethodInfo(
     val access: Int,
     val name: String,
     val cIdentifier: String,
-    val descriptor: Type
+    val descriptor: Type,
+    val methodNode: MethodNode
 ) {
 
     val isConstructor: Boolean = INIT == name

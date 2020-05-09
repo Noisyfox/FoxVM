@@ -16,6 +16,7 @@ import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.commons.JSRInlinerAdapter
+import org.objectweb.asm.tree.MethodNode
 import org.slf4j.LoggerFactory
 
 class PreResolver(
@@ -32,7 +33,15 @@ class PreResolver(
 
         LOGGER.debug("Pre-resolving class [{}].", clazz.className)
         resolvedClasses++
-        clazz.accept(PreResolverClassVisitor(classPool, this, clazz), ClassReader.SKIP_FRAMES)
+
+        val options = if (clazz.isRuntimeClass) {
+            // Don't parse code for runtime classes
+            ClassReader.SKIP_FRAMES or ClassReader.SKIP_CODE
+        } else {
+            ClassReader.SKIP_FRAMES
+        }
+
+        clazz.accept(PreResolverClassVisitor(classPool, this, clazz), options)
     }
 
     companion object {
@@ -123,17 +132,13 @@ private class PreResolverClassVisitor(
             access = access,
             name = name.intern(),
             cIdentifier = mangleMethodName(name),
-            descriptor = Type.getMethodType(descriptor.intern())
+            descriptor = Type.getMethodType(descriptor.intern()),
+            methodNode = MethodNode(Opcodes.ASM8, access, name, descriptor, signature, exceptions)
         )
 
         info.methods.add(method)
 
-        return JSRInlinerAdapter(
-            MethodPreResolver(
-                method, classPool, resolver, clazz
-            ),
-            access, name, descriptor, signature, exceptions
-        )
+        return JSRInlinerAdapter(method.methodNode, access, name, descriptor, signature, exceptions)
     }
 
     override fun visitEnd() {
