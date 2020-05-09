@@ -30,6 +30,24 @@ typedef struct _JavaClass   JavaClass,      *JAVA_CLASS;
 typedef struct _JavaObject  JavaObjectBase, *JAVA_OBJECT;
 typedef struct _JavaArray   JavaArrayBase,  *JAVA_ARRAY;
 
+typedef struct _VMThreadContext VMThreadContext;
+
+#define vmCurrentContext __vmCurrentThreadContext
+#define VM_PARAM_CURRENT_CONTEXT VMThreadContext *vmCurrentContext
+
+// Method prototype for different return types
+typedef JAVA_VOID       (*JavaMethodRetVoid)     (VM_PARAM_CURRENT_CONTEXT);
+typedef JAVA_BOOLEAN    (*JavaMethodRetBoolean)  (VM_PARAM_CURRENT_CONTEXT);
+typedef JAVA_CHAR       (*JavaMethodRetChar)     (VM_PARAM_CURRENT_CONTEXT);
+typedef JAVA_BYTE       (*JavaMethodRetByte)     (VM_PARAM_CURRENT_CONTEXT);
+typedef JAVA_SHORT      (*JavaMethodRetShort)    (VM_PARAM_CURRENT_CONTEXT);
+typedef JAVA_INT        (*JavaMethodRetInt)      (VM_PARAM_CURRENT_CONTEXT);
+typedef JAVA_LONG       (*JavaMethodRetFloat)    (VM_PARAM_CURRENT_CONTEXT);
+typedef JAVA_FLOAT      (*JavaMethodRetLong)     (VM_PARAM_CURRENT_CONTEXT);
+typedef JAVA_DOUBLE     (*JavaMethodRetDouble)   (VM_PARAM_CURRENT_CONTEXT);
+typedef JAVA_ARRAY      (*JavaMethodRetArray)    (VM_PARAM_CURRENT_CONTEXT);
+typedef JAVA_OBJECT     (*JavaMethodRetObject)   (VM_PARAM_CURRENT_CONTEXT);
+
 // Additional Java primary types
 typedef uint8_t     JAVA_UBYTE;
 typedef uint16_t    JAVA_USHORT;
@@ -201,8 +219,8 @@ struct _JavaClassInfo {
     uint16_t accessFlags;
     C_CSTR thisClass; // UTF-8 string of the fully qualified name of this class
     JavaClassInfo *superClass; // The parent class
-    uint16_t interfaceCount; // Number of interfaces
-    JavaClassInfo **interfaces; // Array of interfaces
+    uint16_t interfaceCount; // Number of direct interfaces
+    JavaClassInfo **interfaces; // Array of direct interfaces
 
     // Fields of this class, fields from super class / interfaces not included.
     uint16_t fieldCount; // Number of fields of this class
@@ -384,11 +402,6 @@ static inline JAVA_BOOLEAN obj_test_flags_or(JAVA_OBJECT obj, uintptr_t flags) {
 #define obj_is_pinned(obj) obj_test_flags_and((obj), OBJECT_FLAG_GC_PINNED)
 #define obj_set_pinned(obj) obj_set_flags((obj), OBJECT_FLAG_GC_PINNED)
 #define obj_clear_pinned(obj) obj_clear_flags((obj), OBJECT_FLAG_GC_PINNED)
-
-typedef struct _VMThreadContext VMThreadContext;
-
-#define vmCurrentContext __vmCurrentThreadContext
-#define VM_PARAM_CURRENT_CONTEXT VMThreadContext *vmCurrentContext
 
 // The minimum size of any managed object
 #define MIN_OBJECT_SIZE ((size_t)sizeof(JavaObjectBase))

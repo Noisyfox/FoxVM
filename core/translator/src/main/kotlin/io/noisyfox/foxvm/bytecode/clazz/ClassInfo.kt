@@ -6,7 +6,7 @@ data class ClassInfo(
     val superClass: Clazz?,
     val interfaces: List<Clazz>,
     val fields: MutableList<FieldInfo> = mutableListOf(),
-    // TODO: methods
+    val methods: MutableList<MethodInfo> = mutableListOf(),
     val preResolvedStaticFields: MutableList<PreResolvedStaticFieldInfo> = mutableListOf(),
     val preResolvedInstanceFields: MutableList<PreResolvedInstanceFieldInfo> = mutableListOf()
 )

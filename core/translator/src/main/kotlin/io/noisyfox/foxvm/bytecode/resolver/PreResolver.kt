@@ -5,14 +5,17 @@ import io.noisyfox.foxvm.bytecode.asCIdentifier
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.FieldInfo
+import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedInstanceFieldInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedStaticFieldInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.FieldVisitor
+import org.objectweb.asm.MethodVisitor
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
+import org.objectweb.asm.commons.JSRInlinerAdapter
 import org.slf4j.LoggerFactory
 
 class PreResolver(
@@ -29,7 +32,7 @@ class PreResolver(
 
         LOGGER.debug("Pre-resolving class [{}].", clazz.className)
         resolvedClasses++
-        clazz.accept(PreResolverClassVisitor(classPool, this, clazz), ClassReader.SKIP_CODE)
+        clazz.accept(PreResolverClassVisitor(classPool, this, clazz), ClassReader.SKIP_FRAMES)
     }
 
     companion object {
@@ -105,6 +108,33 @@ private class PreResolverClassVisitor(
         return null
     }
 
+    override fun visitMethod(
+        access: Int,
+        name: String,
+        descriptor: String,
+        signature: String?,
+        exceptions: Array<out String>?
+    ): MethodVisitor {
+        val info = requireNotNull(clazz.classInfo)
+
+        // Signature and exceptions are ignored atm
+        val method = MethodInfo(
+            access = access,
+            name = name.intern(),
+            cIdentifier = mangleMethodName(name),
+            descriptor = Type.getMethodType(descriptor.intern())
+        )
+
+        info.methods.add(method)
+
+        return JSRInlinerAdapter(
+            MethodPreResolver(
+                method, classPool, resolver, clazz
+            ),
+            access, name, descriptor, signature, exceptions
+        )
+    }
+
     override fun visitEnd() {
         // Do pre-resolving
         val info = requireNotNull(clazz.classInfo)
@@ -139,31 +169,47 @@ private class PreResolverClassVisitor(
 
     companion object {
         private val LOGGER = LoggerFactory.getLogger(PreResolverClassVisitor::class.java)!!
+    }
+}
 
-        /**
-         * <package_name>/<class_name> ->
-         * <package_identifier_len>P<package_identifier><class_identifier_len>C<class_identifier>
-         *
-         * aaa/bbbb/ccccc/DDD$EE$FFF -> 14Paaa_bbbb_ccccc10CDDD_EE_FFF
-         * for class name does not have a package:
-         * DDD$EE$FFF -> 0P10CDDD_EE_FFF
-         */
-        private fun mangleClassName(className: String): String {
-            val comp = className.split('/')
+/**
+ * <package_name>/<class_name> ->
+ * <package_identifier_len>P<package_identifier><class_identifier_len>C<class_identifier>
+ *
+ * aaa/bbbb/ccccc/DDD$EE$FFF -> 14Paaa_bbbb_ccccc10CDDD_EE_FFF
+ * for class name does not have a package:
+ * DDD$EE$FFF -> 0P10CDDD_EE_FFF
+ */
+fun mangleClassName(className: String): String {
+    val comp = className.split('/')
 
-            val packageIdentifier = comp.subList(0, comp.size - 1).joinToString("/").asCIdentifier()
+    val packageIdentifier = comp.subList(0, comp.size - 1).joinToString("/").asCIdentifier()
 
-            val classIdentifier = comp.last().asCIdentifier()
+    val classIdentifier = comp.last().asCIdentifier()
 
-            return "${packageIdentifier.length}P$packageIdentifier${classIdentifier.length}C$classIdentifier".intern()
-        }
+    return "${packageIdentifier.length}P$packageIdentifier${classIdentifier.length}C$classIdentifier".intern()
+}
 
-        /**
-         * <field_name> -> <field_identifier_len>F<field_identifier>
-         */
-        private fun mangleFieldName(fieldName: String): String {
-            val fieldIdentifier = fieldName.asCIdentifier()
-            return "${fieldIdentifier.length}F$fieldIdentifier".intern()
+/**
+ * <field_name> -> <field_identifier_len>F<field_identifier>
+ */
+fun mangleFieldName(fieldName: String): String {
+    val fieldIdentifier = fieldName.asCIdentifier()
+    return "${fieldIdentifier.length}F$fieldIdentifier".intern()
+}
+
+/**
+ * <init> -> 4IINIT     // For initializer of instance
+ * <clinit> -> 6ICLINIT // For initializer of class
+ * <method_name> -> <method_identifier_len>M<method_identifier>
+ */
+fun mangleMethodName(methodName: String): String {
+    return when (methodName) {
+        MethodInfo.INIT -> "4IINIT"
+        MethodInfo.CLINIT -> "6ICLINIT"
+        else -> {
+            val methodIdentifier = methodName.asCIdentifier()
+            return "${methodIdentifier.length}M$methodIdentifier".intern()
         }
     }
 }

@@ -1,8 +1,10 @@
 package io.noisyfox.foxvm.translator.cgen
 
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
+import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedInstanceFieldInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedStaticFieldInfo
+import io.noisyfox.foxvm.bytecode.resolver.mangleClassName
 import org.objectweb.asm.Type
 
 fun Int.toCEnum(flagMap: Map<Int, String>): String {
@@ -60,6 +62,60 @@ fun Type.toCBaseTypeName(): String = when (sort) {
 }
 
 /**
+ * n-dimensions Array of type C where <sig_C> starts with number -> A<n>_<sig_C>
+ * n-dimensions Array of type C where <sig_C> not starts with number -> A<n><sig_C>
+ *
+ * <sig_C> = mangleClassName(C.internalName) if C is object type
+ * <sig_C> = one of ZCBSIFJD if C is a primitive type
+ */
+fun Type.toCSignature(): String = when (sort) {
+    Type.VOID -> throw IllegalArgumentException("Void does not have a C signature")
+    Type.BOOLEAN -> "Z"
+    Type.CHAR -> "C"
+    Type.BYTE -> "B"
+    Type.SHORT -> "S"
+    Type.INT -> "I"
+    Type.FLOAT -> "F"
+    Type.LONG -> "J"
+    Type.DOUBLE -> "D"
+    Type.ARRAY -> {
+        val d = dimensions
+        val elementSignature = elementType.toCSignature()
+
+        if (elementSignature.first() in '0'..'9') {
+            "A${d}_$elementSignature"
+        } else {
+            "A$d$elementSignature"
+        }
+    }
+    Type.OBJECT -> mangleClassName(internalName)
+    else -> throw IllegalArgumentException("Unknown type ${sort}.")
+}
+
+/**
+ * _<sig_arg0>_<sig_arg1>..._R<sig_ret> if has argument and return type is not void
+ * _<sig_arg0>_<sig_arg1>...            if has argument and return type is void
+ * _R<sig_ret>                          if no argument and return type is not void
+ * empty string                         if no argument and return type is void
+ *
+ * <sig_X> = X.toCSignature()
+ */
+fun Type.toCMethodSignature(): String {
+    assert(sort == Type.METHOD)
+
+    val argumentSig = argumentTypes.joinToString(separator = "") { "_${it.toCSignature()}" }
+    val returnSig = returnType.let {
+        if (it.sort == Type.VOID) {
+            ""
+        } else {
+            "_R${it.toCSignature()}"
+        }
+    }
+
+    return argumentSig + returnSig
+}
+
+/**
  * The C reference name to the given [ClassInfo]
  */
 val ClassInfo.cName: String
@@ -106,6 +162,17 @@ val ClassInfo.cNameFields: String
         CNull
     } else {
         "fields${cIdentifier}"
+    }
+
+/**
+ * The C reference name to the given [ClassInfo.methods],
+ * or [CNull] if this class does not have any method
+ */
+val ClassInfo.cNameMethods: String
+    get() = if (methods.isEmpty()) {
+        CNull
+    } else {
+        "methods${cIdentifier}"
     }
 
 /**
@@ -166,29 +233,46 @@ fun PreResolvedStaticFieldInfo.cStorageType(info: ClassInfo): String {
 /**
  * The C enum name for referencing the given instance field
  */
-fun PreResolvedInstanceFieldInfo.cNameEnum(): String {
-    val info = requireNotNull(declaringClass.classInfo)
-    val field = info.fields[this.fieldIndex]
+val PreResolvedInstanceFieldInfo.cNameEnum: String
+    get() {
+        val info = requireNotNull(declaringClass.classInfo)
+        val field = info.fields[this.fieldIndex]
 
-    return "FIELD_INSTANCE_${info.cIdentifier}${field.cIdentifier}"
-}
+        return "FIELD_INSTANCE_${info.cIdentifier}${field.cIdentifier}"
+    }
 
 /**
  * The C field name for storing the given instance field
  */
-fun PreResolvedInstanceFieldInfo.cName(): String {
-    val info = requireNotNull(declaringClass.classInfo)
-    val field = info.fields[this.fieldIndex]
+val PreResolvedInstanceFieldInfo.cName: String
+    get() {
+        val info = requireNotNull(declaringClass.classInfo)
+        val field = info.fields[this.fieldIndex]
 
-    return "fieldStorage${info.cIdentifier}${field.cIdentifier}"
-}
+        return "fieldStorage${info.cIdentifier}${field.cIdentifier}"
+    }
 
 /**
  * The C type name for storing the given instance field
  */
-fun PreResolvedInstanceFieldInfo.cStorageType(): String {
-    val info = requireNotNull(declaringClass.classInfo)
-    val field = info.fields[this.fieldIndex]
+val PreResolvedInstanceFieldInfo.cStorageType: String
+    get() {
+        val info = requireNotNull(declaringClass.classInfo)
+        val field = info.fields[this.fieldIndex]
 
-    return field.descriptor.toCBaseTypeName()
+        return field.descriptor.toCBaseTypeName()
+    }
+
+/**
+ * The C function name of the method.
+ */
+fun MethodInfo.cName(info: ClassInfo): String {
+    return "method_${info.cIdentifier}_${this.cIdentifier}${this.descriptor.toCMethodSignature()}"
+}
+
+/**
+ * The C function declaration of the method.
+ */
+fun MethodInfo.cDeclaration(info: ClassInfo): String {
+    return "${this.descriptor.returnType.toCBaseTypeName()} ${this.cName(info)}(VM_PARAM_CURRENT_CONTEXT)"
 }

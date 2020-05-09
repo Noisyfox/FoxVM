@@ -63,7 +63,7 @@ class ClassWriter(
             info.preResolvedStaticFields.forEachIndexed { i, field ->
                 headerWriter.write(
                     """
-                    |    ${field.cNameEnum(info)} = ${i},
+                    |    ${field.cNameEnum(info)} = ${i},    // Static field ${info.fields[field.fieldIndex].name}: ${info.fields[field.fieldIndex].descriptor}
                     |""".trimMargin()
                 )
             }
@@ -89,7 +89,7 @@ class ClassWriter(
                 if (field.declaringClass == clazz) {
                     headerWriter.write(
                         """
-                    |    ${field.cNameEnum()} = ${i},
+                    |    ${field.cNameEnum} = ${i},    // Instance field ${info.fields[field.fieldIndex].name}: ${info.fields[field.fieldIndex].descriptor}
                     |""".trimMargin()
                     )
                 }
@@ -198,7 +198,7 @@ class ClassWriter(
             info.preResolvedInstanceFields.forEach {
                 headerWriter.write(
                     """
-                    |    ${it.cStorageType()} ${it.cName()};
+                    |    ${it.cStorageType} ${it.cName};
                     |""".trimMargin()
                 )
             }
@@ -210,6 +210,30 @@ class ClassWriter(
                     |
                     |""".trimMargin()
         )
+
+        // Generate method declaration
+        if (info.methods.isNotEmpty()) {
+            headerWriter.write(
+                """
+                    |// Method declarations
+                    |""".trimMargin()
+            )
+
+            info.methods.forEach {
+                headerWriter.write(
+                    """
+                    |${it.cDeclaration(info)};    // ${clazz.className}.${it.name}:${it.descriptor}
+                    |""".trimMargin()
+                )
+            }
+
+            headerWriter.write(
+                """
+                    |
+                    |""".trimMargin()
+            )
+        }
+
 
         headerWriter.write(
             """
@@ -297,7 +321,35 @@ class ClassWriter(
             )
         }
 
-        // TODO: Write method info
+        // Write method info
+        if (info.methods.isNotEmpty()) {
+            cWriter.write(
+                """
+                    |// Methods of this class
+                    |static MethodInfo ${info.cNameMethods}[] = {
+                    |""".trimMargin()
+            )
+
+            info.methods.forEach {
+                cWriter.write(
+                    """
+                    |    {
+                    |        .accessFlags = ${AccFlag.translateMethodAcc(it.access)},
+                    |        .name = "${it.name.asCString()}",
+                    |        .descriptor = "${it.descriptor.toString().asCString()}",
+                    |        .code = ${it.cName(info)},
+                    |    },
+                    |""".trimMargin()
+                )
+            }
+
+            cWriter.write(
+                """
+                    |};
+                    |
+                    |""".trimMargin()
+            )
+        }
 
         // Write pre-resolved static field info
         if (info.preResolvedStaticFields.isNotEmpty()) {
@@ -377,8 +429,8 @@ class ClassWriter(
                     |    .fieldCount = ${info.fields.size},
                     |    .fields = ${info.cNameFields},
                     |
-                    |    .methodCount = 0,
-                    |    .methods = ${CNull},
+                    |    .methodCount =  ${info.methods.size},
+                    |    .methods = ${info.cNameMethods},
                     |
                     |    .resolveHandler = ${info.cNameResolveHandler},
                     |    .classSize = sizeof(${info.cClassName}),
@@ -475,7 +527,7 @@ class ClassWriter(
                 cWriter.write(
                     """
                     |    clazz->fields[$i].info = &${info.cNameInstanceFields}[$i];
-                    |    clazz->fields[$i].offset = offsetof(${info.cObjectName}, ${field.cName()});
+                    |    clazz->fields[$i].offset = offsetof(${info.cObjectName}, ${field.cName});
                     |""".trimMargin()
                 )
                 hasRef = hasRef || field.isReference
@@ -498,6 +550,8 @@ class ClassWriter(
         }
 
         // TODO: resolve staticFieldReferences
+
+        // TODO: set static const field to its initial value
 
         cWriter.write(
             """
