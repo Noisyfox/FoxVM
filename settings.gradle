@@ -1,4 +1,5 @@
 include ':core',
-        ':core:translator'
+        ':core:translator',
+        ':core:libfoxvm',
 
 rootProject.name = "foxvm"
