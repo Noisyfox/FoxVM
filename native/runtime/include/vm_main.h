@@ -9,9 +9,7 @@
 //#include "vm_exception.h"
 //#include "vm_memory.h"
 #include "vm_gc.h"
-
-// TODO: change type of args to string array once available
-typedef JAVA_VOID (*VMMainEntrance)(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz, void *args);
+#include "vm_bytecode.h"
 
 /**
  * Preparing the VM and start running.
@@ -21,6 +19,6 @@ typedef JAVA_VOID (*VMMainEntrance)(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz, 
  * @param entrance
  * @return
  */
-int vm_main(int argc, char *argv[], VMMainEntrance entrance);
+int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance);
 
 #endif //FOXVM_VM_MAIN_H

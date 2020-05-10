@@ -21,14 +21,22 @@ void stack_frame_init(VMStackFrame *frame, VMStackSlot *slot_base, uint16_t max_
     frame->prev = NULL;
     frame->next = NULL;
 
-    frame->operandStack = (VMOperandStack) {
-            .maxStack = max_stack,
-            .slots = slot_base,
-            .top = slot_base,
-    };
+    frame->thisClass = NULL;
+    frame->currentLine = 0;
+
+    /**
+     * Locals are stored at the beginning of the slot_base,
+     * so each local slot can be accessed directly by slot_base[n].
+     */
     frame->locals = (VMLocals) {
             .maxLocals = max_locals,
-            .slots = slot_base + max_stack,
+            .slots = slot_base,
+    };
+
+    frame->operandStack = (VMOperandStack) {
+            .maxStack = max_stack,
+            .slots = slot_base + max_locals,
+            .top = slot_base + max_locals,
     };
 
     // Init local slots to empty

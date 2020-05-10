@@ -31,6 +31,7 @@ struct _VMThreadContext {
     JAVA_OBJECT currentThread;  // A java Thread object of this thread
 
     VMStackFrame frameRoot;  // Root of the call stack
+    JAVA_CLASS callingClass;  // The class that the target method belongs to
 
     void *nativeContext;  // Platform specific thread context
 

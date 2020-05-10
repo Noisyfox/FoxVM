@@ -2,8 +2,11 @@
 #include "vm_main.h"
 
 
-JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz, void *args) {
-    stack_frame_start(0, 0);
+JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT) {
+    stack_frame_start(0, 1);
+    local_transfer_arguments(vmCurrentContext, 1);
+
+    bc_line(0);
 
     printf("Hello, World!\n");
 

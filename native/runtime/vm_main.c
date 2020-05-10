@@ -6,7 +6,7 @@
 #include "vm_memory.h"
 #include "vm_array.h"
 
-int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
+int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     // Init low level memory system first
     if (!mem_init()) {
         return -1;
@@ -43,7 +43,12 @@ int vm_main(int argc, char *argv[], VMMainEntrance entrance) {
     // start GC thread
 //    gc_thread_start(vmCurrentContext);
 
-    entrance(vmCurrentContext, (JAVA_CLASS) JAVA_NULL, NULL);
+    stack_frame_start(1, 0);
+
+    bc_aconst_null();
+    entrance(vmCurrentContext);
+
+    stack_frame_end();
 
     // Shutdown VM
 //    gc_thread_shutdown(vmCurrentContext);
