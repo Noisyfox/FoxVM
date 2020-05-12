@@ -127,7 +127,9 @@ public final class System {
 
     /* The security manager for the system.
      */
-    private static volatile SecurityManager security = null;
+    // BEGIN FoxVM-removed: FoxVM does not support SecurityManager
+    // private static volatile SecurityManager security = null;
+    // END FoxVM-removed: FoxVM does not support SecurityManager
 
     /**
      * Reassigns the "standard" input stream.
@@ -283,17 +285,21 @@ public final class System {
      * @see SecurityManager#checkPermission
      * @see java.lang.RuntimePermission
      */
+    // BEGIN FoxVM-changed: FoxVM does not support SecurityManager
     public static
     void setSecurityManager(final SecurityManager s) {
-        try {
+        if (s != null) {
+            throw new SecurityException("FoxVM does not support SecurityManager");
+        }
+/*        try {
             s.checkPackageAccess("java.lang");
         } catch (Exception e) {
             // no-op
         }
-        setSecurityManager0(s);
+        setSecurityManager0(s);*/
     }
 
-    private static synchronized
+/*    private static synchronized
     void setSecurityManager0(final SecurityManager s) {
         SecurityManager sm = getSecurityManager();
         if (sm != null) {
@@ -322,7 +328,8 @@ public final class System {
         }
 
         security = s;
-    }
+    }*/
+    // END FoxVM-changed: FoxVM does not support SecurityManager
 
     /**
      * Gets the system security interface.
@@ -333,7 +340,10 @@ public final class System {
      * @see     #setSecurityManager
      */
     public static SecurityManager getSecurityManager() {
-        return security;
+        // BEGIN FoxVM-changed: FoxVM does not support SecurityManager
+        // return security;
+        return null;
+        // END FoxVM-changed: FoxVM does not support SecurityManager
     }
 
     /**
