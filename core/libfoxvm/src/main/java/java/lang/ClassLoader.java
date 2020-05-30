@@ -278,12 +278,12 @@ public abstract class ClassLoader {
         if (ParallelLoaders.isRegistered(this.getClass())) {
             parallelLockMap = new ConcurrentHashMap<>();
             package2certs = new ConcurrentHashMap<>();
-            assertionLock = new Object();
+            // assertionLock = new Object();
         } else {
             // no finer-grained lock; lock on the classloader instance
             parallelLockMap = null;
             package2certs = new Hashtable<>();
-            assertionLock = this;
+            // assertionLock = this;
         }
     }
 
@@ -418,9 +418,10 @@ public abstract class ClassLoader {
                     c = findClass(name);
 
                     // this is the defining class loader; record the stats
-                    sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);
-                    sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
-                    sun.misc.PerfCounter.getFindClasses().increment();
+                    // FoxVM-removed: Skip perf counters.
+                    // sun.misc.PerfCounter.getParentDelegationTime().addTime(t1 - t0);
+                    // sun.misc.PerfCounter.getFindClassTime().addElapsedTimeFrom(t1);
+                    // sun.misc.PerfCounter.getFindClasses().increment();
                 }
             }
             if (resolve) {
@@ -1253,9 +1254,10 @@ public abstract class ClassLoader {
      * Find resources from the VM's built-in classloader.
      */
     private static URL getBootstrapResource(String name) {
-        URLClassPath ucp = getBootstrapClassPath();
-        Resource res = ucp.getResource(name);
-        return res != null ? res.getURL() : null;
+        // URLClassPath ucp = getBootstrapClassPath();
+        // Resource res = ucp.getResource(name);
+        // return res != null ? res.getURL() : null;
+        return null;
     }
 
     /**
@@ -1264,22 +1266,23 @@ public abstract class ClassLoader {
     private static Enumeration<URL> getBootstrapResources(String name)
         throws IOException
     {
-        final Enumeration<Resource> e =
-            getBootstrapClassPath().getResources(name);
-        return new Enumeration<URL> () {
-            public URL nextElement() {
-                return e.nextElement().getURL();
-            }
-            public boolean hasMoreElements() {
-                return e.hasMoreElements();
-            }
-        };
+        // final Enumeration<Resource> e =
+        //     getBootstrapClassPath().getResources(name);
+        // return new Enumeration<URL> () {
+        //     public URL nextElement() {
+        //         return e.nextElement().getURL();
+        //     }
+        //     public boolean hasMoreElements() {
+        //         return e.hasMoreElements();
+        //     }
+        // };
+        return null;
     }
 
     // Returns the URLClassPath that is used for finding system resources.
-    static URLClassPath getBootstrapClassPath() {
+/*    static URLClassPath getBootstrapClassPath() {
         return sun.misc.Launcher.getBootstrapClassPath();
-    }
+    }*/
 
 
     /**
@@ -1962,13 +1965,14 @@ public abstract class ClassLoader {
     }
 
 
+    // FoxVM-removed: Unsupported
     // -- Assertion management --
 
-    final Object assertionLock;
+    // final Object assertionLock;
 
     // The default toggle for assertion checking.
     // @GuardedBy("assertionLock")
-    private boolean defaultAssertionStatus = false;
+    // private boolean defaultAssertionStatus = false;
 
     // Maps String packageName to Boolean package default assertion status Note
     // that the default package is placed under a null map key.  If this field
@@ -1976,14 +1980,14 @@ public abstract class ClassLoader {
     // none of this ClassLoader's assertion status modification methods have
     // been invoked.
     // @GuardedBy("assertionLock")
-    private Map<String, Boolean> packageAssertionStatus = null;
+    // private Map<String, Boolean> packageAssertionStatus = null;
 
     // Maps String fullyQualifiedClassName to Boolean assertionStatus If this
     // field is null then we are delegating assertion status queries to the VM,
     // i.e., none of this ClassLoader's assertion status modification methods
     // have been invoked.
     // @GuardedBy("assertionLock")
-    Map<String, Boolean> classAssertionStatus = null;
+    // Map<String, Boolean> classAssertionStatus = null;
 
     /**
      * Sets the default assertion status for this class loader.  This setting
@@ -2001,12 +2005,12 @@ public abstract class ClassLoader {
      * @since  1.4
      */
     public void setDefaultAssertionStatus(boolean enabled) {
-        synchronized (assertionLock) {
+/*        synchronized (assertionLock) {
             if (classAssertionStatus == null)
                 initializeJavaAssertionMaps();
 
             defaultAssertionStatus = enabled;
-        }
+        }*/
     }
 
     /**
@@ -2048,12 +2052,12 @@ public abstract class ClassLoader {
      */
     public void setPackageAssertionStatus(String packageName,
                                           boolean enabled) {
-        synchronized (assertionLock) {
+/*        synchronized (assertionLock) {
             if (packageAssertionStatus == null)
                 initializeJavaAssertionMaps();
 
             packageAssertionStatus.put(packageName, enabled);
-        }
+        }*/
     }
 
     /**
@@ -2079,12 +2083,12 @@ public abstract class ClassLoader {
      * @since  1.4
      */
     public void setClassAssertionStatus(String className, boolean enabled) {
-        synchronized (assertionLock) {
+/*        synchronized (assertionLock) {
             if (classAssertionStatus == null)
                 initializeJavaAssertionMaps();
 
             classAssertionStatus.put(className, enabled);
-        }
+        }*/
     }
 
     /**
@@ -2101,11 +2105,11 @@ public abstract class ClassLoader {
          * Whether or not "Java assertion maps" are initialized, set
          * them to empty maps, effectively ignoring any present settings.
          */
-        synchronized (assertionLock) {
+/*        synchronized (assertionLock) {
             classAssertionStatus = new HashMap<>();
             packageAssertionStatus = new HashMap<>();
             defaultAssertionStatus = false;
-        }
+        }*/
     }
 
     /**
@@ -2131,7 +2135,7 @@ public abstract class ClassLoader {
      * @since  1.4
      */
     boolean desiredAssertionStatus(String className) {
-        synchronized (assertionLock) {
+/*        synchronized (assertionLock) {
             // assert classAssertionStatus   != null;
             // assert packageAssertionStatus != null;
 
@@ -2157,10 +2161,11 @@ public abstract class ClassLoader {
 
             // Return the classloader default
             return defaultAssertionStatus;
-        }
+        }*/
+        return false;
     }
 
-    // Set up the assertions with information provided by the VM.
+/*    // Set up the assertions with information provided by the VM.
     // Note: Should only be called inside a synchronized block
     private void initializeJavaAssertionMaps() {
         // assert Thread.holdsLock(assertionLock);
@@ -2181,7 +2186,7 @@ public abstract class ClassLoader {
     }
 
     // Retrieves the assertion directives from the VM.
-    private static native AssertionStatusDirectives retrieveDirectives();
+    private static native AssertionStatusDirectives retrieveDirectives();*/
 }
 
 

@@ -327,8 +327,9 @@ public class HashSet<E>
         // actual allocation size. Check Map.Entry[].class since it's the nearest public type to
         // what is actually created.
 
-        SharedSecrets.getJavaOISAccess()
-                     .checkArray(s, Map.Entry[].class, HashMap.tableSizeFor(capacity));
+        // FoxVM-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // SharedSecrets.getJavaOISAccess()
+        //              .checkArray(s, Map.Entry[].class, HashMap.tableSizeFor(capacity));
 
         // Create backing HashMap
         map = (((HashSet<?>)this) instanceof LinkedHashSet ?

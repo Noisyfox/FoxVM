@@ -211,20 +211,23 @@ class ZipFile implements ZipConstants, Closeable {
                                                Integer.toHexString(mode));
         }
         String name = file.getPath();
-        SecurityManager sm = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager
+/*        SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkRead(name);
             if ((mode & OPEN_DELETE) != 0) {
                 sm.checkDelete(name);
             }
-        }
+        }*/
         if (charset == null)
             throw new NullPointerException("charset is null");
         this.zc = ZipCoder.get(charset);
-        long t0 = System.nanoTime();
+        // FoxVM-removed: Skip perf counters.
+        // long t0 = System.nanoTime();
         jzfile = open(name, mode, file.lastModified(), usemmap);
-        sun.misc.PerfCounter.getZipFileOpenTime().addElapsedTimeFrom(t0);
-        sun.misc.PerfCounter.getZipFileCount().increment();
+        // FoxVM-removed: Skip perf counters.
+        // sun.misc.PerfCounter.getZipFileOpenTime().addElapsedTimeFrom(t0);
+        // sun.misc.PerfCounter.getZipFileCount().increment();
         this.name = name;
         this.total = getTotal(jzfile);
         this.locsig = startsWithLOC(jzfile);

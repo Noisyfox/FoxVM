@@ -30,25 +30,25 @@ import java.lang.reflect.Executable;
 import java.security.AccessControlContext;
 import java.util.Map;
 
-import sun.reflect.ConstantPool;
-import sun.reflect.annotation.AnnotationType;
+// import sun.reflect.ConstantPool;
+// import sun.reflect.annotation.AnnotationType;
 import sun.nio.ch.Interruptible;
 
 public interface JavaLangAccess {
     /** Return the constant pool for a class. */
-    ConstantPool getConstantPool(Class<?> klass);
+    // ConstantPool getConstantPool(Class<?> klass);
 
     /**
      * Compare-And-Swap the AnnotationType instance corresponding to this class.
      * (This method only applies to annotation types.)
      */
-    boolean casAnnotationType(Class<?> klass, AnnotationType oldType, AnnotationType newType);
+    // boolean casAnnotationType(Class<?> klass, AnnotationType oldType, AnnotationType newType);
 
     /**
      * Get the AnnotationType instance corresponding to this class.
      * (This method only applies to annotation types.)
      */
-    AnnotationType getAnnotationType(Class<?> klass);
+    // AnnotationType getAnnotationType(Class<?> klass);
 
     /**
      * Get the declared annotations for a given class, indexed by their types.

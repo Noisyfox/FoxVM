@@ -25,7 +25,7 @@
 
 package sun.util.locale.provider;
 
-import java.security.AccessController;
+// import java.security.AccessController;
 import java.text.spi.BreakIteratorProvider;
 import java.text.spi.CollatorProvider;
 import java.text.spi.DateFormatProvider;
@@ -46,7 +46,7 @@ import java.util.spi.CurrencyNameProvider;
 import java.util.spi.LocaleNameProvider;
 import java.util.spi.LocaleServiceProvider;
 import java.util.spi.TimeZoneNameProvider;
-import sun.util.cldr.CLDRLocaleProviderAdapter;
+// import sun.util.cldr.CLDRLocaleProviderAdapter;
 import sun.util.spi.CalendarProvider;
 
 /**
@@ -132,11 +132,11 @@ public abstract class LocaleProviderAdapter {
         adapterCache = new ConcurrentHashMap<>();
 
     static {
-        String order = AccessController.doPrivileged(
-                           new sun.security.action.GetPropertyAction("java.locale.providers"));
+        // String order = AccessController.doPrivileged(
+        //                    new sun.security.action.GetPropertyAction("java.locale.providers"));
         List<Type> typeList = new ArrayList<>();
 
-        // Check user specified adapter preference
+/*        // Check user specified adapter preference
         if (order != null && order.length() != 0) {
             String[] types = order.split(",");
             for (String type : types) {
@@ -176,12 +176,12 @@ public abstract class LocaleProviderAdapter {
             } else {
                 defaultLocaleProviderAdapter = Type.JRE;
             }
-        } else {
+        } else {*/
             // Default preference list
             typeList.add(Type.JRE);
             typeList.add(Type.SPI);
             defaultLocaleProviderAdapter = Type.JRE;
-        }
+        // }
 
         adapterPreference = Collections.unmodifiableList(typeList);
     }

@@ -5127,7 +5127,8 @@ public class Collections {
 
         private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
             ois.defaultReadObject();
-            SharedSecrets.getJavaOISAccess().checkArray(ois, Object[].class, n);
+            // FoxVM-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+            // SharedSecrets.getJavaOISAccess().checkArray(ois, Object[].class, n);
         }
     }
 

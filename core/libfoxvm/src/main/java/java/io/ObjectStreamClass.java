@@ -32,12 +32,12 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.UndeclaredThrowableException;
+// import java.lang.reflect.UndeclaredThrowableException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
-import java.security.AccessControlContext;
+// import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -53,12 +53,12 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import sun.misc.JavaSecurityAccess;
-import sun.misc.SharedSecrets;
+// import sun.misc.JavaSecurityAccess;
+// import sun.misc.SharedSecrets;
 import sun.misc.Unsafe;
 import sun.reflect.CallerSensitive;
 import sun.reflect.Reflection;
-import sun.reflect.ReflectionFactory;
+// import sun.reflect.ReflectionFactory;
 import sun.reflect.misc.ReflectUtil;
 
 /**
@@ -99,9 +99,9 @@ public class ObjectStreamClass implements Serializable {
         ).booleanValue();
 
     /** reflection factory for obtaining serialization constructors */
-    private static final ReflectionFactory reflFactory =
+/*    private static final ReflectionFactory reflFactory =
         AccessController.doPrivileged(
-            new ReflectionFactory.GetReflectionFactoryAction());
+            new ReflectionFactory.GetReflectionFactoryAction());*/
 
     private static class Caches {
         /** cache mapping local classes -> descriptors */
@@ -193,7 +193,8 @@ public class ObjectStreamClass implements Serializable {
     /** serialization-appropriate constructor, or null if none */
     private Constructor<?> cons;
     /** protection domains that need to be checked when calling the constructor */
-    private ProtectionDomain[] domains;
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // private ProtectionDomain[] domains;
 
     /** class-defined writeObject method, or null if none */
     private Method writeObjectMethod;
@@ -527,7 +528,8 @@ public class ObjectStreamClass implements Serializable {
                             cl, "readObjectNoData", null, Void.TYPE);
                         hasWriteObjectData = (writeObjectMethod != null);
                     }
-                    domains = getProtectionDomains(cons, cl);
+                    // FoxVM-removed: FoxVM does not support SecurityManager.
+                    // domains = getProtectionDomains(cons, cl);
                     writeReplaceMethod = getInheritableMethod(
                         cl, "writeReplace", null, Object.class);
                     readResolveMethod = getInheritableMethod(
@@ -659,7 +661,8 @@ public class ObjectStreamClass implements Serializable {
             writeReplaceMethod = localDesc.writeReplaceMethod;
             readResolveMethod = localDesc.readResolveMethod;
             deserializeEx = localDesc.deserializeEx;
-            domains = localDesc.domains;
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+            // domains = localDesc.domains;
             cons = localDesc.cons;
         }
         fieldRefl = getReflector(fields, localDesc);
@@ -746,7 +749,8 @@ public class ObjectStreamClass implements Serializable {
             if (deserializeEx == null) {
                 deserializeEx = localDesc.deserializeEx;
             }
-            domains = localDesc.domains;
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+            // domains = localDesc.domains;
             cons = localDesc.cons;
         }
 
@@ -1098,7 +1102,8 @@ public class ObjectStreamClass implements Serializable {
         requireInitialized();
         if (cons != null) {
             try {
-                if (domains == null || domains.length == 0) {
+                // FoxVM-changed: FoxVM does not support SecurityManager.
+/*                if (domains == null || domains.length == 0) {
                     return cons.newInstance();
                 } else {
                     JavaSecurityAccess jsa = SharedSecrets.getJavaSecurityAccess();
@@ -1126,7 +1131,8 @@ public class ObjectStreamClass implements Serializable {
                         // not supposed to happen
                         throw x;
                     }
-                }
+                }*/
+                return cons.newInstance();
             } catch (IllegalAccessException ex) {
                 // should not occur, as access checks have been suppressed
                 throw new InternalError(ex);
@@ -1585,7 +1591,8 @@ public class ObjectStreamClass implements Serializable {
             {
                 return null;
             }
-            cons = reflFactory.newConstructorForSerialization(cl, cons);
+            // TODO: Fix it
+            // cons = reflFactory.newConstructorForSerialization(cl, cons);
             cons.setAccessible(true);
             return cons;
         } catch (NoSuchMethodException ex) {

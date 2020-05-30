@@ -41,9 +41,9 @@ import sun.nio.ch.Interruptible;
 import sun.reflect.CallerSensitive;
 import sun.reflect.Reflection;
 import sun.security.util.SecurityConstants;
-import sun.reflect.annotation.AnnotationType;
+// import sun.reflect.annotation.AnnotationType;
 
-import jdk.internal.util.StaticProperty;
+// import jdk.internal.util.StaticProperty;
 
 /**
  * The <code>System</code> class contains several useful class fields
@@ -1195,7 +1195,7 @@ public final class System {
 
 
         lineSeparator = props.getProperty("line.separator");
-        StaticProperty.jdkSerialFilter();   // Load StaticProperty to cache the property values
+        // StaticProperty.jdkSerialFilter();   // Load StaticProperty to cache the property values
         sun.misc.Version.init();
 
         FileInputStream fdIn = new FileInputStream(FileDescriptor.in);
@@ -1236,7 +1236,7 @@ public final class System {
     private static void setJavaLangAccess() {
         // Allow privileged classes outside of java.lang
         sun.misc.SharedSecrets.setJavaLangAccess(new sun.misc.JavaLangAccess(){
-            public sun.reflect.ConstantPool getConstantPool(Class<?> klass) {
+/*            public sun.reflect.ConstantPool getConstantPool(Class<?> klass) {
                 return klass.getConstantPool();
             }
             public boolean casAnnotationType(Class<?> klass, AnnotationType oldType, AnnotationType newType) {
@@ -1244,7 +1244,7 @@ public final class System {
             }
             public AnnotationType getAnnotationType(Class<?> klass) {
                 return klass.getAnnotationType();
-            }
+            }*/
             public Map<Class<? extends Annotation>, Annotation> getDeclaredAnnotationMap(Class<?> klass) {
                 return klass.getDeclaredAnnotationMap();
             }

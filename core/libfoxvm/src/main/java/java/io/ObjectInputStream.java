@@ -37,19 +37,19 @@ import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Objects;
+// import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import static java.io.ObjectStreamClass.processQueue;
 
-import sun.misc.SharedSecrets;
-import sun.misc.ObjectInputFilter;
-import sun.misc.ObjectStreamClassValidator;
-import sun.misc.SharedSecrets;
+// import sun.misc.SharedSecrets;
+// import sun.misc.ObjectInputFilter;
+// import sun.misc.ObjectStreamClassValidator;
+// import sun.misc.SharedSecrets;
 import sun.reflect.misc.ReflectUtil;
-import sun.misc.JavaOISAccess;
-import sun.util.logging.PlatformLogger;
+// import sun.misc.JavaOISAccess;
+// import sun.util.logging.PlatformLogger;
 
 /**
  * An ObjectInputStream deserializes primitive data and objects previously
@@ -245,8 +245,9 @@ public class ObjectInputStream
             new ReferenceQueue<>();
     }
 
-    static {
-        /* Setup access so sun.misc can invoke package private functions. */
+    // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+/*    static {
+        *//* Setup access so sun.misc can invoke package private functions. *//*
         JavaOISAccess javaOISAccess = new JavaOISAccess() {
             public void setObjectInputFilter(ObjectInputStream stream, ObjectInputFilter filter) {
                 stream.setInternalObjectInputFilter(filter);
@@ -266,16 +267,16 @@ public class ObjectInputStream
         sun.misc.SharedSecrets.setJavaOISAccess(javaOISAccess);
     }
 
-    /*
+    *//*
      * Separate class to defer initialization of logging until needed.
-     */
+     *//*
     private static class Logging {
 
-        /*
+        *//*
          * Logger for ObjectInputFilter results.
          * Setup the filter logger if it is set to INFO or WARNING.
          * (Assuming it will not change).
-         */
+         *//*
         private static final PlatformLogger traceLogger;
         private static final PlatformLogger infoLogger;
         static {
@@ -285,7 +286,7 @@ public class ObjectInputStream
             traceLogger = (filterLog != null &&
                 filterLog.isLoggable(PlatformLogger.Level.FINER)) ? filterLog : null;
         }
-    }
+    }*/
 
     /** filter stream for handling block data conversion */
     private final BlockDataInputStream bin;
@@ -294,7 +295,8 @@ public class ObjectInputStream
     /** recursion depth */
     private long depth;
     /** Total number of references to any type of object, class, enum, proxy, etc. */
-    private long totalObjectRefs;
+    // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+    // private long totalObjectRefs;
     /** whether stream is closed */
     private boolean closed;
 
@@ -324,7 +326,8 @@ public class ObjectInputStream
      * Filter of class descriptors and classes read from the stream;
      * may be null.
      */
-    private ObjectInputFilter serialFilter;
+    // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+    // private ObjectInputFilter serialFilter;
 
     /**
      * Creates an ObjectInputStream that reads from the specified InputStream.
@@ -353,7 +356,8 @@ public class ObjectInputStream
         bin = new BlockDataInputStream(in);
         handles = new HandleTable(10);
         vlist = new ValidationList();
-        serialFilter = ObjectInputFilter.Config.getSerialFilter();
+        // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // serialFilter = ObjectInputFilter.Config.getSerialFilter();
         enableOverride = false;
         readStreamHeader();
         bin.setBlockDataMode(true);
@@ -384,7 +388,8 @@ public class ObjectInputStream
         bin = null;
         handles = null;
         vlist = null;
-        serialFilter = ObjectInputFilter.Config.getSerialFilter();
+        // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // serialFilter = ObjectInputFilter.Config.getSerialFilter();
         enableOverride = true;
     }
 
@@ -1167,166 +1172,8 @@ public class ObjectInputStream
         return bin.readUTF();
     }
 
-    /**
-     * Returns the serialization filter for this stream.
-     * The serialization filter is the most recent filter set in
-     * {@link #setInternalObjectInputFilter setInternalObjectInputFilter} or
-     * the initial process-wide filter from
-     * {@link ObjectInputFilter.Config#getSerialFilter() ObjectInputFilter.Config.getSerialFilter}.
-     *
-     * @return the serialization filter for the stream; may be null
-     */
-    private final ObjectInputFilter getInternalObjectInputFilter() {
-        return serialFilter;
-    }
-
-    /**
-     * Set the serialization filter for the stream.
-     * The filter's {@link ObjectInputFilter#checkInput checkInput} method is called
-     * for each class and reference in the stream.
-     * The filter can check any or all of the class, the array length, the number
-     * of references, the depth of the graph, and the size of the input stream.
-     * <p>
-     * If the filter returns {@link ObjectInputFilter.Status#REJECTED Status.REJECTED},
-     * {@code null} or throws a {@link RuntimeException},
-     * the active {@code readObject} or {@code readUnshared}
-     * throws {@link InvalidClassException}, otherwise deserialization
-     * continues uninterrupted.
-     * <p>
-     * The serialization filter is initialized to the value of
-     * {@link ObjectInputFilter.Config#getSerialFilter() ObjectInputFilter.Config.getSerialFilter}
-     * when the {@code  ObjectInputStream} is constructed and can be set
-     * to a custom filter only once.
-     *
-     * @implSpec
-     * The filter, when not {@code null}, is invoked during {@link #readObject readObject}
-     * and {@link #readUnshared readUnshared} for each object
-     * (regular or class) in the stream including the following:
-     * <ul>
-     *     <li>each object reference previously deserialized from the stream
-     *     (class is {@code null}, arrayLength is -1),
-     *     <li>each regular class (class is not {@code null}, arrayLength is -1),
-     *     <li>each interface of a dynamic proxy and the dynamic proxy class itself
-     *     (class is not {@code null}, arrayLength is -1),
-     *     <li>each array is filtered using the array type and length of the array
-     *     (class is the array type, arrayLength is the requested length),
-     *     <li>each object replaced by its class' {@code readResolve} method
-     *         is filtered using the replacement object's class, if not {@code null},
-     *         and if it is an array, the arrayLength, otherwise -1,
-     *     <li>and each object replaced by {@link #resolveObject resolveObject}
-     *         is filtered using the replacement object's class, if not {@code null},
-     *         and if it is an array, the arrayLength, otherwise -1.
-     * </ul>
-     *
-     * When the {@link ObjectInputFilter#checkInput checkInput} method is invoked
-     * it is given access to the current class, the array length,
-     * the current number of references already read from the stream,
-     * the depth of nested calls to {@link #readObject readObject} or
-     * {@link #readUnshared readUnshared},
-     * and the implementation dependent number of bytes consumed from the input stream.
-     * <p>
-     * Each call to {@link #readObject readObject} or
-     * {@link #readUnshared readUnshared} increases the depth by 1
-     * before reading an object and decreases by 1 before returning
-     * normally or exceptionally.
-     * The depth starts at {@code 1} and increases for each nested object and
-     * decrements when each nested call returns.
-     * The count of references in the stream starts at {@code 1} and
-     * is increased before reading an object.
-     *
-     * @param filter the filter, may be null
-     * @throws SecurityException if there is security manager and the
-     *       {@code SerializablePermission("serialFilter")} is not granted
-     * @throws IllegalStateException if the {@linkplain #getInternalObjectInputFilter() current filter}
-     *       is not {@code null} and is not the process-wide filter
-     */
-    private final void setInternalObjectInputFilter(ObjectInputFilter filter) {
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            sm.checkPermission(new SerializablePermission("serialFilter"));
-        }
-        // Allow replacement of the process-wide filter if not already set
-        if (serialFilter != null &&
-                serialFilter != ObjectInputFilter.Config.getSerialFilter()) {
-            throw new IllegalStateException("filter can not be set more than once");
-        }
-        this.serialFilter = filter;
-    }
-
-    /**
-     * Invoke the serialization filter if non-null.
-     * If the filter rejects or an exception is thrown, throws InvalidClassException.
-     *
-     * @param clazz the class; may be null
-     * @param arrayLength the array length requested; use {@code -1} if not creating an array
-     * @throws InvalidClassException if it rejected by the filter or
-     *        a {@link RuntimeException} is thrown
-     */
-    private void filterCheck(Class<?> clazz, int arrayLength)
-            throws InvalidClassException {
-        if (serialFilter != null) {
-            RuntimeException ex = null;
-            ObjectInputFilter.Status status;
-            // Info about the stream is not available if overridden by subclass, return 0
-            long bytesRead = (bin == null) ? 0 : bin.getBytesRead();
-            try {
-                status = serialFilter.checkInput(new FilterValues(clazz, arrayLength,
-                        totalObjectRefs, depth, bytesRead));
-            } catch (RuntimeException e) {
-                // Preventive interception of an exception to log
-                status = ObjectInputFilter.Status.REJECTED;
-                ex = e;
-            }
-            if (status == null  ||
-                    status == ObjectInputFilter.Status.REJECTED) {
-                // Debug logging of filter checks that fail
-                if (Logging.infoLogger != null) {
-                    Logging.infoLogger.info(
-                            "ObjectInputFilter {0}: {1}, array length: {2}, nRefs: {3}, depth: {4}, bytes: {5}, ex: {6}",
-                            status, clazz, arrayLength, totalObjectRefs, depth, bytesRead,
-                            Objects.toString(ex, "n/a"));
-                }
-                InvalidClassException ice = new InvalidClassException("filter status: " + status);
-                ice.initCause(ex);
-                throw ice;
-            } else {
-                // Trace logging for those that succeed
-                if (Logging.traceLogger != null) {
-                    Logging.traceLogger.finer(
-                            "ObjectInputFilter {0}: {1}, array length: {2}, nRefs: {3}, depth: {4}, bytes: {5}, ex: {6}",
-                            status, clazz, arrayLength, totalObjectRefs, depth, bytesRead,
-                            Objects.toString(ex, "n/a"));
-                }
-            }
-        }
-    }
-
-    /**
-     * Checks the given array type and length to ensure that creation of such
-     * an array is permitted by this ObjectInputStream. The arrayType argument
-     * must represent an actual array type.
-     *
-     * This private method is called via SharedSecrets.
-     *
-     * @param arrayType the array type
-     * @param arrayLength the array length
-     * @throws NullPointerException if arrayType is null
-     * @throws IllegalArgumentException if arrayType isn't actually an array type
-     * @throws NegativeArraySizeException if arrayLength is negative
-     * @throws InvalidClassException if the filter rejects creation
-     */
-    private void checkArray(Class<?> arrayType, int arrayLength) throws InvalidClassException {
-        Objects.requireNonNull(arrayType);
-        if (! arrayType.isArray()) {
-            throw new IllegalArgumentException("not an array type");
-        }
-
-        if (arrayLength < 0) {
-            throw new NegativeArraySizeException();
-        }
-
-        filterCheck(arrayType, arrayLength);
-    }
+    // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+    // Removed ObjectInputFilter related methods.
 
     /**
      * Provide access to the persistent fields read from the input stream.
@@ -1579,7 +1426,8 @@ public class ObjectInputStream
         }
 
         depth++;
-        totalObjectRefs++;
+        // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // totalObjectRefs++;
         try {
             switch (tc) {
                 case TC_NULL:
@@ -1677,13 +1525,14 @@ public class ObjectInputStream
         if (rep != obj) {
             // The type of the original object has been filtered but resolveObject
             // may have replaced it;  filter the replacement's type
-            if (rep != null) {
+            // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+/*            if (rep != null) {
                 if (rep.getClass().isArray()) {
                     filterCheck(rep.getClass(), Array.getLength(rep));
                 } else {
                     filterCheck(rep.getClass(), -1);
                 }
-            }
+            }*/
             handles.setObject(passHandle, rep);
         }
         return rep;
@@ -1754,7 +1603,8 @@ public class ObjectInputStream
             throw new InvalidObjectException(
                 "cannot read back reference to unshared object");
         }
-        filterCheck(null, -1);       // just a check for number of references, depth, no class
+        // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // filterCheck(null, -1);       // just a check for number of references, depth, no class
         return obj;
     }
 
@@ -1811,9 +1661,10 @@ public class ObjectInputStream
                 throw new StreamCorruptedException(
                     String.format("invalid type code: %02X", tc));
         }
-        if (descriptor != null) {
-            validateDescriptor(descriptor);
-        }
+        // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // if (descriptor != null) {
+        //     validateDescriptor(descriptor);
+        // }
         return descriptor;
     }
 
@@ -1866,21 +1717,24 @@ public class ObjectInputStream
                         getClass().getClassLoader(),
                         cl.getInterfaces());
                 // Filter the interfaces
-                for (Class<?> clazz : cl.getInterfaces()) {
-                    filterCheck(clazz, -1);
-                }
+                // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+                // for (Class<?> clazz : cl.getInterfaces()) {
+                //     filterCheck(clazz, -1);
+                // }
             }
         } catch (ClassNotFoundException ex) {
             resolveEx = ex;
         }
 
         // Call filterCheck on the class before reading anything else
-        filterCheck(cl, -1);
+        // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // filterCheck(cl, -1);
 
         skipCustomData();
 
         try {
-            totalObjectRefs++;
+            // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+            // totalObjectRefs++;
             depth++;
             desc.initProxy(cl, resolveEx, readClassDesc(false));
         } finally {
@@ -1932,12 +1786,14 @@ public class ObjectInputStream
         }
 
         // Call filterCheck on the class before reading anything else
-        filterCheck(cl, -1);
+        // Android-removed: ObjectInputFilter unsupported - removed filterCheck() call.
+        // filterCheck(cl, -1);
 
         skipCustomData();
 
         try {
-            totalObjectRefs++;
+            // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+            // totalObjectRefs++;
             depth++;
             desc.initNonProxy(readDesc, cl, resolveEx, readClassDesc(false));
         } finally {
@@ -1987,7 +1843,8 @@ public class ObjectInputStream
         ObjectStreamClass desc = readClassDesc(false);
         int len = bin.readInt();
 
-        filterCheck(desc.forClass(), len);
+        // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // filterCheck(desc.forClass(), len);
 
         Object array = null;
         Class<?> cl, ccl = null;
@@ -2138,13 +1995,14 @@ public class ObjectInputStream
             }
             if (rep != obj) {
                 // Filter the replacement object
-                if (rep != null) {
+                // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+/*                if (rep != null) {
                     if (rep.getClass().isArray()) {
                         filterCheck(rep.getClass(), Array.getLength(rep));
                     } else {
                         filterCheck(rep.getClass(), -1);
                     }
-                }
+                }*/
                 handles.setObject(passHandle, obj = rep);
             }
         }
@@ -2623,50 +2481,8 @@ public class ObjectInputStream
         }
     }
 
-    /**
-     * Hold a snapshot of values to be passed to an ObjectInputFilter.
-     */
-    static class FilterValues implements ObjectInputFilter.FilterInfo {
-        final Class<?> clazz;
-        final long arrayLength;
-        final long totalObjectRefs;
-        final long depth;
-        final long streamBytes;
-
-        public FilterValues(Class<?> clazz, long arrayLength, long totalObjectRefs,
-                            long depth, long streamBytes) {
-            this.clazz = clazz;
-            this.arrayLength = arrayLength;
-            this.totalObjectRefs = totalObjectRefs;
-            this.depth = depth;
-            this.streamBytes = streamBytes;
-        }
-
-        @Override
-        public Class<?> serialClass() {
-            return clazz;
-        }
-
-        @Override
-        public long arrayLength() {
-            return arrayLength;
-        }
-
-        @Override
-        public long references() {
-            return totalObjectRefs;
-        }
-
-        @Override
-        public long depth() {
-            return depth;
-        }
-
-        @Override
-        public long streamBytes() {
-            return streamBytes;
-        }
-    }
+    // Android-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+    // Removed FilterValues class.
 
     /**
      * Input stream supporting single-byte peek operations.
@@ -3968,7 +3784,8 @@ public class ObjectInputStream
         }
     }
 
-    private void validateDescriptor(ObjectStreamClass descriptor) {
+    // Android-removed: Logic related to ObjectStreamClassValidator, unused on Android
+/*    private void validateDescriptor(ObjectStreamClass descriptor) {
         ObjectStreamClassValidator validating = validator;
         if (validating != null) {
             validating.validateDescriptor(descriptor);
@@ -3984,5 +3801,5 @@ public class ObjectInputStream
     static {
         SharedSecrets.setJavaObjectInputStreamAccess(ObjectInputStream::setValidator);
         SharedSecrets.setJavaObjectInputStreamReadString(ObjectInputStream::readString);
-    }
+    }*/
 }

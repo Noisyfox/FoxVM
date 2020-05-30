@@ -1200,7 +1200,8 @@ public class Hashtable<K,V>
 
         // Check Map.Entry[].class since it's the nearest public type to
         // what we're actually creating.
-        SharedSecrets.getJavaOISAccess().checkArray(s, Map.Entry[].class, length);
+        // FoxVM-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // SharedSecrets.getJavaOISAccess().checkArray(s, Map.Entry[].class, length);
         table = new Entry<?,?>[length];
         threshold = (int)Math.min(length * loadFactor, MAX_ARRAY_SIZE + 1);
         count = 0;

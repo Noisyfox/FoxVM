@@ -726,7 +726,8 @@ class Bits {                            // package-private
         assert cnt >= 0 && reservedMem >= 0 && totalCap >= 0;
     }
 
-    // -- Monitoring of direct buffer usage --
+    // BEGIN FoxVM-removed: Remove support for java.lang.management.
+/*    // -- Monitoring of direct buffer usage --
 
     static {
         // setup access to this package in SharedSecrets
@@ -762,7 +763,8 @@ class Bits {                            // package-private
                     buf.truncate();
                 }
         });
-    }
+    }*/
+    // END FoxVM-removed: Remove support for java.lang.management.
 
     // -- Bulk get/put acceleration --
 

@@ -34,10 +34,6 @@ import java.io.Reader;
 import java.io.Writer;
 import java.io.OutputStreamWriter;
 import java.io.BufferedWriter;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-
-import sun.util.spi.XmlPropertiesProvider;
 
 /**
  * The {@code Properties} class represents a persistent set of
@@ -878,7 +874,9 @@ class Properties extends Hashtable<Object,Object> {
     public synchronized void loadFromXML(InputStream in)
         throws IOException, InvalidPropertiesFormatException
     {
-        XmlSupport.load(this, Objects.requireNonNull(in));
+        // FoxVM-changed: Use OpenJDK7u40's XmlUtils instead.
+        // XmlSupport.load(this, Objects.requireNonNull(in));
+        XMLUtils.load(this, Objects.requireNonNull(in));
         in.close();
     }
 
@@ -950,8 +948,11 @@ class Properties extends Hashtable<Object,Object> {
     public void storeToXML(OutputStream os, String comment, String encoding)
         throws IOException
     {
-        XmlSupport.save(this, Objects.requireNonNull(os), comment,
-                        Objects.requireNonNull(encoding));
+        // FoxVM-changed: Use OpenJDK7u40's XmlUtils instead.
+        // XmlSupport.save(this, Objects.requireNonNull(os), comment,
+        //                 Objects.requireNonNull(encoding));
+        XMLUtils.save(this, Objects.requireNonNull(os), comment,
+                Objects.requireNonNull(encoding));
     }
 
     /**
@@ -1130,6 +1131,7 @@ class Properties extends Hashtable<Object,Object> {
         '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
     };
 
+    // FoxVM-removed: Use OpenJDK7u40's XmlUtils instead.
     /**
      * Supporting class for loading/storing properties in XML format.
      *
@@ -1155,7 +1157,7 @@ class Properties extends Hashtable<Object,Object> {
      *   <li> If the provider is not found by the above means then a system
      *   default provider will be instantiated and used. </li>
      * </ol>
-     */
+     *//*
     private static class XmlSupport {
 
         private static XmlPropertiesProvider loadProviderFromProperty(ClassLoader cl) {
@@ -1207,5 +1209,5 @@ class Properties extends Hashtable<Object,Object> {
         {
             PROVIDER.store(props, os, comment, encoding);
         }
-    }
+    }*/
 }

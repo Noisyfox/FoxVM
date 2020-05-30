@@ -990,7 +990,8 @@ public class CopyOnWriteArrayList<E>
 
         // Read in array length and allocate array
         int len = s.readInt();
-        SharedSecrets.getJavaOISAccess().checkArray(s, Object[].class, len);
+        // FoxVM-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // SharedSecrets.getJavaOISAccess().checkArray(s, Object[].class, len);
         Object[] elements = new Object[len];
 
         // Read in all elements in the proper order.

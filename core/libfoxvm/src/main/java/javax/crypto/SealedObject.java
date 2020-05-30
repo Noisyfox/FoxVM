@@ -442,9 +442,9 @@ public class SealedObject implements Serializable {
         return new extObjectInputStream(b);
     }
 
-    static {
-        SharedSecrets.setJavaxCryptoSealedObjectAccess((obj,c) -> obj.getExtObjectInputStream(c));
-    }
+    // static {
+    //     SharedSecrets.setJavaxCryptoSealedObjectAccess((obj,c) -> obj.getExtObjectInputStream(c));
+    // }
 }
 
 final class extObjectInputStream extends ObjectInputStream {

@@ -1306,7 +1306,8 @@ public class IdentityHashMap<K,V>
             throw new java.io.StreamCorruptedException
                 ("Illegal mappings count: " + size);
         int cap = capacity(size);
-        SharedSecrets.getJavaOISAccess().checkArray(s, Object[].class, cap);
+        // FoxVM-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+        // SharedSecrets.getJavaOISAccess().checkArray(s, Object[].class, cap);
         init(cap);
 
         // Read the keys and values, and put the mappings in the table

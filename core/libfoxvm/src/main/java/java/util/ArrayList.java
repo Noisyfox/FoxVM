@@ -788,7 +788,8 @@ public class ArrayList<E> extends AbstractList<E>
         if (size > 0) {
             // be like clone(), allocate array based upon size not capacity
             int capacity = calculateCapacity(elementData, size);
-            SharedSecrets.getJavaOISAccess().checkArray(s, Object[].class, capacity);
+            // FoxVM-removed: ObjectInputFilter logic, to be reconsidered. http://b/110252929
+            // SharedSecrets.getJavaOISAccess().checkArray(s, Object[].class, capacity);
             ensureCapacityInternal(size);
 
             Object[] a = elementData;

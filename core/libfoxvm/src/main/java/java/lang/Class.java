@@ -3205,7 +3205,7 @@ public final class Class<T> implements java.io.Serializable,
      * @since  1.4
      */
     public boolean desiredAssertionStatus() {
-        ClassLoader loader = getClassLoader();
+/*        ClassLoader loader = getClassLoader();
         // If the loader is null this is a system class, so ask the VM
         if (loader == null)
             return desiredAssertionStatus0(this);
@@ -3216,12 +3216,12 @@ public final class Class<T> implements java.io.Serializable,
             if (loader.classAssertionStatus != null) {
                 return loader.desiredAssertionStatus(getName());
             }
-        }
-        return desiredAssertionStatus0(this);
+        }*/
+        return false;
     }
 
     // Retrieves the desired assertion status of this class from the VM
-    private static native boolean desiredAssertionStatus0(Class<?> clazz);
+    // private static native boolean desiredAssertionStatus0(Class<?> clazz);
 
     /**
      * Returns true if and only if this class was declared as an enum in the
