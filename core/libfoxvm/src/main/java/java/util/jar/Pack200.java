@@ -798,10 +798,11 @@ public abstract class Pack200 {
                     new sun.security.action.GetPropertyAction(prop,""));
                 if (implName != null && !implName.equals(""))
                     impl = Class.forName(implName);
-                else if (PACK_PROVIDER.equals(prop))
-                    impl = com.sun.java.util.jar.pack.PackerImpl.class;
-                else
-                    impl = com.sun.java.util.jar.pack.UnpackerImpl.class;
+                // FoxVM-remove: remove default Packer
+                // else if (PACK_PROVIDER.equals(prop))
+                //     impl = com.sun.java.util.jar.pack.PackerImpl.class;
+                // else
+                //     impl = com.sun.java.util.jar.pack.UnpackerImpl.class;
             }
             // We have a class.  Now instantiate it.
             return impl.newInstance();

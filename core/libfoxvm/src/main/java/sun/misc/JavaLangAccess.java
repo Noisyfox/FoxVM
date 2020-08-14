@@ -25,10 +25,10 @@
 
 package sun.misc;
 
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Executable;
+// import java.lang.annotation.Annotation;
+// import java.lang.reflect.Executable;
 import java.security.AccessControlContext;
-import java.util.Map;
+// import java.util.Map;
 
 // import sun.reflect.ConstantPool;
 // import sun.reflect.annotation.AnnotationType;
@@ -53,25 +53,25 @@ public interface JavaLangAccess {
     /**
      * Get the declared annotations for a given class, indexed by their types.
      */
-    Map<Class<? extends Annotation>, Annotation> getDeclaredAnnotationMap(Class<?> klass);
+    // Map<Class<? extends Annotation>, Annotation> getDeclaredAnnotationMap(Class<?> klass);
 
     /**
      * Get the array of bytes that is the class-file representation
      * of this Class' annotations.
      */
-    byte[] getRawClassAnnotations(Class<?> klass);
+    // byte[] getRawClassAnnotations(Class<?> klass);
 
     /**
      * Get the array of bytes that is the class-file representation
      * of this Class' type annotations.
      */
-    byte[] getRawClassTypeAnnotations(Class<?> klass);
+    // byte[] getRawClassTypeAnnotations(Class<?> klass);
 
     /**
      * Get the array of bytes that is the class-file representation
      * of this Executable's type annotations.
      */
-    byte[] getRawExecutableTypeAnnotations(Executable executable);
+    // byte[] getRawExecutableTypeAnnotations(Executable executable);
 
     /**
      * Returns the elements of an enum class or null if the

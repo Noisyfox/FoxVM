@@ -46,7 +46,23 @@ public final class AccessController {
     /**
      * Calls {@code action.run()}.
      */
+    public static <T> T doPrivileged(PrivilegedAction<T> action,
+                                     AccessControlContext context, Permission... perms) {
+        return action.run();
+    }
+
+    /**
+     * Calls {@code action.run()}.
+     */
     public static <T> T doPrivilegedWithCombiner(PrivilegedAction<T> action) {
+        return action.run();
+    }
+
+    /**
+     * Calls {@code action.run()}.
+     */
+    public static <T> T doPrivilegedWithCombiner(PrivilegedAction<T> action,
+                                                 AccessControlContext context, Permission... perms) {
         return action.run();
     }
 
@@ -86,6 +102,27 @@ public final class AccessController {
 
     public static AccessControlContext getContext() {
         return new AccessControlContext(null);
+    }
+
+    /**
+     * Calls {@code action.run()}.
+     */
+    public static <T> T doPrivileged(PrivilegedExceptionAction<T> action,
+                                     AccessControlContext context, Permission... perms)
+            throws PrivilegedActionException
+    {
+        return doPrivileged(action);
+    }
+
+    /**
+     * Calls {@code action.run()}.
+     */
+    public static <T> T doPrivilegedWithCombiner(PrivilegedExceptionAction<T> action,
+                                                 AccessControlContext context,
+                                                 Permission... perms)
+            throws PrivilegedActionException
+    {
+        return doPrivileged(action);
     }
 
     public static void checkPermission(Permission perm) throws AccessControlException {

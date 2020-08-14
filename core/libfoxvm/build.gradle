@@ -10,6 +10,11 @@ sourceSets {
         java {
             srcDirs 'src/main/java'
             srcDirs 'src/android/java'
+            srcDirs 'src/solaris/java'
         }
     }
+}
+
+compileJava {
+    options.compilerArgs << "-Werror"
 }

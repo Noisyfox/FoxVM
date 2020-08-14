@@ -161,18 +161,20 @@ public final class PKIXCertPathValidator extends CertPathValidatorSpi {
         throws CertPathValidatorException
     {
         // check if anchor is untrusted
-        UntrustedChecker untrustedChecker = new UntrustedChecker();
+        // FoxVM-removed: not supported
+/*        UntrustedChecker untrustedChecker = new UntrustedChecker();
         X509Certificate anchorCert = anchor.getTrustedCert();
         if (anchorCert != null) {
             untrustedChecker.check(anchorCert);
-        }
+        }*/
 
         int certPathLen = params.certificates().size();
 
         // create PKIXCertPathCheckers
         List<PKIXCertPathChecker> certPathCheckers = new ArrayList<>();
         // add standard checkers that we will be using
-        certPathCheckers.add(untrustedChecker);
+        // FoxVM-removed: not supported
+        // certPathCheckers.add(untrustedChecker);
         certPathCheckers.add(new AlgorithmChecker(anchor, null, params.date(),
                 params.timestamp(), params.variant()));
         certPathCheckers.add(new KeyChecker(certPathLen,

@@ -265,13 +265,14 @@ public abstract class ClassLoader {
     // @GuardedBy("itself")
     private final HashMap<String, Package> packages = new HashMap<>();
 
-    private static Void checkCreateClassLoader() {
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+/*    private static Void checkCreateClassLoader() {
         SecurityManager security = System.getSecurityManager();
         if (security != null) {
             security.checkCreateClassLoader();
         }
         return null;
-    }
+    }*/
 
     private ClassLoader(Void unused, ClassLoader parent) {
         this.parent = parent;
@@ -307,7 +308,9 @@ public abstract class ClassLoader {
      * @since  1.2
      */
     protected ClassLoader(ClassLoader parent) {
-        this(checkCreateClassLoader(), parent);
+        // FoxVM-changed: FoxVM does not support SecurityManager.
+        // this(checkCreateClassLoader(), parent);
+        this(null, parent);
     }
 
     /**
@@ -326,7 +329,9 @@ public abstract class ClassLoader {
      *          of a new class loader.
      */
     protected ClassLoader() {
-        this(checkCreateClassLoader(), getSystemClassLoader());
+        // FoxVM-changed: FoxVM does not support SecurityManager.
+        // this(checkCreateClassLoader(), getSystemClassLoader());
+        this(null, getSystemClassLoader());
     }
 
     // -- Class --
@@ -478,8 +483,9 @@ public abstract class ClassLoader {
         }
     }
 
+    // FoxVM-removed: FoxVM does not support SecurityManager.
     // Invoked by the VM after loading class with this loader.
-    private void checkPackageAccess(Class<?> cls, ProtectionDomain pd) {
+/*    private void checkPackageAccess(Class<?> cls, ProtectionDomain pd) {
         final SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             if (ReflectUtil.isNonPublicProxyClass(cls)) {
@@ -500,7 +506,7 @@ public abstract class ClassLoader {
                 }, new AccessControlContext(new ProtectionDomain[] {pd}));
             }
         }
-    }
+    }*/
 
     /**
      * Finds the class with the specified <a href="#name">binary name</a>.
@@ -1362,13 +1368,14 @@ public abstract class ClassLoader {
     public final ClassLoader getParent() {
         if (parent == null)
             return null;
-        SecurityManager sm = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             // Check access to the parent class loader
             // If the caller's class loader is same as this class loader,
             // permission check is performed.
             checkClassLoaderPermission(parent, Reflection.getCallerClass());
-        }
+        }*/
         return parent;
     }
 
@@ -1433,10 +1440,11 @@ public abstract class ClassLoader {
         if (scl == null) {
             return null;
         }
-        SecurityManager sm = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             checkClassLoaderPermission(scl, Reflection.getCallerClass());
-        }
+        }*/
         return scl;
     }
 
@@ -1444,7 +1452,7 @@ public abstract class ClassLoader {
         if (!sclSet) {
             if (scl != null)
                 throw new IllegalStateException("recursive invocation");
-            sun.misc.Launcher l = sun.misc.Launcher.getLauncher();
+/*            sun.misc.Launcher l = sun.misc.Launcher.getLauncher();
             if (l != null) {
                 Throwable oops = null;
                 scl = l.getClassLoader();
@@ -1465,7 +1473,7 @@ public abstract class ClassLoader {
                         throw new Error(oops);
                     }
                 }
-            }
+            }*/
             sclSet = true;
         }
     }
@@ -1510,12 +1518,13 @@ public abstract class ClassLoader {
         return caller.getClassLoader0();
     }
 
+    // FoxVM-removed: FoxVM does not support SecurityManager.
     /*
      * Checks RuntimePermission("getClassLoader") permission
      * if caller's class loader is not null and caller's class loader
      * is not the same as or an ancestor of the given cl argument.
      */
-    static void checkClassLoaderPermission(ClassLoader cl, Class<?> caller) {
+/*    static void checkClassLoaderPermission(ClassLoader cl, Class<?> caller) {
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             // caller can be null if the VM is requesting it
@@ -1524,7 +1533,7 @@ public abstract class ClassLoader {
                 sm.checkPermission(SecurityConstants.GET_CLASSLOADER_PERMISSION);
             }
         }
-    }
+    }*/
 
     // The class loader for the system
     // @GuardedBy("ClassLoader.class")
@@ -1810,7 +1819,7 @@ public abstract class ClassLoader {
     // Invoked in the java.lang.Runtime class to implement load and loadLibrary.
     static void loadLibrary(Class<?> fromClass, String name,
                             boolean isAbsolute) {
-        ClassLoader loader =
+/*        ClassLoader loader =
             (fromClass == null) ? null : fromClass.getClassLoader();
         if (sys_paths == null) {
             usr_paths = initializePath("java.library.path");
@@ -1860,7 +1869,8 @@ public abstract class ClassLoader {
             }
         }
         // Oops, it failed
-        throw new UnsatisfiedLinkError("no " + name + " in java.library.path");
+        throw new UnsatisfiedLinkError("no " + name + " in java.library.path");*/
+        throw new RuntimeException("Not implemented");
     }
 
     private static native String findBuiltinLib(String name);

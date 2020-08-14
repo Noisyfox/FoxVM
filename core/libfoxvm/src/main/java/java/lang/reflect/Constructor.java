@@ -26,10 +26,6 @@
 package java.lang.reflect;
 
 import sun.reflect.CallerSensitive;
-import sun.reflect.ConstructorAccessor;
-import sun.reflect.Reflection;
-import sun.reflect.annotation.TypeAnnotation;
-import sun.reflect.annotation.TypeAnnotationParser;
 import sun.reflect.generics.repository.ConstructorRepository;
 import sun.reflect.generics.factory.CoreReflectionFactory;
 import sun.reflect.generics.factory.GenericsFactory;
@@ -67,8 +63,8 @@ public final class Constructor<T> extends Executable {
     private transient String    signature;
     // generic info repository; lazily initialized
     private transient ConstructorRepository genericInfo;
-    private byte[]              annotations;
-    private byte[]              parameterAnnotations;
+    // private byte[]              annotations;
+    // private byte[]              parameterAnnotations;
 
     // Generics infrastructure
     // Accessor for factory
@@ -90,7 +86,7 @@ public final class Constructor<T> extends Executable {
         return genericInfo; //return cached repository
     }
 
-    private volatile ConstructorAccessor constructorAccessor;
+    // private volatile ConstructorAccessor constructorAccessor;
     // For sharing of ConstructorAccessors. This branching structure
     // is currently only two levels deep (i.e., one root Constructor
     // and potentially many Constructor objects pointing to it.)
@@ -117,17 +113,17 @@ public final class Constructor<T> extends Executable {
                 Class<?>[] checkedExceptions,
                 int modifiers,
                 int slot,
-                String signature,
+                String signature/*,
                 byte[] annotations,
-                byte[] parameterAnnotations) {
+                byte[] parameterAnnotations*/) {
         this.clazz = declaringClass;
         this.parameterTypes = parameterTypes;
         this.exceptionTypes = checkedExceptions;
         this.modifiers = modifiers;
         this.slot = slot;
         this.signature = signature;
-        this.annotations = annotations;
-        this.parameterAnnotations = parameterAnnotations;
+        // this.annotations = annotations;
+        // this.parameterAnnotations = parameterAnnotations;
     }
 
     /**
@@ -149,12 +145,12 @@ public final class Constructor<T> extends Executable {
         Constructor<T> res = new Constructor<>(clazz,
                                                parameterTypes,
                                                exceptionTypes, modifiers, slot,
-                                               signature,
+                                               signature/*,
                                                annotations,
-                                               parameterAnnotations);
+                                               parameterAnnotations*/);
         res.root = this;
         // Might as well eagerly propagate this if already present
-        res.constructorAccessor = constructorAccessor;
+        // res.constructorAccessor = constructorAccessor;
         return res;
     }
 
@@ -163,10 +159,10 @@ public final class Constructor<T> extends Executable {
         return (getSignature() != null);
     }
 
-    @Override
-    byte[] getAnnotationBytes() {
-        return annotations;
-    }
+    // @Override
+    // byte[] getAnnotationBytes() {
+    //     return annotations;
+    // }
 
     /**
      * {@inheritDoc}
@@ -407,7 +403,7 @@ public final class Constructor<T> extends Executable {
         throws InstantiationException, IllegalAccessException,
                IllegalArgumentException, InvocationTargetException
     {
-        if (!override) {
+/*        if (!override) {
             if (!Reflection.quickCheckMemberAccess(clazz, modifiers)) {
                 Class<?> caller = Reflection.getCallerClass();
                 checkAccess(caller, clazz, null, modifiers);
@@ -421,7 +417,8 @@ public final class Constructor<T> extends Executable {
         }
         @SuppressWarnings("unchecked")
         T inst = (T) ca.newInstance(initargs);
-        return inst;
+        return inst;*/
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -443,58 +440,58 @@ public final class Constructor<T> extends Executable {
         return super.isSynthetic();
     }
 
-    // NOTE that there is no synchronization used here. It is correct
-    // (though not efficient) to generate more than one
-    // ConstructorAccessor for a given Constructor. However, avoiding
-    // synchronization will probably make the implementation more
-    // scalable.
-    private ConstructorAccessor acquireConstructorAccessor() {
-        // First check to see if one has been created yet, and take it
-        // if so.
-        ConstructorAccessor tmp = null;
-        if (root != null) tmp = root.getConstructorAccessor();
-        if (tmp != null) {
-            constructorAccessor = tmp;
-        } else {
-            // Otherwise fabricate one and propagate it up to the root
-            tmp = reflectionFactory.newConstructorAccessor(this);
-            setConstructorAccessor(tmp);
-        }
-
-        return tmp;
-    }
-
-    // Returns ConstructorAccessor for this Constructor object, not
-    // looking up the chain to the root
-    ConstructorAccessor getConstructorAccessor() {
-        return constructorAccessor;
-    }
-
-    // Sets the ConstructorAccessor for this Constructor object and
-    // (recursively) its root
-    void setConstructorAccessor(ConstructorAccessor accessor) {
-        constructorAccessor = accessor;
-        // Propagate up
-        if (root != null) {
-            root.setConstructorAccessor(accessor);
-        }
-    }
-
-    int getSlot() {
-        return slot;
-    }
+    // // NOTE that there is no synchronization used here. It is correct
+    // // (though not efficient) to generate more than one
+    // // ConstructorAccessor for a given Constructor. However, avoiding
+    // // synchronization will probably make the implementation more
+    // // scalable.
+    // private ConstructorAccessor acquireConstructorAccessor() {
+    //     // First check to see if one has been created yet, and take it
+    //     // if so.
+    //     ConstructorAccessor tmp = null;
+    //     if (root != null) tmp = root.getConstructorAccessor();
+    //     if (tmp != null) {
+    //         constructorAccessor = tmp;
+    //     } else {
+    //         // Otherwise fabricate one and propagate it up to the root
+    //         tmp = reflectionFactory.newConstructorAccessor(this);
+    //         setConstructorAccessor(tmp);
+    //     }
+    //
+    //     return tmp;
+    // }
+    //
+    // // Returns ConstructorAccessor for this Constructor object, not
+    // // looking up the chain to the root
+    // ConstructorAccessor getConstructorAccessor() {
+    //     return constructorAccessor;
+    // }
+    //
+    // // Sets the ConstructorAccessor for this Constructor object and
+    // // (recursively) its root
+    // void setConstructorAccessor(ConstructorAccessor accessor) {
+    //     constructorAccessor = accessor;
+    //     // Propagate up
+    //     if (root != null) {
+    //         root.setConstructorAccessor(accessor);
+    //     }
+    // }
+    //
+    // int getSlot() {
+    //     return slot;
+    // }
 
     String getSignature() {
         return signature;
     }
 
-    byte[] getRawAnnotations() {
-        return annotations;
-    }
-
-    byte[] getRawParameterAnnotations() {
-        return parameterAnnotations;
-    }
+    // byte[] getRawAnnotations() {
+    //     return annotations;
+    // }
+    //
+    // byte[] getRawParameterAnnotations() {
+    //     return parameterAnnotations;
+    // }
 
 
     /**
@@ -520,28 +517,29 @@ public final class Constructor<T> extends Executable {
      */
     @Override
     public Annotation[][] getParameterAnnotations() {
-        return sharedGetParameterAnnotations(parameterTypes, parameterAnnotations);
+        // return sharedGetParameterAnnotations(parameterTypes, parameterAnnotations);
+        throw new RuntimeException("Not implemented");
     }
 
-    @Override
-    void handleParameterNumberMismatch(int resultLength, int numParameters) {
-        Class<?> declaringClass = getDeclaringClass();
-        if (declaringClass.isEnum() ||
-            declaringClass.isAnonymousClass() ||
-            declaringClass.isLocalClass() )
-            return ; // Can't do reliable parameter counting
-        else {
-            if (!declaringClass.isMemberClass() || // top-level
-                // Check for the enclosing instance parameter for
-                // non-static member classes
-                (declaringClass.isMemberClass() &&
-                 ((declaringClass.getModifiers() & Modifier.STATIC) == 0)  &&
-                 resultLength + 1 != numParameters) ) {
-                throw new AnnotationFormatError(
-                          "Parameter annotations don't match number of parameters");
-            }
-        }
-    }
+    // @Override
+    // void handleParameterNumberMismatch(int resultLength, int numParameters) {
+    //     Class<?> declaringClass = getDeclaringClass();
+    //     if (declaringClass.isEnum() ||
+    //         declaringClass.isAnonymousClass() ||
+    //         declaringClass.isLocalClass() )
+    //         return ; // Can't do reliable parameter counting
+    //     else {
+    //         if (!declaringClass.isMemberClass() || // top-level
+    //             // Check for the enclosing instance parameter for
+    //             // non-static member classes
+    //             (declaringClass.isMemberClass() &&
+    //              ((declaringClass.getModifiers() & Modifier.STATIC) == 0)  &&
+    //              resultLength + 1 != numParameters) ) {
+    //             throw new AnnotationFormatError(
+    //                       "Parameter annotations don't match number of parameters");
+    //         }
+    //     }
+    // }
 
     /**
      * {@inheritDoc}
@@ -561,12 +559,13 @@ public final class Constructor<T> extends Executable {
         if (getDeclaringClass().getEnclosingClass() == null)
             return super.getAnnotatedReceiverType();
 
-        return TypeAnnotationParser.buildAnnotatedType(getTypeAnnotationBytes0(),
+/*        return TypeAnnotationParser.buildAnnotatedType(getTypeAnnotationBytes0(),
                 sun.misc.SharedSecrets.getJavaLangAccess().
                         getConstantPool(getDeclaringClass()),
                 this,
                 getDeclaringClass(),
                 getDeclaringClass().getEnclosingClass(),
-                TypeAnnotation.TypeAnnotationTarget.METHOD_RECEIVER);
+                TypeAnnotation.TypeAnnotationTarget.METHOD_RECEIVER);*/
+        throw new RuntimeException("Not implemented");
     }
 }

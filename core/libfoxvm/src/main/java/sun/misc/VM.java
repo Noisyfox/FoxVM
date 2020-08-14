@@ -412,11 +412,13 @@ public class VM {
         if (loader != null) {
             return loader;
         }
-        try {
+        // FoxVM-changed: ext class loader not supported
+/*        try {
             return Launcher.ExtClassLoader.getExtClassLoader();
         } catch (IOException e) {
             return null;
-        }
+        }*/
+        return null;
     }
 
     static {

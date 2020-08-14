@@ -28,7 +28,8 @@ import java.lang.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import sun.reflect.annotation.AnnotationSupport;
+
+import libcore.reflect.AnnotatedElements;
 
 /**
  * Information about method parameters.
@@ -293,9 +294,11 @@ public final class Parameter implements AnnotatedElement {
      */
     @Override
     public <T extends Annotation> T[] getAnnotationsByType(Class<T> annotationClass) {
-        Objects.requireNonNull(annotationClass);
+        // FOXVM-changed: Use libcore.reflect.AnnotatedElements
+/*        Objects.requireNonNull(annotationClass);
 
-        return AnnotationSupport.getDirectlyAndIndirectlyPresent(declaredAnnotations(), annotationClass);
+        return AnnotationSupport.getDirectlyAndIndirectlyPresent(declaredAnnotations(), annotationClass);*/
+        return AnnotatedElements.getDirectOrIndirectAnnotationsByType(this, annotationClass);
     }
 
     /**

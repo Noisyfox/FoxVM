@@ -28,10 +28,8 @@ package java.lang.reflect;
 import java.lang.annotation.*;
 import java.util.Map;
 import java.util.Objects;
-import sun.reflect.annotation.AnnotationParser;
-import sun.reflect.annotation.AnnotationSupport;
-import sun.reflect.annotation.TypeAnnotationParser;
-import sun.reflect.annotation.TypeAnnotation;
+
+import libcore.reflect.AnnotatedElements;
 import sun.reflect.generics.repository.ConstructorRepository;
 
 /**
@@ -50,7 +48,7 @@ public abstract class Executable extends AccessibleObject
     /**
      * Accessor method to allow code sharing
      */
-    abstract byte[] getAnnotationBytes();
+    // abstract byte[] getAnnotationBytes();
 
     /**
      * Accessor method to allow code sharing
@@ -76,13 +74,13 @@ public abstract class Executable extends AccessibleObject
         return false;
     }
 
-    Annotation[][] parseParameterAnnotations(byte[] parameterAnnotations) {
-        return AnnotationParser.parseParameterAnnotations(
-               parameterAnnotations,
-               sun.misc.SharedSecrets.getJavaLangAccess().
-               getConstantPool(getDeclaringClass()),
-               getDeclaringClass());
-    }
+    // Annotation[][] parseParameterAnnotations(byte[] parameterAnnotations) {
+    //     return AnnotationParser.parseParameterAnnotations(
+    //            parameterAnnotations,
+    //            sun.misc.SharedSecrets.getJavaLangAccess().
+    //            getConstantPool(getDeclaringClass()),
+    //            getDeclaringClass());
+    // }
 
     void separateWithCommas(Class<?>[] types, StringBuilder sb) {
         for (int j = 0; j < types.length; j++) {
@@ -435,12 +433,12 @@ public abstract class Executable extends AccessibleObject
     private transient volatile Parameter[] parameters;
 
     private native Parameter[] getParameters0();
-    native byte[] getTypeAnnotationBytes0();
+    // native byte[] getTypeAnnotationBytes0();
 
-    // Needed by reflectaccess
-    byte[] getTypeAnnotationBytes() {
-        return getTypeAnnotationBytes0();
-    }
+    // // Needed by reflectaccess
+    // byte[] getTypeAnnotationBytes() {
+    //     return getTypeAnnotationBytes0();
+    // }
 
     /**
      * Returns an array of {@code Class} objects that represent the
@@ -546,20 +544,20 @@ public abstract class Executable extends AccessibleObject
      */
     public abstract Annotation[][] getParameterAnnotations();
 
-    Annotation[][] sharedGetParameterAnnotations(Class<?>[] parameterTypes,
-                                                 byte[] parameterAnnotations) {
-        int numParameters = parameterTypes.length;
-        if (parameterAnnotations == null)
-            return new Annotation[numParameters][0];
+    // Annotation[][] sharedGetParameterAnnotations(Class<?>[] parameterTypes,
+    //                                              byte[] parameterAnnotations) {
+    //     int numParameters = parameterTypes.length;
+    //     if (parameterAnnotations == null)
+    //         return new Annotation[numParameters][0];
+    //
+    //     Annotation[][] result = parseParameterAnnotations(parameterAnnotations);
+    //
+    //     if (result.length != numParameters)
+    //         handleParameterNumberMismatch(result.length, numParameters);
+    //     return result;
+    // }
 
-        Annotation[][] result = parseParameterAnnotations(parameterAnnotations);
-
-        if (result.length != numParameters)
-            handleParameterNumberMismatch(result.length, numParameters);
-        return result;
-    }
-
-    abstract void handleParameterNumberMismatch(int resultLength, int numParameters);
+    // abstract void handleParameterNumberMismatch(int resultLength, int numParameters);
 
     /**
      * {@inheritDoc}
@@ -567,7 +565,8 @@ public abstract class Executable extends AccessibleObject
      */
     public <T extends Annotation> T getAnnotation(Class<T> annotationClass) {
         Objects.requireNonNull(annotationClass);
-        return annotationClass.cast(declaredAnnotations().get(annotationClass));
+        // return annotationClass.cast(declaredAnnotations().get(annotationClass));
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -576,42 +575,45 @@ public abstract class Executable extends AccessibleObject
      */
     @Override
     public <T extends Annotation> T[] getAnnotationsByType(Class<T> annotationClass) {
-        Objects.requireNonNull(annotationClass);
+        // FOXVM-changed: Use libcore.reflect.AnnotatedElements
+/*        Objects.requireNonNull(annotationClass);
 
-        return AnnotationSupport.getDirectlyAndIndirectlyPresent(declaredAnnotations(), annotationClass);
+        return AnnotationSupport.getDirectlyAndIndirectlyPresent(declaredAnnotations(), annotationClass);*/
+        return AnnotatedElements.getDirectOrIndirectAnnotationsByType(this, annotationClass);
     }
 
     /**
      * {@inheritDoc}
      */
     public Annotation[] getDeclaredAnnotations()  {
-        return AnnotationParser.toArray(declaredAnnotations());
+        // return AnnotationParser.toArray(declaredAnnotations());
+        throw new RuntimeException("Not implemented");
     }
 
-    private transient volatile Map<Class<? extends Annotation>, Annotation> declaredAnnotations;
-
-    private Map<Class<? extends Annotation>, Annotation> declaredAnnotations() {
-        Map<Class<? extends Annotation>, Annotation> declAnnos;
-        if ((declAnnos = declaredAnnotations) == null) {
-            synchronized (this) {
-                if ((declAnnos = declaredAnnotations) == null) {
-                    Executable root = getRoot();
-                    if (root != null) {
-                        declAnnos = root.declaredAnnotations();
-                    } else {
-                        declAnnos = AnnotationParser.parseAnnotations(
-                                getAnnotationBytes(),
-                                sun.misc.SharedSecrets.getJavaLangAccess().
-                                        getConstantPool(getDeclaringClass()),
-                                getDeclaringClass()
-                        );
-                    }
-                    declaredAnnotations = declAnnos;
-                }
-            }
-        }
-        return declAnnos;
-    }
+    // private transient volatile Map<Class<? extends Annotation>, Annotation> declaredAnnotations;
+    //
+    // private Map<Class<? extends Annotation>, Annotation> declaredAnnotations() {
+    //     Map<Class<? extends Annotation>, Annotation> declAnnos;
+    //     if ((declAnnos = declaredAnnotations) == null) {
+    //         synchronized (this) {
+    //             if ((declAnnos = declaredAnnotations) == null) {
+    //                 Executable root = getRoot();
+    //                 if (root != null) {
+    //                     declAnnos = root.declaredAnnotations();
+    //                 } else {
+    //                     declAnnos = AnnotationParser.parseAnnotations(
+    //                             getAnnotationBytes(),
+    //                             sun.misc.SharedSecrets.getJavaLangAccess().
+    //                                     getConstantPool(getDeclaringClass()),
+    //                             getDeclaringClass()
+    //                     );
+    //                 }
+    //                 declaredAnnotations = declAnnos;
+    //             }
+    //         }
+    //     }
+    //     return declAnnos;
+    // }
 
     /**
      * Returns an {@code AnnotatedType} object that represents the use of a type to
@@ -637,13 +639,14 @@ public abstract class Executable extends AccessibleObject
      * Executable.
      */
     AnnotatedType getAnnotatedReturnType0(Type returnType) {
-        return TypeAnnotationParser.buildAnnotatedType(getTypeAnnotationBytes0(),
+/*        return TypeAnnotationParser.buildAnnotatedType(getTypeAnnotationBytes0(),
                 sun.misc.SharedSecrets.getJavaLangAccess().
                         getConstantPool(getDeclaringClass()),
                 this,
                 getDeclaringClass(),
                 returnType,
-                TypeAnnotation.TypeAnnotationTarget.METHOD_RETURN);
+                TypeAnnotation.TypeAnnotationTarget.METHOD_RETURN);*/
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -668,13 +671,14 @@ public abstract class Executable extends AccessibleObject
     public AnnotatedType getAnnotatedReceiverType() {
         if (Modifier.isStatic(this.getModifiers()))
             return null;
-        return TypeAnnotationParser.buildAnnotatedType(getTypeAnnotationBytes0(),
+/*        return TypeAnnotationParser.buildAnnotatedType(getTypeAnnotationBytes0(),
                 sun.misc.SharedSecrets.getJavaLangAccess().
                         getConstantPool(getDeclaringClass()),
                 this,
                 getDeclaringClass(),
                 getDeclaringClass(),
-                TypeAnnotation.TypeAnnotationTarget.METHOD_RECEIVER);
+                TypeAnnotation.TypeAnnotationTarget.METHOD_RECEIVER);*/
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -692,13 +696,14 @@ public abstract class Executable extends AccessibleObject
      * {@code Executable}
      */
     public AnnotatedType[] getAnnotatedParameterTypes() {
-        return TypeAnnotationParser.buildAnnotatedTypes(getTypeAnnotationBytes0(),
+/*        return TypeAnnotationParser.buildAnnotatedTypes(getTypeAnnotationBytes0(),
                 sun.misc.SharedSecrets.getJavaLangAccess().
                         getConstantPool(getDeclaringClass()),
                 this,
                 getDeclaringClass(),
                 getAllGenericParameterTypes(),
-                TypeAnnotation.TypeAnnotationTarget.METHOD_FORMAL_PARAMETER);
+                TypeAnnotation.TypeAnnotationTarget.METHOD_FORMAL_PARAMETER);*/
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -716,13 +721,14 @@ public abstract class Executable extends AccessibleObject
      * Executable}
      */
     public AnnotatedType[] getAnnotatedExceptionTypes() {
-        return TypeAnnotationParser.buildAnnotatedTypes(getTypeAnnotationBytes0(),
+/*        return TypeAnnotationParser.buildAnnotatedTypes(getTypeAnnotationBytes0(),
                 sun.misc.SharedSecrets.getJavaLangAccess().
                         getConstantPool(getDeclaringClass()),
                 this,
                 getDeclaringClass(),
                 getGenericExceptionTypes(),
-                TypeAnnotation.TypeAnnotationTarget.THROWS);
+                TypeAnnotation.TypeAnnotationTarget.THROWS);*/
+        throw new RuntimeException("Not implemented");
     }
 
 }

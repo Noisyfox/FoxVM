@@ -56,9 +56,7 @@ import java.util.HashMap;
 import java.util.Objects;
 import sun.misc.Unsafe;
 import sun.reflect.CallerSensitive;
-import sun.reflect.ConstantPool;
 import sun.reflect.Reflection;
-import sun.reflect.ReflectionFactory;
 import sun.reflect.generics.factory.CoreReflectionFactory;
 import sun.reflect.generics.factory.GenericsFactory;
 import sun.reflect.generics.repository.ClassRepository;
@@ -332,7 +330,8 @@ public final class Class<T> implements java.io.Serializable,
         throws ClassNotFoundException
     {
         Class<?> caller = null;
-        SecurityManager sm = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             // Reflective call to get caller class is only needed if a security manager
             // is present.  Avoid the overhead of making this call otherwise.
@@ -344,7 +343,7 @@ public final class Class<T> implements java.io.Serializable,
                         SecurityConstants.GET_CLASSLOADER_PERMISSION);
                 }
             }
-        }
+        }*/
         return forName0(name, initialize, loader, caller);
     }
 
@@ -393,9 +392,10 @@ public final class Class<T> implements java.io.Serializable,
     public T newInstance()
         throws InstantiationException, IllegalAccessException
     {
-        if (System.getSecurityManager() != null) {
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        if (System.getSecurityManager() != null) {
             checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), false);
-        }
+        }*/
 
         // NOTE: the following code may not be strictly correct under
         // the current Java memory model.
@@ -678,10 +678,11 @@ public final class Class<T> implements java.io.Serializable,
         ClassLoader cl = getClassLoader0();
         if (cl == null)
             return null;
-        SecurityManager sm = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             ClassLoader.checkClassLoaderPermission(cl, Reflection.getCallerClass());
-        }
+        }*/
         return cl;
     }
 
@@ -842,7 +843,7 @@ public final class Class<T> implements java.io.Serializable,
      * @return an array of interfaces implemented by this class.
      */
     public Class<?>[] getInterfaces() {
-        ReflectionData<T> rd = reflectionData();
+/*        ReflectionData<T> rd = reflectionData();
         if (rd == null) {
             // no cloning required
             return getInterfaces0();
@@ -854,10 +855,11 @@ public final class Class<T> implements java.io.Serializable,
             }
             // defensively copy before handing over to user code
             return interfaces.clone();
-        }
+        }*/
+        throw new RuntimeException("Not implemented");
     }
 
-    private native Class<?>[] getInterfaces0();
+    // private native Class<?>[] getInterfaces0();
 
     /**
      * Returns the {@code Type}s representing the interfaces
@@ -1034,8 +1036,9 @@ public final class Class<T> implements java.io.Serializable,
 
             // Perform access check
             Class<?> enclosingCandidate = enclosingInfo.getEnclosingClass();
-            enclosingCandidate.checkMemberAccess(Member.DECLARED,
-                                                 Reflection.getCallerClass(), true);
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+/*            enclosingCandidate.checkMemberAccess(Member.DECLARED,
+                                                 Reflection.getCallerClass(), true);*/
             /*
              * Loop over all declared methods; match method name,
              * number of and type of parameters, *and* return
@@ -1186,8 +1189,9 @@ public final class Class<T> implements java.io.Serializable,
 
             // Perform access check
             Class<?> enclosingCandidate = enclosingInfo.getEnclosingClass();
-            enclosingCandidate.checkMemberAccess(Member.DECLARED,
-                                                 Reflection.getCallerClass(), true);
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+/*            enclosingCandidate.checkMemberAccess(Member.DECLARED,
+                                                 Reflection.getCallerClass(), true);*/
             /*
              * Loop over all declared constructors; match number
              * of and type of parameters.
@@ -1234,9 +1238,10 @@ public final class Class<T> implements java.io.Serializable,
     public Class<?> getDeclaringClass() throws SecurityException {
         final Class<?> candidate = getDeclaringClass0();
 
-        if (candidate != null)
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        if (candidate != null)
             candidate.checkPackageAccess(
-                    ClassLoader.getClassLoader(Reflection.getCallerClass()), true);
+                    ClassLoader.getClassLoader(Reflection.getCallerClass()), true);*/
         return candidate;
     }
 
@@ -1284,9 +1289,10 @@ public final class Class<T> implements java.io.Serializable,
                 enclosingCandidate = enclosingClass;
         }
 
-        if (enclosingCandidate != null)
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        if (enclosingCandidate != null)
             enclosingCandidate.checkPackageAccess(
-                    ClassLoader.getClassLoader(Reflection.getCallerClass()), true);
+                    ClassLoader.getClassLoader(Reflection.getCallerClass()), true);*/
         return enclosingCandidate;
     }
 
@@ -1487,7 +1493,8 @@ public final class Class<T> implements java.io.Serializable,
      */
     @CallerSensitive
     public Class<?>[] getClasses() {
-        checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), false);
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), false);
 
         // Privileged so this implementation can look at DECLARED classes,
         // something the caller might not have privilege to do.  The code here
@@ -1553,8 +1560,10 @@ public final class Class<T> implements java.io.Serializable,
      */
     @CallerSensitive
     public Field[] getFields() throws SecurityException {
-        checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
-        return copyFields(privateGetPublicFields(null));
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
+        // return copyFields(privateGetPublicFields(null));
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -1611,8 +1620,10 @@ public final class Class<T> implements java.io.Serializable,
      */
     @CallerSensitive
     public Method[] getMethods() throws SecurityException {
-        checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
-        return copyMethods(privateGetPublicMethods());
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
+        // return copyMethods(privateGetPublicMethods());
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -1647,8 +1658,10 @@ public final class Class<T> implements java.io.Serializable,
      */
     @CallerSensitive
     public Constructor<?>[] getConstructors() throws SecurityException {
-        checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
-        return copyConstructors(privateGetDeclaredConstructors(true));
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
+        // return copyConstructors(privateGetDeclaredConstructors(true));
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -1697,12 +1710,14 @@ public final class Class<T> implements java.io.Serializable,
     @CallerSensitive
     public Field getField(String name)
         throws NoSuchFieldException, SecurityException {
-        checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
-        Field field = getField0(name);
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
+/*        Field field = getField0(name);
         if (field == null) {
             throw new NoSuchFieldException(name);
         }
-        return field;
+        return field;*/
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -1780,12 +1795,14 @@ public final class Class<T> implements java.io.Serializable,
     @CallerSensitive
     public Method getMethod(String name, Class<?>... parameterTypes)
         throws NoSuchMethodException, SecurityException {
-        checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
-        Method method = getMethod0(name, parameterTypes, true);
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
+/*        Method method = getMethod0(name, parameterTypes, true);
         if (method == null) {
             throw new NoSuchMethodException(getName() + "." + name + argumentTypesToString(parameterTypes));
         }
-        return method;
+        return method;*/
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -1821,7 +1838,8 @@ public final class Class<T> implements java.io.Serializable,
     @CallerSensitive
     public Constructor<T> getConstructor(Class<?>... parameterTypes)
         throws NoSuchMethodException, SecurityException {
-        checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.PUBLIC, Reflection.getCallerClass(), true);
         return getConstructor0(parameterTypes, Member.PUBLIC);
     }
 
@@ -1863,8 +1881,10 @@ public final class Class<T> implements java.io.Serializable,
      */
     @CallerSensitive
     public Class<?>[] getDeclaredClasses() throws SecurityException {
-        checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), false);
-        return getDeclaredClasses0();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), false);
+        // return getDeclaredClasses0();
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -1912,8 +1932,10 @@ public final class Class<T> implements java.io.Serializable,
      */
     @CallerSensitive
     public Field[] getDeclaredFields() throws SecurityException {
-        checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
-        return copyFields(privateGetDeclaredFields(false));
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
+        // return copyFields(privateGetDeclaredFields(false));
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -1971,8 +1993,10 @@ public final class Class<T> implements java.io.Serializable,
      */
     @CallerSensitive
     public Method[] getDeclaredMethods() throws SecurityException {
-        checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
-        return copyMethods(privateGetDeclaredMethods(false));
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
+        // return copyMethods(privateGetDeclaredMethods(false));
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -2016,8 +2040,10 @@ public final class Class<T> implements java.io.Serializable,
      */
     @CallerSensitive
     public Constructor<?>[] getDeclaredConstructors() throws SecurityException {
-        checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
-        return copyConstructors(privateGetDeclaredConstructors(false));
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
+        // return copyConstructors(privateGetDeclaredConstructors(false));
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -2064,12 +2090,14 @@ public final class Class<T> implements java.io.Serializable,
     @CallerSensitive
     public Field getDeclaredField(String name)
         throws NoSuchFieldException, SecurityException {
-        checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
-        Field field = searchFields(privateGetDeclaredFields(false), name);
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
+/*        Field field = searchFields(privateGetDeclaredFields(false), name);
         if (field == null) {
             throw new NoSuchFieldException(name);
         }
-        return field;
+        return field;*/
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -2124,12 +2152,14 @@ public final class Class<T> implements java.io.Serializable,
     @CallerSensitive
     public Method getDeclaredMethod(String name, Class<?>... parameterTypes)
         throws NoSuchMethodException, SecurityException {
-        checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
-        Method method = searchMethods(privateGetDeclaredMethods(false), name, parameterTypes);
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
+/*        Method method = searchMethods(privateGetDeclaredMethods(false), name, parameterTypes);
         if (method == null) {
             throw new NoSuchMethodException(getName() + "." + name + argumentTypesToString(parameterTypes));
         }
-        return method;
+        return method;*/
+        throw new RuntimeException("Not implemented");
     }
 
 
@@ -2174,7 +2204,8 @@ public final class Class<T> implements java.io.Serializable,
     @CallerSensitive
     public Constructor<T> getDeclaredConstructor(Class<?>... parameterTypes)
         throws NoSuchMethodException, SecurityException {
-        checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // checkMemberAccess(Member.DECLARED, Reflection.getCallerClass(), true);
         return getConstructor0(parameterTypes, Member.DECLARED);
     }
 
@@ -2270,7 +2301,8 @@ public final class Class<T> implements java.io.Serializable,
 
 
     /** protection domain returned when the internal domain is null */
-    private static java.security.ProtectionDomain allPermDomain;
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // private static java.security.ProtectionDomain allPermDomain;
 
 
     /**
@@ -2294,7 +2326,8 @@ public final class Class<T> implements java.io.Serializable,
      * @since 1.2
      */
     public java.security.ProtectionDomain getProtectionDomain() {
-        SecurityManager sm = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(SecurityConstants.GET_PD_PERMISSION);
         }
@@ -2308,15 +2341,16 @@ public final class Class<T> implements java.io.Serializable,
                     new java.security.ProtectionDomain(null, perms);
             }
             pd = allPermDomain;
-        }
-        return pd;
+        }*/
+        return null;
     }
 
 
     /**
      * Returns the ProtectionDomain of this class.
      */
-    private native java.security.ProtectionDomain getProtectionDomain0();
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // private native java.security.ProtectionDomain getProtectionDomain0();
 
     /*
      * Return the Virtual Machine's Class object for the named
@@ -2324,6 +2358,7 @@ public final class Class<T> implements java.io.Serializable,
      */
     static native Class<?> getPrimitiveClass(String name);
 
+    // FoxVM-removed: FoxVM does not support SecurityManager.
     /*
      * Check if client is allowed to access members.  If access is denied,
      * throw a SecurityException.
@@ -2333,52 +2368,52 @@ public final class Class<T> implements java.io.Serializable,
      * <p> Default policy: allow all clients access with normal Java access
      * control.
      */
-    private void checkMemberAccess(int which, Class<?> caller, boolean checkProxyInterfaces) {
-        final SecurityManager s = System.getSecurityManager();
-        if (s != null) {
-            /* Default policy allows access to all {@link Member#PUBLIC} members,
-             * as well as access to classes that have the same class loader as the caller.
-             * In all other cases, it requires RuntimePermission("accessDeclaredMembers")
-             * permission.
-             */
-            final ClassLoader ccl = ClassLoader.getClassLoader(caller);
-            final ClassLoader cl = getClassLoader0();
-            if (which != Member.PUBLIC) {
-                if (ccl != cl) {
-                    s.checkPermission(SecurityConstants.CHECK_MEMBER_ACCESS_PERMISSION);
-                }
-            }
-            this.checkPackageAccess(ccl, checkProxyInterfaces);
-        }
-    }
+    // private void checkMemberAccess(int which, Class<?> caller, boolean checkProxyInterfaces) {
+    //     final SecurityManager s = System.getSecurityManager();
+    //     if (s != null) {
+    //         /* Default policy allows access to all {@link Member#PUBLIC} members,
+    //          * as well as access to classes that have the same class loader as the caller.
+    //          * In all other cases, it requires RuntimePermission("accessDeclaredMembers")
+    //          * permission.
+    //          */
+    //         final ClassLoader ccl = ClassLoader.getClassLoader(caller);
+    //         final ClassLoader cl = getClassLoader0();
+    //         if (which != Member.PUBLIC) {
+    //             if (ccl != cl) {
+    //                 s.checkPermission(SecurityConstants.CHECK_MEMBER_ACCESS_PERMISSION);
+    //             }
+    //         }
+    //         this.checkPackageAccess(ccl, checkProxyInterfaces);
+    //     }
+    // }
 
     /*
      * Checks if a client loaded in ClassLoader ccl is allowed to access this
      * class under the current package access policy. If access is denied,
      * throw a SecurityException.
      */
-    private void checkPackageAccess(final ClassLoader ccl, boolean checkProxyInterfaces) {
-        final SecurityManager s = System.getSecurityManager();
-        if (s != null) {
-            final ClassLoader cl = getClassLoader0();
-
-            if (ReflectUtil.needsPackageAccessCheck(ccl, cl)) {
-                String name = this.getName();
-                int i = name.lastIndexOf('.');
-                if (i != -1) {
-                    // skip the package access check on a proxy class in default proxy package
-                    String pkg = name.substring(0, i);
-                    if (!Proxy.isProxyClass(this) || ReflectUtil.isNonPublicProxyClass(this)) {
-                        s.checkPackageAccess(pkg);
-                    }
-                }
-            }
-            // check package access on the proxy interfaces
-            if (checkProxyInterfaces && Proxy.isProxyClass(this)) {
-                ReflectUtil.checkProxyPackageAccess(ccl, this.getInterfaces());
-            }
-        }
-    }
+    // private void checkPackageAccess(final ClassLoader ccl, boolean checkProxyInterfaces) {
+    //     final SecurityManager s = System.getSecurityManager();
+    //     if (s != null) {
+    //         final ClassLoader cl = getClassLoader0();
+    //
+    //         if (ReflectUtil.needsPackageAccessCheck(ccl, cl)) {
+    //             String name = this.getName();
+    //             int i = name.lastIndexOf('.');
+    //             if (i != -1) {
+    //                 // skip the package access check on a proxy class in default proxy package
+    //                 String pkg = name.substring(0, i);
+    //                 if (!Proxy.isProxyClass(this) || ReflectUtil.isNonPublicProxyClass(this)) {
+    //                     s.checkPackageAccess(pkg);
+    //                 }
+    //             }
+    //         }
+    //         // check package access on the proxy interfaces
+    //         if (checkProxyInterfaces && Proxy.isProxyClass(this)) {
+    //             ReflectUtil.checkProxyPackageAccess(ccl, this.getInterfaces());
+    //         }
+    //     }
+    // }
 
     /**
      * Add a package name prefix if the name is not absolute Remove leading "/"
@@ -2408,121 +2443,121 @@ public final class Class<T> implements java.io.Serializable,
     /**
      * Atomic operations support.
      */
-    private static class Atomic {
-        // initialize Unsafe machinery here, since we need to call Class.class instance method
-        // and have to avoid calling it in the static initializer of the Class class...
-        private static final Unsafe unsafe = Unsafe.getUnsafe();
-        // offset of Class.reflectionData instance field
-        private static final long reflectionDataOffset;
-        // offset of Class.annotationType instance field
-        private static final long annotationTypeOffset;
-        // offset of Class.annotationData instance field
-        private static final long annotationDataOffset;
-
-        static {
-            Field[] fields = Class.class.getDeclaredFields0(false); // bypass caches
-            reflectionDataOffset = objectFieldOffset(fields, "reflectionData");
-            annotationTypeOffset = objectFieldOffset(fields, "annotationType");
-            annotationDataOffset = objectFieldOffset(fields, "annotationData");
-        }
-
-        private static long objectFieldOffset(Field[] fields, String fieldName) {
-            Field field = searchFields(fields, fieldName);
-            if (field == null) {
-                throw new Error("No " + fieldName + " field found in java.lang.Class");
-            }
-            return unsafe.objectFieldOffset(field);
-        }
-
-        static <T> boolean casReflectionData(Class<?> clazz,
-                                             SoftReference<ReflectionData<T>> oldData,
-                                             SoftReference<ReflectionData<T>> newData) {
-            return unsafe.compareAndSwapObject(clazz, reflectionDataOffset, oldData, newData);
-        }
-
-        static <T> boolean casAnnotationType(Class<?> clazz,
-                                             AnnotationType oldType,
-                                             AnnotationType newType) {
-            return unsafe.compareAndSwapObject(clazz, annotationTypeOffset, oldType, newType);
-        }
-
-        static <T> boolean casAnnotationData(Class<?> clazz,
-                                             AnnotationData oldData,
-                                             AnnotationData newData) {
-            return unsafe.compareAndSwapObject(clazz, annotationDataOffset, oldData, newData);
-        }
-    }
+    // private static class Atomic {
+    //     // initialize Unsafe machinery here, since we need to call Class.class instance method
+    //     // and have to avoid calling it in the static initializer of the Class class...
+    //     private static final Unsafe unsafe = Unsafe.getUnsafe();
+    //     // offset of Class.reflectionData instance field
+    //     private static final long reflectionDataOffset;
+    //     // offset of Class.annotationType instance field
+    //     private static final long annotationTypeOffset;
+    //     // offset of Class.annotationData instance field
+    //     private static final long annotationDataOffset;
+    //
+    //     static {
+    //         Field[] fields = Class.class.getDeclaredFields0(false); // bypass caches
+    //         reflectionDataOffset = objectFieldOffset(fields, "reflectionData");
+    //         annotationTypeOffset = objectFieldOffset(fields, "annotationType");
+    //         annotationDataOffset = objectFieldOffset(fields, "annotationData");
+    //     }
+    //
+    //     private static long objectFieldOffset(Field[] fields, String fieldName) {
+    //         Field field = searchFields(fields, fieldName);
+    //         if (field == null) {
+    //             throw new Error("No " + fieldName + " field found in java.lang.Class");
+    //         }
+    //         return unsafe.objectFieldOffset(field);
+    //     }
+    //
+    //     static <T> boolean casReflectionData(Class<?> clazz,
+    //                                          SoftReference<ReflectionData<T>> oldData,
+    //                                          SoftReference<ReflectionData<T>> newData) {
+    //         return unsafe.compareAndSwapObject(clazz, reflectionDataOffset, oldData, newData);
+    //     }
+    //
+    //     static <T> boolean casAnnotationType(Class<?> clazz,
+    //                                          AnnotationType oldType,
+    //                                          AnnotationType newType) {
+    //         return unsafe.compareAndSwapObject(clazz, annotationTypeOffset, oldType, newType);
+    //     }
+    //
+    //     static <T> boolean casAnnotationData(Class<?> clazz,
+    //                                          AnnotationData oldData,
+    //                                          AnnotationData newData) {
+    //         return unsafe.compareAndSwapObject(clazz, annotationDataOffset, oldData, newData);
+    //     }
+    // }
 
     /**
      * Reflection support.
      */
-
-    // Caches for certain reflective results
-    private static boolean useCaches = true;
-
-    // reflection data that might get invalidated when JVM TI RedefineClasses() is called
-    private static class ReflectionData<T> {
-        volatile Field[] declaredFields;
-        volatile Field[] publicFields;
-        volatile Method[] declaredMethods;
-        volatile Method[] publicMethods;
-        volatile Constructor<T>[] declaredConstructors;
-        volatile Constructor<T>[] publicConstructors;
-        // Intermediate results for getFields and getMethods
-        volatile Field[] declaredPublicFields;
-        volatile Method[] declaredPublicMethods;
-        volatile Class<?>[] interfaces;
-
-        // Value of classRedefinedCount when we created this ReflectionData instance
-        final int redefinedCount;
-
-        ReflectionData(int redefinedCount) {
-            this.redefinedCount = redefinedCount;
-        }
-    }
-
-    private volatile transient SoftReference<ReflectionData<T>> reflectionData;
-
-    // Incremented by the VM on each call to JVM TI RedefineClasses()
-    // that redefines this class or a superclass.
-    private volatile transient int classRedefinedCount = 0;
-
-    // Lazily create and cache ReflectionData
-    private ReflectionData<T> reflectionData() {
-        SoftReference<ReflectionData<T>> reflectionData = this.reflectionData;
-        int classRedefinedCount = this.classRedefinedCount;
-        ReflectionData<T> rd;
-        if (useCaches &&
-            reflectionData != null &&
-            (rd = reflectionData.get()) != null &&
-            rd.redefinedCount == classRedefinedCount) {
-            return rd;
-        }
-        // else no SoftReference or cleared SoftReference or stale ReflectionData
-        // -> create and replace new instance
-        return newReflectionData(reflectionData, classRedefinedCount);
-    }
-
-    private ReflectionData<T> newReflectionData(SoftReference<ReflectionData<T>> oldReflectionData,
-                                                int classRedefinedCount) {
-        if (!useCaches) return null;
-
-        while (true) {
-            ReflectionData<T> rd = new ReflectionData<>(classRedefinedCount);
-            // try to CAS it...
-            if (Atomic.casReflectionData(this, oldReflectionData, new SoftReference<>(rd))) {
-                return rd;
-            }
-            // else retry
-            oldReflectionData = this.reflectionData;
-            classRedefinedCount = this.classRedefinedCount;
-            if (oldReflectionData != null &&
-                (rd = oldReflectionData.get()) != null &&
-                rd.redefinedCount == classRedefinedCount) {
-                return rd;
-            }
-        }
-    }
+    //
+    // // Caches for certain reflective results
+    // private static boolean useCaches = true;
+    //
+    // // reflection data that might get invalidated when JVM TI RedefineClasses() is called
+    // private static class ReflectionData<T> {
+    //     volatile Field[] declaredFields;
+    //     volatile Field[] publicFields;
+    //     volatile Method[] declaredMethods;
+    //     volatile Method[] publicMethods;
+    //     volatile Constructor<T>[] declaredConstructors;
+    //     volatile Constructor<T>[] publicConstructors;
+    //     // Intermediate results for getFields and getMethods
+    //     volatile Field[] declaredPublicFields;
+    //     volatile Method[] declaredPublicMethods;
+    //     volatile Class<?>[] interfaces;
+    //
+    //     // Value of classRedefinedCount when we created this ReflectionData instance
+    //     final int redefinedCount;
+    //
+    //     ReflectionData(int redefinedCount) {
+    //         this.redefinedCount = redefinedCount;
+    //     }
+    // }
+    //
+    // private volatile transient SoftReference<ReflectionData<T>> reflectionData;
+    //
+    // // Incremented by the VM on each call to JVM TI RedefineClasses()
+    // // that redefines this class or a superclass.
+    // private volatile transient int classRedefinedCount = 0;
+    //
+    // // Lazily create and cache ReflectionData
+    // private ReflectionData<T> reflectionData() {
+    //     SoftReference<ReflectionData<T>> reflectionData = this.reflectionData;
+    //     int classRedefinedCount = this.classRedefinedCount;
+    //     ReflectionData<T> rd;
+    //     if (useCaches &&
+    //         reflectionData != null &&
+    //         (rd = reflectionData.get()) != null &&
+    //         rd.redefinedCount == classRedefinedCount) {
+    //         return rd;
+    //     }
+    //     // else no SoftReference or cleared SoftReference or stale ReflectionData
+    //     // -> create and replace new instance
+    //     return newReflectionData(reflectionData, classRedefinedCount);
+    // }
+    //
+    // private ReflectionData<T> newReflectionData(SoftReference<ReflectionData<T>> oldReflectionData,
+    //                                             int classRedefinedCount) {
+    //     if (!useCaches) return null;
+    //
+    //     while (true) {
+    //         ReflectionData<T> rd = new ReflectionData<>(classRedefinedCount);
+    //         // try to CAS it...
+    //         if (Atomic.casReflectionData(this, oldReflectionData, new SoftReference<>(rd))) {
+    //             return rd;
+    //         }
+    //         // else retry
+    //         oldReflectionData = this.reflectionData;
+    //         classRedefinedCount = this.classRedefinedCount;
+    //         if (oldReflectionData != null &&
+    //             (rd = oldReflectionData.get()) != null &&
+    //             rd.redefinedCount == classRedefinedCount) {
+    //             return rd;
+    //         }
+    //     }
+    // }
 
     // Generic signature handling
     private native String getGenericSignature0();
@@ -2552,97 +2587,97 @@ public final class Class<T> implements java.io.Serializable,
         return (genericInfo != ClassRepository.NONE) ? genericInfo : null;
     }
 
-    // Annotations handling
-    native byte[] getRawAnnotations();
-    // Since 1.8
-    native byte[] getRawTypeAnnotations();
-    static byte[] getExecutableTypeAnnotationBytes(Executable ex) {
-        return getReflectionFactory().getExecutableTypeAnnotationBytes(ex);
-    }
-
-    native ConstantPool getConstantPool();
-
+    // // Annotations handling
+    // native byte[] getRawAnnotations();
+    // // Since 1.8
+    // native byte[] getRawTypeAnnotations();
+    // static byte[] getExecutableTypeAnnotationBytes(Executable ex) {
+    //     return getReflectionFactory().getExecutableTypeAnnotationBytes(ex);
+    // }
     //
+    // native ConstantPool getConstantPool();
     //
-    // java.lang.reflect.Field handling
+    // //
+    // //
+    // // java.lang.reflect.Field handling
+    // //
+    // //
     //
+    // // Returns an array of "root" fields. These Field objects must NOT
+    // // be propagated to the outside world, but must instead be copied
+    // // via ReflectionFactory.copyField.
+    // private Field[] privateGetDeclaredFields(boolean publicOnly) {
+    //     checkInitted();
+    //     Field[] res;
+    //     ReflectionData<T> rd = reflectionData();
+    //     if (rd != null) {
+    //         res = publicOnly ? rd.declaredPublicFields : rd.declaredFields;
+    //         if (res != null) return res;
+    //     }
+    //     // No cached value available; request value from VM
+    //     res = Reflection.filterFields(this, getDeclaredFields0(publicOnly));
+    //     if (rd != null) {
+    //         if (publicOnly) {
+    //             rd.declaredPublicFields = res;
+    //         } else {
+    //             rd.declaredFields = res;
+    //         }
+    //     }
+    //     return res;
+    // }
     //
-
-    // Returns an array of "root" fields. These Field objects must NOT
-    // be propagated to the outside world, but must instead be copied
-    // via ReflectionFactory.copyField.
-    private Field[] privateGetDeclaredFields(boolean publicOnly) {
-        checkInitted();
-        Field[] res;
-        ReflectionData<T> rd = reflectionData();
-        if (rd != null) {
-            res = publicOnly ? rd.declaredPublicFields : rd.declaredFields;
-            if (res != null) return res;
-        }
-        // No cached value available; request value from VM
-        res = Reflection.filterFields(this, getDeclaredFields0(publicOnly));
-        if (rd != null) {
-            if (publicOnly) {
-                rd.declaredPublicFields = res;
-            } else {
-                rd.declaredFields = res;
-            }
-        }
-        return res;
-    }
-
-    // Returns an array of "root" fields. These Field objects must NOT
-    // be propagated to the outside world, but must instead be copied
-    // via ReflectionFactory.copyField.
-    private Field[] privateGetPublicFields(Set<Class<?>> traversedInterfaces) {
-        checkInitted();
-        Field[] res;
-        ReflectionData<T> rd = reflectionData();
-        if (rd != null) {
-            res = rd.publicFields;
-            if (res != null) return res;
-        }
-
-        // No cached value available; compute value recursively.
-        // Traverse in correct order for getField().
-        List<Field> fields = new ArrayList<>();
-        if (traversedInterfaces == null) {
-            traversedInterfaces = new HashSet<>();
-        }
-
-        // Local fields
-        Field[] tmp = privateGetDeclaredFields(true);
-        addAll(fields, tmp);
-
-        // Direct superinterfaces, recursively
-        for (Class<?> c : getInterfaces()) {
-            if (!traversedInterfaces.contains(c)) {
-                traversedInterfaces.add(c);
-                addAll(fields, c.privateGetPublicFields(traversedInterfaces));
-            }
-        }
-
-        // Direct superclass, recursively
-        if (!isInterface()) {
-            Class<?> c = getSuperclass();
-            if (c != null) {
-                addAll(fields, c.privateGetPublicFields(traversedInterfaces));
-            }
-        }
-
-        res = new Field[fields.size()];
-        fields.toArray(res);
-        if (rd != null) {
-            rd.publicFields = res;
-        }
-        return res;
-    }
-
-    private static void addAll(Collection<Field> c, Field[] o) {
-        for (int i = 0; i < o.length; i++) {
-            c.add(o[i]);
-        }
-    }
+    // // Returns an array of "root" fields. These Field objects must NOT
+    // // be propagated to the outside world, but must instead be copied
+    // // via ReflectionFactory.copyField.
+    // private Field[] privateGetPublicFields(Set<Class<?>> traversedInterfaces) {
+    //     checkInitted();
+    //     Field[] res;
+    //     ReflectionData<T> rd = reflectionData();
+    //     if (rd != null) {
+    //         res = rd.publicFields;
+    //         if (res != null) return res;
+    //     }
+    //
+    //     // No cached value available; compute value recursively.
+    //     // Traverse in correct order for getField().
+    //     List<Field> fields = new ArrayList<>();
+    //     if (traversedInterfaces == null) {
+    //         traversedInterfaces = new HashSet<>();
+    //     }
+    //
+    //     // Local fields
+    //     Field[] tmp = privateGetDeclaredFields(true);
+    //     addAll(fields, tmp);
+    //
+    //     // Direct superinterfaces, recursively
+    //     for (Class<?> c : getInterfaces()) {
+    //         if (!traversedInterfaces.contains(c)) {
+    //             traversedInterfaces.add(c);
+    //             addAll(fields, c.privateGetPublicFields(traversedInterfaces));
+    //         }
+    //     }
+    //
+    //     // Direct superclass, recursively
+    //     if (!isInterface()) {
+    //         Class<?> c = getSuperclass();
+    //         if (c != null) {
+    //             addAll(fields, c.privateGetPublicFields(traversedInterfaces));
+    //         }
+    //     }
+    //
+    //     res = new Field[fields.size()];
+    //     fields.toArray(res);
+    //     if (rd != null) {
+    //         rd.publicFields = res;
+    //     }
+    //     return res;
+    // }
+    //
+    // private static void addAll(Collection<Field> c, Field[] o) {
+    //     for (int i = 0; i < o.length; i++) {
+    //         c.add(o[i]);
+    //     }
+    // }
 
 
     //
@@ -2654,31 +2689,31 @@ public final class Class<T> implements java.io.Serializable,
     // Returns an array of "root" constructors. These Constructor
     // objects must NOT be propagated to the outside world, but must
     // instead be copied via ReflectionFactory.copyConstructor.
-    private Constructor<T>[] privateGetDeclaredConstructors(boolean publicOnly) {
-        checkInitted();
-        Constructor<T>[] res;
-        ReflectionData<T> rd = reflectionData();
-        if (rd != null) {
-            res = publicOnly ? rd.publicConstructors : rd.declaredConstructors;
-            if (res != null) return res;
-        }
-        // No cached value available; request value from VM
-        if (isInterface()) {
-            @SuppressWarnings("unchecked")
-            Constructor<T>[] temporaryRes = (Constructor<T>[]) new Constructor<?>[0];
-            res = temporaryRes;
-        } else {
-            res = getDeclaredConstructors0(publicOnly);
-        }
-        if (rd != null) {
-            if (publicOnly) {
-                rd.publicConstructors = res;
-            } else {
-                rd.declaredConstructors = res;
-            }
-        }
-        return res;
-    }
+    // private Constructor<T>[] privateGetDeclaredConstructors(boolean publicOnly) {
+    //     checkInitted();
+    //     Constructor<T>[] res;
+    //     ReflectionData<T> rd = reflectionData();
+    //     if (rd != null) {
+    //         res = publicOnly ? rd.publicConstructors : rd.declaredConstructors;
+    //         if (res != null) return res;
+    //     }
+    //     // No cached value available; request value from VM
+    //     if (isInterface()) {
+    //         @SuppressWarnings("unchecked")
+    //         Constructor<T>[] temporaryRes = (Constructor<T>[]) new Constructor<?>[0];
+    //         res = temporaryRes;
+    //     } else {
+    //         res = getDeclaredConstructors0(publicOnly);
+    //     }
+    //     if (rd != null) {
+    //         if (publicOnly) {
+    //             rd.publicConstructors = res;
+    //         } else {
+    //             rd.declaredConstructors = res;
+    //         }
+    //     }
+    //     return res;
+    // }
 
     //
     //
@@ -2686,475 +2721,476 @@ public final class Class<T> implements java.io.Serializable,
     //
     //
 
-    // Returns an array of "root" methods. These Method objects must NOT
-    // be propagated to the outside world, but must instead be copied
-    // via ReflectionFactory.copyMethod.
-    private Method[] privateGetDeclaredMethods(boolean publicOnly) {
-        checkInitted();
-        Method[] res;
-        ReflectionData<T> rd = reflectionData();
-        if (rd != null) {
-            res = publicOnly ? rd.declaredPublicMethods : rd.declaredMethods;
-            if (res != null) return res;
-        }
-        // No cached value available; request value from VM
-        res = Reflection.filterMethods(this, getDeclaredMethods0(publicOnly));
-        if (rd != null) {
-            if (publicOnly) {
-                rd.declaredPublicMethods = res;
-            } else {
-                rd.declaredMethods = res;
-            }
-        }
-        return res;
-    }
-
-    static class MethodArray {
-        // Don't add or remove methods except by add() or remove() calls.
-        private Method[] methods;
-        private int length;
-        private int defaults;
-
-        MethodArray() {
-            this(20);
-        }
-
-        MethodArray(int initialSize) {
-            if (initialSize < 2)
-                throw new IllegalArgumentException("Size should be 2 or more");
-
-            methods = new Method[initialSize];
-            length = 0;
-            defaults = 0;
-        }
-
-        boolean hasDefaults() {
-            return defaults != 0;
-        }
-
-        void add(Method m) {
-            if (length == methods.length) {
-                methods = Arrays.copyOf(methods, 2 * methods.length);
-            }
-            methods[length++] = m;
-
-            if (m != null && m.isDefault())
-                defaults++;
-        }
-
-        void addAll(Method[] ma) {
-            for (int i = 0; i < ma.length; i++) {
-                add(ma[i]);
-            }
-        }
-
-        void addAll(MethodArray ma) {
-            for (int i = 0; i < ma.length(); i++) {
-                add(ma.get(i));
-            }
-        }
-
-        void addIfNotPresent(Method newMethod) {
-            for (int i = 0; i < length; i++) {
-                Method m = methods[i];
-                if (m == newMethod || (m != null && m.equals(newMethod))) {
-                    return;
-                }
-            }
-            add(newMethod);
-        }
-
-        void addAllIfNotPresent(MethodArray newMethods) {
-            for (int i = 0; i < newMethods.length(); i++) {
-                Method m = newMethods.get(i);
-                if (m != null) {
-                    addIfNotPresent(m);
-                }
-            }
-        }
-
-        /* Add Methods declared in an interface to this MethodArray.
-         * Static methods declared in interfaces are not inherited.
-         */
-        void addInterfaceMethods(Method[] methods) {
-            for (Method candidate : methods) {
-                if (!Modifier.isStatic(candidate.getModifiers())) {
-                    add(candidate);
-                }
-            }
-        }
-
-        int length() {
-            return length;
-        }
-
-        Method get(int i) {
-            return methods[i];
-        }
-
-        Method getFirst() {
-            for (Method m : methods)
-                if (m != null)
-                    return m;
-            return null;
-        }
-
-        void removeByNameAndDescriptor(Method toRemove) {
-            for (int i = 0; i < length; i++) {
-                Method m = methods[i];
-                if (m != null && matchesNameAndDescriptor(m, toRemove)) {
-                    remove(i);
-                }
-            }
-        }
-
-        private void remove(int i) {
-            if (methods[i] != null && methods[i].isDefault())
-                defaults--;
-            methods[i] = null;
-        }
-
-        private boolean matchesNameAndDescriptor(Method m1, Method m2) {
-            return m1.getReturnType() == m2.getReturnType() &&
-                   m1.getName() == m2.getName() && // name is guaranteed to be interned
-                   arrayContentsEq(m1.getParameterTypes(),
-                           m2.getParameterTypes());
-        }
-
-        void compactAndTrim() {
-            int newPos = 0;
-            // Get rid of null slots
-            for (int pos = 0; pos < length; pos++) {
-                Method m = methods[pos];
-                if (m != null) {
-                    if (pos != newPos) {
-                        methods[newPos] = m;
-                    }
-                    newPos++;
-                }
-            }
-            if (newPos != methods.length) {
-                methods = Arrays.copyOf(methods, newPos);
-            }
-        }
-
-        /* Removes all Methods from this MethodArray that have a more specific
-         * default Method in this MethodArray.
-         *
-         * Users of MethodArray are responsible for pruning Methods that have
-         * a more specific <em>concrete</em> Method.
-         */
-        void removeLessSpecifics() {
-            if (!hasDefaults())
-                return;
-
-            for (int i = 0; i < length; i++) {
-                Method m = get(i);
-                if  (m == null || !m.isDefault())
-                    continue;
-
-                for (int j  = 0; j < length; j++) {
-                    if (i == j)
-                        continue;
-
-                    Method candidate = get(j);
-                    if (candidate == null)
-                        continue;
-
-                    if (!matchesNameAndDescriptor(m, candidate))
-                        continue;
-
-                    if (hasMoreSpecificClass(m, candidate))
-                        remove(j);
-                }
-            }
-        }
-
-        Method[] getArray() {
-            return methods;
-        }
-
-        // Returns true if m1 is more specific than m2
-        static boolean hasMoreSpecificClass(Method m1, Method m2) {
-            Class<?> m1Class = m1.getDeclaringClass();
-            Class<?> m2Class = m2.getDeclaringClass();
-            return m1Class != m2Class && m2Class.isAssignableFrom(m1Class);
-        }
-    }
-
-
-    // Returns an array of "root" methods. These Method objects must NOT
-    // be propagated to the outside world, but must instead be copied
-    // via ReflectionFactory.copyMethod.
-    private Method[] privateGetPublicMethods() {
-        checkInitted();
-        Method[] res;
-        ReflectionData<T> rd = reflectionData();
-        if (rd != null) {
-            res = rd.publicMethods;
-            if (res != null) return res;
-        }
-
-        // No cached value available; compute value recursively.
-        // Start by fetching public declared methods
-        MethodArray methods = new MethodArray();
-        {
-            Method[] tmp = privateGetDeclaredMethods(true);
-            methods.addAll(tmp);
-        }
-        // Now recur over superclass and direct superinterfaces.
-        // Go over superinterfaces first so we can more easily filter
-        // out concrete implementations inherited from superclasses at
-        // the end.
-        MethodArray inheritedMethods = new MethodArray();
-        for (Class<?> i : getInterfaces()) {
-            inheritedMethods.addInterfaceMethods(i.privateGetPublicMethods());
-        }
-        if (!isInterface()) {
-            Class<?> c = getSuperclass();
-            if (c != null) {
-                MethodArray supers = new MethodArray();
-                supers.addAll(c.privateGetPublicMethods());
-                // Filter out concrete implementations of any
-                // interface methods
-                for (int i = 0; i < supers.length(); i++) {
-                    Method m = supers.get(i);
-                    if (m != null &&
-                            !Modifier.isAbstract(m.getModifiers()) &&
-                            !m.isDefault()) {
-                        inheritedMethods.removeByNameAndDescriptor(m);
-                    }
-                }
-                // Insert superclass's inherited methods before
-                // superinterfaces' to satisfy getMethod's search
-                // order
-                supers.addAll(inheritedMethods);
-                inheritedMethods = supers;
-            }
-        }
-        // Filter out all local methods from inherited ones
-        for (int i = 0; i < methods.length(); i++) {
-            Method m = methods.get(i);
-            inheritedMethods.removeByNameAndDescriptor(m);
-        }
-        methods.addAllIfNotPresent(inheritedMethods);
-        methods.removeLessSpecifics();
-        methods.compactAndTrim();
-        res = methods.getArray();
-        if (rd != null) {
-            rd.publicMethods = res;
-        }
-        return res;
-    }
-
-
+    // // Returns an array of "root" methods. These Method objects must NOT
+    // // be propagated to the outside world, but must instead be copied
+    // // via ReflectionFactory.copyMethod.
+    // private Method[] privateGetDeclaredMethods(boolean publicOnly) {
+    //     checkInitted();
+    //     Method[] res;
+    //     ReflectionData<T> rd = reflectionData();
+    //     if (rd != null) {
+    //         res = publicOnly ? rd.declaredPublicMethods : rd.declaredMethods;
+    //         if (res != null) return res;
+    //     }
+    //     // No cached value available; request value from VM
+    //     res = Reflection.filterMethods(this, getDeclaredMethods0(publicOnly));
+    //     if (rd != null) {
+    //         if (publicOnly) {
+    //             rd.declaredPublicMethods = res;
+    //         } else {
+    //             rd.declaredMethods = res;
+    //         }
+    //     }
+    //     return res;
+    // }
     //
-    // Helpers for fetchers of one field, method, or constructor
+    // static class MethodArray {
+    //     // Don't add or remove methods except by add() or remove() calls.
+    //     private Method[] methods;
+    //     private int length;
+    //     private int defaults;
     //
+    //     MethodArray() {
+    //         this(20);
+    //     }
+    //
+    //     MethodArray(int initialSize) {
+    //         if (initialSize < 2)
+    //             throw new IllegalArgumentException("Size should be 2 or more");
+    //
+    //         methods = new Method[initialSize];
+    //         length = 0;
+    //         defaults = 0;
+    //     }
+    //
+    //     boolean hasDefaults() {
+    //         return defaults != 0;
+    //     }
+    //
+    //     void add(Method m) {
+    //         if (length == methods.length) {
+    //             methods = Arrays.copyOf(methods, 2 * methods.length);
+    //         }
+    //         methods[length++] = m;
+    //
+    //         if (m != null && m.isDefault())
+    //             defaults++;
+    //     }
+    //
+    //     void addAll(Method[] ma) {
+    //         for (int i = 0; i < ma.length; i++) {
+    //             add(ma[i]);
+    //         }
+    //     }
+    //
+    //     void addAll(MethodArray ma) {
+    //         for (int i = 0; i < ma.length(); i++) {
+    //             add(ma.get(i));
+    //         }
+    //     }
+    //
+    //     void addIfNotPresent(Method newMethod) {
+    //         for (int i = 0; i < length; i++) {
+    //             Method m = methods[i];
+    //             if (m == newMethod || (m != null && m.equals(newMethod))) {
+    //                 return;
+    //             }
+    //         }
+    //         add(newMethod);
+    //     }
+    //
+    //     void addAllIfNotPresent(MethodArray newMethods) {
+    //         for (int i = 0; i < newMethods.length(); i++) {
+    //             Method m = newMethods.get(i);
+    //             if (m != null) {
+    //                 addIfNotPresent(m);
+    //             }
+    //         }
+    //     }
+    //
+    //     /* Add Methods declared in an interface to this MethodArray.
+    //      * Static methods declared in interfaces are not inherited.
+    //      */
+    //     void addInterfaceMethods(Method[] methods) {
+    //         for (Method candidate : methods) {
+    //             if (!Modifier.isStatic(candidate.getModifiers())) {
+    //                 add(candidate);
+    //             }
+    //         }
+    //     }
+    //
+    //     int length() {
+    //         return length;
+    //     }
+    //
+    //     Method get(int i) {
+    //         return methods[i];
+    //     }
+    //
+    //     Method getFirst() {
+    //         for (Method m : methods)
+    //             if (m != null)
+    //                 return m;
+    //         return null;
+    //     }
+    //
+    //     void removeByNameAndDescriptor(Method toRemove) {
+    //         for (int i = 0; i < length; i++) {
+    //             Method m = methods[i];
+    //             if (m != null && matchesNameAndDescriptor(m, toRemove)) {
+    //                 remove(i);
+    //             }
+    //         }
+    //     }
+    //
+    //     private void remove(int i) {
+    //         if (methods[i] != null && methods[i].isDefault())
+    //             defaults--;
+    //         methods[i] = null;
+    //     }
+    //
+    //     private boolean matchesNameAndDescriptor(Method m1, Method m2) {
+    //         return m1.getReturnType() == m2.getReturnType() &&
+    //                m1.getName() == m2.getName() && // name is guaranteed to be interned
+    //                arrayContentsEq(m1.getParameterTypes(),
+    //                        m2.getParameterTypes());
+    //     }
+    //
+    //     void compactAndTrim() {
+    //         int newPos = 0;
+    //         // Get rid of null slots
+    //         for (int pos = 0; pos < length; pos++) {
+    //             Method m = methods[pos];
+    //             if (m != null) {
+    //                 if (pos != newPos) {
+    //                     methods[newPos] = m;
+    //                 }
+    //                 newPos++;
+    //             }
+    //         }
+    //         if (newPos != methods.length) {
+    //             methods = Arrays.copyOf(methods, newPos);
+    //         }
+    //     }
+    //
+    //     /* Removes all Methods from this MethodArray that have a more specific
+    //      * default Method in this MethodArray.
+    //      *
+    //      * Users of MethodArray are responsible for pruning Methods that have
+    //      * a more specific <em>concrete</em> Method.
+    //      */
+    //     void removeLessSpecifics() {
+    //         if (!hasDefaults())
+    //             return;
+    //
+    //         for (int i = 0; i < length; i++) {
+    //             Method m = get(i);
+    //             if  (m == null || !m.isDefault())
+    //                 continue;
+    //
+    //             for (int j  = 0; j < length; j++) {
+    //                 if (i == j)
+    //                     continue;
+    //
+    //                 Method candidate = get(j);
+    //                 if (candidate == null)
+    //                     continue;
+    //
+    //                 if (!matchesNameAndDescriptor(m, candidate))
+    //                     continue;
+    //
+    //                 if (hasMoreSpecificClass(m, candidate))
+    //                     remove(j);
+    //             }
+    //         }
+    //     }
+    //
+    //     Method[] getArray() {
+    //         return methods;
+    //     }
+    //
+    //     // Returns true if m1 is more specific than m2
+    //     static boolean hasMoreSpecificClass(Method m1, Method m2) {
+    //         Class<?> m1Class = m1.getDeclaringClass();
+    //         Class<?> m2Class = m2.getDeclaringClass();
+    //         return m1Class != m2Class && m2Class.isAssignableFrom(m1Class);
+    //     }
+    // }
 
-    private static Field searchFields(Field[] fields, String name) {
-        String internedName = name.intern();
-        for (int i = 0; i < fields.length; i++) {
-            if (fields[i].getName() == internedName) {
-                return getReflectionFactory().copyField(fields[i]);
-            }
-        }
-        return null;
-    }
 
-    private Field getField0(String name) throws NoSuchFieldException {
-        // Note: the intent is that the search algorithm this routine
-        // uses be equivalent to the ordering imposed by
-        // privateGetPublicFields(). It fetches only the declared
-        // public fields for each class, however, to reduce the number
-        // of Field objects which have to be created for the common
-        // case where the field being requested is declared in the
-        // class which is being queried.
-        Field res;
-        // Search declared public fields
-        if ((res = searchFields(privateGetDeclaredFields(true), name)) != null) {
-            return res;
-        }
-        // Direct superinterfaces, recursively
-        Class<?>[] interfaces = getInterfaces();
-        for (int i = 0; i < interfaces.length; i++) {
-            Class<?> c = interfaces[i];
-            if ((res = c.getField0(name)) != null) {
-                return res;
-            }
-        }
-        // Direct superclass, recursively
-        if (!isInterface()) {
-            Class<?> c = getSuperclass();
-            if (c != null) {
-                if ((res = c.getField0(name)) != null) {
-                    return res;
-                }
-            }
-        }
-        return null;
-    }
-
-    private static Method searchMethods(Method[] methods,
-                                        String name,
-                                        Class<?>[] parameterTypes)
-    {
-        Method res = null;
-        String internedName = name.intern();
-        for (int i = 0; i < methods.length; i++) {
-            Method m = methods[i];
-            if (m.getName() == internedName
-                && arrayContentsEq(parameterTypes, m.getParameterTypes())
-                && (res == null
-                    || res.getReturnType().isAssignableFrom(m.getReturnType())))
-                res = m;
-        }
-
-        return (res == null ? res : getReflectionFactory().copyMethod(res));
-    }
-
-    private Method getMethod0(String name, Class<?>[] parameterTypes, boolean includeStaticMethods) {
-        MethodArray interfaceCandidates = new MethodArray(2);
-        Method res =  privateGetMethodRecursive(name, parameterTypes, includeStaticMethods, interfaceCandidates);
-        if (res != null)
-            return res;
-
-        // Not found on class or superclass directly
-        interfaceCandidates.removeLessSpecifics();
-        return interfaceCandidates.getFirst(); // may be null
-    }
-
-    private Method privateGetMethodRecursive(String name,
-            Class<?>[] parameterTypes,
-            boolean includeStaticMethods,
-            MethodArray allInterfaceCandidates) {
-        // Note: the intent is that the search algorithm this routine
-        // uses be equivalent to the ordering imposed by
-        // privateGetPublicMethods(). It fetches only the declared
-        // public methods for each class, however, to reduce the
-        // number of Method objects which have to be created for the
-        // common case where the method being requested is declared in
-        // the class which is being queried.
-        //
-        // Due to default methods, unless a method is found on a superclass,
-        // methods declared in any superinterface needs to be considered.
-        // Collect all candidates declared in superinterfaces in {@code
-        // allInterfaceCandidates} and select the most specific if no match on
-        // a superclass is found.
-
-        // Must _not_ return root methods
-        Method res;
-        // Search declared public methods
-        if ((res = searchMethods(privateGetDeclaredMethods(true),
-                                 name,
-                                 parameterTypes)) != null) {
-            if (includeStaticMethods || !Modifier.isStatic(res.getModifiers()))
-                return res;
-        }
-        // Search superclass's methods
-        if (!isInterface()) {
-            Class<? super T> c = getSuperclass();
-            if (c != null) {
-                if ((res = c.getMethod0(name, parameterTypes, true)) != null) {
-                    return res;
-                }
-            }
-        }
-        // Search superinterfaces' methods
-        Class<?>[] interfaces = getInterfaces();
-        for (Class<?> c : interfaces)
-            if ((res = c.getMethod0(name, parameterTypes, false)) != null)
-                allInterfaceCandidates.add(res);
-        // Not found
-        return null;
-    }
+    // // Returns an array of "root" methods. These Method objects must NOT
+    // // be propagated to the outside world, but must instead be copied
+    // // via ReflectionFactory.copyMethod.
+    // private Method[] privateGetPublicMethods() {
+    //     checkInitted();
+    //     Method[] res;
+    //     ReflectionData<T> rd = reflectionData();
+    //     if (rd != null) {
+    //         res = rd.publicMethods;
+    //         if (res != null) return res;
+    //     }
+    //
+    //     // No cached value available; compute value recursively.
+    //     // Start by fetching public declared methods
+    //     MethodArray methods = new MethodArray();
+    //     {
+    //         Method[] tmp = privateGetDeclaredMethods(true);
+    //         methods.addAll(tmp);
+    //     }
+    //     // Now recur over superclass and direct superinterfaces.
+    //     // Go over superinterfaces first so we can more easily filter
+    //     // out concrete implementations inherited from superclasses at
+    //     // the end.
+    //     MethodArray inheritedMethods = new MethodArray();
+    //     for (Class<?> i : getInterfaces()) {
+    //         inheritedMethods.addInterfaceMethods(i.privateGetPublicMethods());
+    //     }
+    //     if (!isInterface()) {
+    //         Class<?> c = getSuperclass();
+    //         if (c != null) {
+    //             MethodArray supers = new MethodArray();
+    //             supers.addAll(c.privateGetPublicMethods());
+    //             // Filter out concrete implementations of any
+    //             // interface methods
+    //             for (int i = 0; i < supers.length(); i++) {
+    //                 Method m = supers.get(i);
+    //                 if (m != null &&
+    //                         !Modifier.isAbstract(m.getModifiers()) &&
+    //                         !m.isDefault()) {
+    //                     inheritedMethods.removeByNameAndDescriptor(m);
+    //                 }
+    //             }
+    //             // Insert superclass's inherited methods before
+    //             // superinterfaces' to satisfy getMethod's search
+    //             // order
+    //             supers.addAll(inheritedMethods);
+    //             inheritedMethods = supers;
+    //         }
+    //     }
+    //     // Filter out all local methods from inherited ones
+    //     for (int i = 0; i < methods.length(); i++) {
+    //         Method m = methods.get(i);
+    //         inheritedMethods.removeByNameAndDescriptor(m);
+    //     }
+    //     methods.addAllIfNotPresent(inheritedMethods);
+    //     methods.removeLessSpecifics();
+    //     methods.compactAndTrim();
+    //     res = methods.getArray();
+    //     if (rd != null) {
+    //         rd.publicMethods = res;
+    //     }
+    //     return res;
+    // }
+    //
+    //
+    // //
+    // // Helpers for fetchers of one field, method, or constructor
+    // //
+    //
+    // private static Field searchFields(Field[] fields, String name) {
+    //     String internedName = name.intern();
+    //     for (int i = 0; i < fields.length; i++) {
+    //         if (fields[i].getName() == internedName) {
+    //             return getReflectionFactory().copyField(fields[i]);
+    //         }
+    //     }
+    //     return null;
+    // }
+    //
+    // private Field getField0(String name) throws NoSuchFieldException {
+    //     // Note: the intent is that the search algorithm this routine
+    //     // uses be equivalent to the ordering imposed by
+    //     // privateGetPublicFields(). It fetches only the declared
+    //     // public fields for each class, however, to reduce the number
+    //     // of Field objects which have to be created for the common
+    //     // case where the field being requested is declared in the
+    //     // class which is being queried.
+    //     Field res;
+    //     // Search declared public fields
+    //     if ((res = searchFields(privateGetDeclaredFields(true), name)) != null) {
+    //         return res;
+    //     }
+    //     // Direct superinterfaces, recursively
+    //     Class<?>[] interfaces = getInterfaces();
+    //     for (int i = 0; i < interfaces.length; i++) {
+    //         Class<?> c = interfaces[i];
+    //         if ((res = c.getField0(name)) != null) {
+    //             return res;
+    //         }
+    //     }
+    //     // Direct superclass, recursively
+    //     if (!isInterface()) {
+    //         Class<?> c = getSuperclass();
+    //         if (c != null) {
+    //             if ((res = c.getField0(name)) != null) {
+    //                 return res;
+    //             }
+    //         }
+    //     }
+    //     return null;
+    // }
+    //
+    // private static Method searchMethods(Method[] methods,
+    //                                     String name,
+    //                                     Class<?>[] parameterTypes)
+    // {
+    //     Method res = null;
+    //     String internedName = name.intern();
+    //     for (int i = 0; i < methods.length; i++) {
+    //         Method m = methods[i];
+    //         if (m.getName() == internedName
+    //             && arrayContentsEq(parameterTypes, m.getParameterTypes())
+    //             && (res == null
+    //                 || res.getReturnType().isAssignableFrom(m.getReturnType())))
+    //             res = m;
+    //     }
+    //
+    //     return (res == null ? res : getReflectionFactory().copyMethod(res));
+    // }
+    //
+    // private Method getMethod0(String name, Class<?>[] parameterTypes, boolean includeStaticMethods) {
+    //     MethodArray interfaceCandidates = new MethodArray(2);
+    //     Method res =  privateGetMethodRecursive(name, parameterTypes, includeStaticMethods, interfaceCandidates);
+    //     if (res != null)
+    //         return res;
+    //
+    //     // Not found on class or superclass directly
+    //     interfaceCandidates.removeLessSpecifics();
+    //     return interfaceCandidates.getFirst(); // may be null
+    // }
+    //
+    // private Method privateGetMethodRecursive(String name,
+    //         Class<?>[] parameterTypes,
+    //         boolean includeStaticMethods,
+    //         MethodArray allInterfaceCandidates) {
+    //     // Note: the intent is that the search algorithm this routine
+    //     // uses be equivalent to the ordering imposed by
+    //     // privateGetPublicMethods(). It fetches only the declared
+    //     // public methods for each class, however, to reduce the
+    //     // number of Method objects which have to be created for the
+    //     // common case where the method being requested is declared in
+    //     // the class which is being queried.
+    //     //
+    //     // Due to default methods, unless a method is found on a superclass,
+    //     // methods declared in any superinterface needs to be considered.
+    //     // Collect all candidates declared in superinterfaces in {@code
+    //     // allInterfaceCandidates} and select the most specific if no match on
+    //     // a superclass is found.
+    //
+    //     // Must _not_ return root methods
+    //     Method res;
+    //     // Search declared public methods
+    //     if ((res = searchMethods(privateGetDeclaredMethods(true),
+    //                              name,
+    //                              parameterTypes)) != null) {
+    //         if (includeStaticMethods || !Modifier.isStatic(res.getModifiers()))
+    //             return res;
+    //     }
+    //     // Search superclass's methods
+    //     if (!isInterface()) {
+    //         Class<? super T> c = getSuperclass();
+    //         if (c != null) {
+    //             if ((res = c.getMethod0(name, parameterTypes, true)) != null) {
+    //                 return res;
+    //             }
+    //         }
+    //     }
+    //     // Search superinterfaces' methods
+    //     Class<?>[] interfaces = getInterfaces();
+    //     for (Class<?> c : interfaces)
+    //         if ((res = c.getMethod0(name, parameterTypes, false)) != null)
+    //             allInterfaceCandidates.add(res);
+    //     // Not found
+    //     return null;
+    // }
 
     private Constructor<T> getConstructor0(Class<?>[] parameterTypes,
                                         int which) throws NoSuchMethodException
     {
-        Constructor<T>[] constructors = privateGetDeclaredConstructors((which == Member.PUBLIC));
+/*        Constructor<T>[] constructors = privateGetDeclaredConstructors((which == Member.PUBLIC));
         for (Constructor<T> constructor : constructors) {
             if (arrayContentsEq(parameterTypes,
                                 constructor.getParameterTypes())) {
                 return getReflectionFactory().copyConstructor(constructor);
             }
         }
-        throw new NoSuchMethodException(getName() + ".<init>" + argumentTypesToString(parameterTypes));
+        throw new NoSuchMethodException(getName() + ".<init>" + argumentTypesToString(parameterTypes));*/
+        throw new RuntimeException("Not implemented");
     }
 
+    // //
+    // // Other helpers and base implementation
+    // //
     //
-    // Other helpers and base implementation
+    // private static boolean arrayContentsEq(Object[] a1, Object[] a2) {
+    //     if (a1 == null) {
+    //         return a2 == null || a2.length == 0;
+    //     }
     //
-
-    private static boolean arrayContentsEq(Object[] a1, Object[] a2) {
-        if (a1 == null) {
-            return a2 == null || a2.length == 0;
-        }
-
-        if (a2 == null) {
-            return a1.length == 0;
-        }
-
-        if (a1.length != a2.length) {
-            return false;
-        }
-
-        for (int i = 0; i < a1.length; i++) {
-            if (a1[i] != a2[i]) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static Field[] copyFields(Field[] arg) {
-        Field[] out = new Field[arg.length];
-        ReflectionFactory fact = getReflectionFactory();
-        for (int i = 0; i < arg.length; i++) {
-            out[i] = fact.copyField(arg[i]);
-        }
-        return out;
-    }
-
-    private static Method[] copyMethods(Method[] arg) {
-        Method[] out = new Method[arg.length];
-        ReflectionFactory fact = getReflectionFactory();
-        for (int i = 0; i < arg.length; i++) {
-            out[i] = fact.copyMethod(arg[i]);
-        }
-        return out;
-    }
-
-    private static <U> Constructor<U>[] copyConstructors(Constructor<U>[] arg) {
-        Constructor<U>[] out = arg.clone();
-        ReflectionFactory fact = getReflectionFactory();
-        for (int i = 0; i < out.length; i++) {
-            out[i] = fact.copyConstructor(out[i]);
-        }
-        return out;
-    }
-
-    private native Field[]       getDeclaredFields0(boolean publicOnly);
-    private native Method[]      getDeclaredMethods0(boolean publicOnly);
-    private native Constructor<T>[] getDeclaredConstructors0(boolean publicOnly);
-    private native Class<?>[]   getDeclaredClasses0();
-
-    private static String        argumentTypesToString(Class<?>[] argTypes) {
-        StringBuilder buf = new StringBuilder();
-        buf.append("(");
-        if (argTypes != null) {
-            for (int i = 0; i < argTypes.length; i++) {
-                if (i > 0) {
-                    buf.append(", ");
-                }
-                Class<?> c = argTypes[i];
-                buf.append((c == null) ? "null" : c.getName());
-            }
-        }
-        buf.append(")");
-        return buf.toString();
-    }
+    //     if (a2 == null) {
+    //         return a1.length == 0;
+    //     }
+    //
+    //     if (a1.length != a2.length) {
+    //         return false;
+    //     }
+    //
+    //     for (int i = 0; i < a1.length; i++) {
+    //         if (a1[i] != a2[i]) {
+    //             return false;
+    //         }
+    //     }
+    //
+    //     return true;
+    // }
+    //
+    // private static Field[] copyFields(Field[] arg) {
+    //     Field[] out = new Field[arg.length];
+    //     ReflectionFactory fact = getReflectionFactory();
+    //     for (int i = 0; i < arg.length; i++) {
+    //         out[i] = fact.copyField(arg[i]);
+    //     }
+    //     return out;
+    // }
+    //
+    // private static Method[] copyMethods(Method[] arg) {
+    //     Method[] out = new Method[arg.length];
+    //     ReflectionFactory fact = getReflectionFactory();
+    //     for (int i = 0; i < arg.length; i++) {
+    //         out[i] = fact.copyMethod(arg[i]);
+    //     }
+    //     return out;
+    // }
+    //
+    // private static <U> Constructor<U>[] copyConstructors(Constructor<U>[] arg) {
+    //     Constructor<U>[] out = arg.clone();
+    //     ReflectionFactory fact = getReflectionFactory();
+    //     for (int i = 0; i < out.length; i++) {
+    //         out[i] = fact.copyConstructor(out[i]);
+    //     }
+    //     return out;
+    // }
+    //
+    // private native Field[]       getDeclaredFields0(boolean publicOnly);
+    // private native Method[]      getDeclaredMethods0(boolean publicOnly);
+    // private native Constructor<T>[] getDeclaredConstructors0(boolean publicOnly);
+    // private native Class<?>[]   getDeclaredClasses0();
+    //
+    // private static String        argumentTypesToString(Class<?>[] argTypes) {
+    //     StringBuilder buf = new StringBuilder();
+    //     buf.append("(");
+    //     if (argTypes != null) {
+    //         for (int i = 0; i < argTypes.length; i++) {
+    //             if (i > 0) {
+    //                 buf.append(", ");
+    //             }
+    //             Class<?> c = argTypes[i];
+    //             buf.append((c == null) ? "null" : c.getName());
+    //         }
+    //     }
+    //     buf.append(")");
+    //     return buf.toString();
+    // }
 
     /** use serialVersionUID from JDK 1.1 for interoperability */
     private static final long serialVersionUID = 3206093459760846163L;
@@ -3239,49 +3275,49 @@ public final class Class<T> implements java.io.Serializable,
         this.getSuperclass() == java.lang.Enum.class;
     }
 
-    // Fetches the factory for reflective objects
-    private static ReflectionFactory getReflectionFactory() {
-        if (reflectionFactory == null) {
-            reflectionFactory =
-                java.security.AccessController.doPrivileged
-                    (new sun.reflect.ReflectionFactory.GetReflectionFactoryAction());
-        }
-        return reflectionFactory;
-    }
-    private static ReflectionFactory reflectionFactory;
-
-    // To be able to query system properties as soon as they're available
-    private static boolean initted = false;
-    private static void checkInitted() {
-        if (initted) return;
-        AccessController.doPrivileged(new PrivilegedAction<Void>() {
-                public Void run() {
-                    // Tests to ensure the system properties table is fully
-                    // initialized. This is needed because reflection code is
-                    // called very early in the initialization process (before
-                    // command-line arguments have been parsed and therefore
-                    // these user-settable properties installed.) We assume that
-                    // if System.out is non-null then the System class has been
-                    // fully initialized and that the bulk of the startup code
-                    // has been run.
-
-                    if (System.out == null) {
-                        // java.lang.System not yet fully initialized
-                        return null;
-                    }
-
-                    // Doesn't use Boolean.getBoolean to avoid class init.
-                    String val =
-                        System.getProperty("sun.reflect.noCaches");
-                    if (val != null && val.equals("true")) {
-                        useCaches = false;
-                    }
-
-                    initted = true;
-                    return null;
-                }
-            });
-    }
+    // // Fetches the factory for reflective objects
+    // private static ReflectionFactory getReflectionFactory() {
+    //     if (reflectionFactory == null) {
+    //         reflectionFactory =
+    //             java.security.AccessController.doPrivileged
+    //                 (new sun.reflect.ReflectionFactory.GetReflectionFactoryAction());
+    //     }
+    //     return reflectionFactory;
+    // }
+    // private static ReflectionFactory reflectionFactory;
+    //
+    // // To be able to query system properties as soon as they're available
+    // private static boolean initted = false;
+    // private static void checkInitted() {
+    //     if (initted) return;
+    //     AccessController.doPrivileged(new PrivilegedAction<Void>() {
+    //             public Void run() {
+    //                 // Tests to ensure the system properties table is fully
+    //                 // initialized. This is needed because reflection code is
+    //                 // called very early in the initialization process (before
+    //                 // command-line arguments have been parsed and therefore
+    //                 // these user-settable properties installed.) We assume that
+    //                 // if System.out is non-null then the System class has been
+    //                 // fully initialized and that the bulk of the startup code
+    //                 // has been run.
+    //
+    //                 if (System.out == null) {
+    //                     // java.lang.System not yet fully initialized
+    //                     return null;
+    //                 }
+    //
+    //                 // Doesn't use Boolean.getBoolean to avoid class init.
+    //                 String val =
+    //                     System.getProperty("sun.reflect.noCaches");
+    //                 if (val != null && val.equals("true")) {
+    //                     useCaches = false;
+    //                 }
+    //
+    //                 initted = true;
+    //                 return null;
+    //             }
+    //         });
+    // }
 
     /**
      * Returns the elements of this enum class or null if this
@@ -3412,7 +3448,8 @@ public final class Class<T> implements java.io.Serializable,
     public <A extends Annotation> A getAnnotation(Class<A> annotationClass) {
         Objects.requireNonNull(annotationClass);
 
-        return (A) annotationData().annotations.get(annotationClass);
+        // return (A) annotationData().annotations.get(annotationClass);
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -3433,17 +3470,19 @@ public final class Class<T> implements java.io.Serializable,
     public <A extends Annotation> A[] getAnnotationsByType(Class<A> annotationClass) {
         Objects.requireNonNull(annotationClass);
 
-        AnnotationData annotationData = annotationData();
+/*        AnnotationData annotationData = annotationData();
         return AnnotationSupport.getAssociatedAnnotations(annotationData.declaredAnnotations,
                                                           this,
-                                                          annotationClass);
+                                                          annotationClass);*/
+        throw new RuntimeException("Not implemented");
     }
 
     /**
      * @since 1.5
      */
     public Annotation[] getAnnotations() {
-        return AnnotationParser.toArray(annotationData().annotations);
+        // return AnnotationParser.toArray(annotationData().annotations);
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -3455,7 +3494,8 @@ public final class Class<T> implements java.io.Serializable,
     public <A extends Annotation> A getDeclaredAnnotation(Class<A> annotationClass) {
         Objects.requireNonNull(annotationClass);
 
-        return (A) annotationData().declaredAnnotations.get(annotationClass);
+        // return (A) annotationData().declaredAnnotations.get(annotationClass);
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -3466,109 +3506,111 @@ public final class Class<T> implements java.io.Serializable,
     public <A extends Annotation> A[] getDeclaredAnnotationsByType(Class<A> annotationClass) {
         Objects.requireNonNull(annotationClass);
 
-        return AnnotationSupport.getDirectlyAndIndirectlyPresent(annotationData().declaredAnnotations,
-                                                                 annotationClass);
+/*        return AnnotationSupport.getDirectlyAndIndirectlyPresent(annotationData().declaredAnnotations,
+                                                                 annotationClass);*/
+        throw new RuntimeException("Not implemented");
     }
 
     /**
      * @since 1.5
      */
     public Annotation[] getDeclaredAnnotations()  {
-        return AnnotationParser.toArray(annotationData().declaredAnnotations);
+        // return AnnotationParser.toArray(annotationData().declaredAnnotations);
+        throw new RuntimeException("Not implemented");
     }
 
-    // annotation data that might get invalidated when JVM TI RedefineClasses() is called
-    private static class AnnotationData {
-        final Map<Class<? extends Annotation>, Annotation> annotations;
-        final Map<Class<? extends Annotation>, Annotation> declaredAnnotations;
-
-        // Value of classRedefinedCount when we created this AnnotationData instance
-        final int redefinedCount;
-
-        AnnotationData(Map<Class<? extends Annotation>, Annotation> annotations,
-                       Map<Class<? extends Annotation>, Annotation> declaredAnnotations,
-                       int redefinedCount) {
-            this.annotations = annotations;
-            this.declaredAnnotations = declaredAnnotations;
-            this.redefinedCount = redefinedCount;
-        }
-    }
-
-    // Annotations cache
-    @SuppressWarnings("UnusedDeclaration")
-    private volatile transient AnnotationData annotationData;
-
-    private AnnotationData annotationData() {
-        while (true) { // retry loop
-            AnnotationData annotationData = this.annotationData;
-            int classRedefinedCount = this.classRedefinedCount;
-            if (annotationData != null &&
-                annotationData.redefinedCount == classRedefinedCount) {
-                return annotationData;
-            }
-            // null or stale annotationData -> optimistically create new instance
-            AnnotationData newAnnotationData = createAnnotationData(classRedefinedCount);
-            // try to install it
-            if (Atomic.casAnnotationData(this, annotationData, newAnnotationData)) {
-                // successfully installed new AnnotationData
-                return newAnnotationData;
-            }
-        }
-    }
-
-    private AnnotationData createAnnotationData(int classRedefinedCount) {
-        Map<Class<? extends Annotation>, Annotation> declaredAnnotations =
-            AnnotationParser.parseAnnotations(getRawAnnotations(), getConstantPool(), this);
-        Class<?> superClass = getSuperclass();
-        Map<Class<? extends Annotation>, Annotation> annotations = null;
-        if (superClass != null) {
-            Map<Class<? extends Annotation>, Annotation> superAnnotations =
-                superClass.annotationData().annotations;
-            for (Map.Entry<Class<? extends Annotation>, Annotation> e : superAnnotations.entrySet()) {
-                Class<? extends Annotation> annotationClass = e.getKey();
-                if (AnnotationType.getInstance(annotationClass).isInherited()) {
-                    if (annotations == null) { // lazy construction
-                        annotations = new LinkedHashMap<>((Math.max(
-                                declaredAnnotations.size(),
-                                Math.min(12, declaredAnnotations.size() + superAnnotations.size())
-                            ) * 4 + 2) / 3
-                        );
-                    }
-                    annotations.put(annotationClass, e.getValue());
-                }
-            }
-        }
-        if (annotations == null) {
-            // no inherited annotations -> share the Map with declaredAnnotations
-            annotations = declaredAnnotations;
-        } else {
-            // at least one inherited annotation -> declared may override inherited
-            annotations.putAll(declaredAnnotations);
-        }
-        return new AnnotationData(annotations, declaredAnnotations, classRedefinedCount);
-    }
-
-    // Annotation types cache their internal (AnnotationType) form
-
-    @SuppressWarnings("UnusedDeclaration")
-    private volatile transient AnnotationType annotationType;
-
-    boolean casAnnotationType(AnnotationType oldType, AnnotationType newType) {
-        return Atomic.casAnnotationType(this, oldType, newType);
-    }
-
-    AnnotationType getAnnotationType() {
-        return annotationType;
-    }
-
-    Map<Class<? extends Annotation>, Annotation> getDeclaredAnnotationMap() {
-        return annotationData().declaredAnnotations;
-    }
-
-    /* Backing store of user-defined values pertaining to this class.
-     * Maintained by the ClassValue class.
-     */
-    transient ClassValue.ClassValueMap classValueMap;
+    // // annotation data that might get invalidated when JVM TI RedefineClasses() is called
+    // private static class AnnotationData {
+    //     final Map<Class<? extends Annotation>, Annotation> annotations;
+    //     final Map<Class<? extends Annotation>, Annotation> declaredAnnotations;
+    //
+    //     // Value of classRedefinedCount when we created this AnnotationData instance
+    //     final int redefinedCount;
+    //
+    //     AnnotationData(Map<Class<? extends Annotation>, Annotation> annotations,
+    //                    Map<Class<? extends Annotation>, Annotation> declaredAnnotations,
+    //                    int redefinedCount) {
+    //         this.annotations = annotations;
+    //         this.declaredAnnotations = declaredAnnotations;
+    //         this.redefinedCount = redefinedCount;
+    //     }
+    // }
+    //
+    // // Annotations cache
+    // @SuppressWarnings("UnusedDeclaration")
+    // private volatile transient AnnotationData annotationData;
+    //
+    // private AnnotationData annotationData() {
+    //     while (true) { // retry loop
+    //         AnnotationData annotationData = this.annotationData;
+    //         int classRedefinedCount = this.classRedefinedCount;
+    //         if (annotationData != null &&
+    //             annotationData.redefinedCount == classRedefinedCount) {
+    //             return annotationData;
+    //         }
+    //         // null or stale annotationData -> optimistically create new instance
+    //         AnnotationData newAnnotationData = createAnnotationData(classRedefinedCount);
+    //         // try to install it
+    //         if (Atomic.casAnnotationData(this, annotationData, newAnnotationData)) {
+    //             // successfully installed new AnnotationData
+    //             return newAnnotationData;
+    //         }
+    //     }
+    // }
+    //
+    // private AnnotationData createAnnotationData(int classRedefinedCount) {
+    //     Map<Class<? extends Annotation>, Annotation> declaredAnnotations =
+    //         AnnotationParser.parseAnnotations(getRawAnnotations(), getConstantPool(), this);
+    //     Class<?> superClass = getSuperclass();
+    //     Map<Class<? extends Annotation>, Annotation> annotations = null;
+    //     if (superClass != null) {
+    //         Map<Class<? extends Annotation>, Annotation> superAnnotations =
+    //             superClass.annotationData().annotations;
+    //         for (Map.Entry<Class<? extends Annotation>, Annotation> e : superAnnotations.entrySet()) {
+    //             Class<? extends Annotation> annotationClass = e.getKey();
+    //             if (AnnotationType.getInstance(annotationClass).isInherited()) {
+    //                 if (annotations == null) { // lazy construction
+    //                     annotations = new LinkedHashMap<>((Math.max(
+    //                             declaredAnnotations.size(),
+    //                             Math.min(12, declaredAnnotations.size() + superAnnotations.size())
+    //                         ) * 4 + 2) / 3
+    //                     );
+    //                 }
+    //                 annotations.put(annotationClass, e.getValue());
+    //             }
+    //         }
+    //     }
+    //     if (annotations == null) {
+    //         // no inherited annotations -> share the Map with declaredAnnotations
+    //         annotations = declaredAnnotations;
+    //     } else {
+    //         // at least one inherited annotation -> declared may override inherited
+    //         annotations.putAll(declaredAnnotations);
+    //     }
+    //     return new AnnotationData(annotations, declaredAnnotations, classRedefinedCount);
+    // }
+    //
+    // // Annotation types cache their internal (AnnotationType) form
+    //
+    // @SuppressWarnings("UnusedDeclaration")
+    // private volatile transient AnnotationType annotationType;
+    //
+    // boolean casAnnotationType(AnnotationType oldType, AnnotationType newType) {
+    //     return Atomic.casAnnotationType(this, oldType, newType);
+    // }
+    //
+    // AnnotationType getAnnotationType() {
+    //     return annotationType;
+    // }
+    //
+    // Map<Class<? extends Annotation>, Annotation> getDeclaredAnnotationMap() {
+    //     return annotationData().declaredAnnotations;
+    // }
+    //
+    // /* Backing store of user-defined values pertaining to this class.
+    //  * Maintained by the ClassValue class.
+    //  */
+    // transient ClassValue.ClassValueMap classValueMap;
 
     /**
      * Returns an {@code AnnotatedType} object that represents the use of a
@@ -3598,7 +3640,8 @@ public final class Class<T> implements java.io.Serializable,
             return null;
         }
 
-        return TypeAnnotationParser.buildAnnotatedSuperclass(getRawTypeAnnotations(), getConstantPool(), this);
+        // return TypeAnnotationParser.buildAnnotatedSuperclass(getRawTypeAnnotations(), getConstantPool(), this);
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -3633,6 +3676,7 @@ public final class Class<T> implements java.io.Serializable,
      * @since 1.8
      */
     public AnnotatedType[] getAnnotatedInterfaces() {
-         return TypeAnnotationParser.buildAnnotatedInterfaces(getRawTypeAnnotations(), getConstantPool(), this);
+         // return TypeAnnotationParser.buildAnnotatedInterfaces(getRawTypeAnnotations(), getConstantPool(), this);
+        throw new RuntimeException("Not implemented");
     }
 }

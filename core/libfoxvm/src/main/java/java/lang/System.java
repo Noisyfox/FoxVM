@@ -1244,7 +1244,7 @@ public final class System {
             }
             public AnnotationType getAnnotationType(Class<?> klass) {
                 return klass.getAnnotationType();
-            }*/
+            }
             public Map<Class<? extends Annotation>, Annotation> getDeclaredAnnotationMap(Class<?> klass) {
                 return klass.getDeclaredAnnotationMap();
             }
@@ -1256,7 +1256,7 @@ public final class System {
             }
             public byte[] getRawExecutableTypeAnnotations(Executable executable) {
                 return Class.getExecutableTypeAnnotationBytes(executable);
-            }
+            }*/
             public <E extends Enum<E>>
                     E[] getEnumConstantsShared(Class<E> klass) {
                 return klass.getEnumConstantsShared();

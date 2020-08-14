@@ -48,7 +48,7 @@ package java.lang.reflect;
  *
  * @since 1.5
  */
-public interface TypeVariable<D extends GenericDeclaration> extends Type, AnnotatedElement {
+public interface TypeVariable<D extends GenericDeclaration> extends Type/*, AnnotatedElement*/ {
     /**
      * Returns an array of {@code Type} objects representing the
      * upper bound(s) of this type variable.  Note that if no upper bound is
@@ -98,5 +98,6 @@ public interface TypeVariable<D extends GenericDeclaration> extends Type, Annota
      * @return an array of objects representing the upper bounds of the type variable
      * @since 1.8
      */
-     AnnotatedType[] getAnnotatedBounds();
+     // FoxVM-removed: not supported
+     // AnnotatedType[] getAnnotatedBounds();
 }

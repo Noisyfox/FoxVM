@@ -975,7 +975,8 @@ public class FileChannelImpl
      * Invoked by sun.management.ManagementFactoryHelper to create the management
      * interface for mapped buffers.
      */
-    public static sun.misc.JavaNioAccess.BufferPool getMappedBufferPool() {
+    // FoxVM-removed: Not used.
+/*    public static sun.misc.JavaNioAccess.BufferPool getMappedBufferPool() {
         return new sun.misc.JavaNioAccess.BufferPool() {
             @Override
             public String getName() {
@@ -994,7 +995,7 @@ public class FileChannelImpl
                 return Unmapper.totalSize;
             }
         };
-    }
+    }*/
 
     // -- Locks --
 

@@ -704,7 +704,8 @@ class ForwardBuilder extends Builder {
         ForwardState currState = (ForwardState)currentState;
 
         // Don't bother to verify untrusted certificate more.
-        currState.untrustedChecker.check(cert, Collections.<String>emptySet());
+        // FoxVM-removed: not supported
+        // currState.untrustedChecker.check(cert, Collections.<String>emptySet());
 
         /*
          * check for looping - abort a loop if we encounter the same

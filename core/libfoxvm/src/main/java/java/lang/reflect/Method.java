@@ -26,17 +26,13 @@
 package java.lang.reflect;
 
 import sun.reflect.CallerSensitive;
-import sun.reflect.MethodAccessor;
 import sun.reflect.Reflection;
 import sun.reflect.generics.repository.MethodRepository;
 import sun.reflect.generics.factory.CoreReflectionFactory;
 import sun.reflect.generics.factory.GenericsFactory;
 import sun.reflect.generics.scope.MethodScope;
-import sun.reflect.annotation.AnnotationType;
-import sun.reflect.annotation.AnnotationParser;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.AnnotationFormatError;
-import java.nio.ByteBuffer;
 
 /**
  * A {@code Method} provides information about, and access to, a single method
@@ -72,10 +68,10 @@ public final class Method extends Executable {
     private transient String              signature;
     // generic info repository; lazily initialized
     private transient MethodRepository genericInfo;
-    private byte[]              annotations;
-    private byte[]              parameterAnnotations;
-    private byte[]              annotationDefault;
-    private volatile MethodAccessor methodAccessor;
+    // private byte[]              annotations;
+    // private byte[]              parameterAnnotations;
+    // private byte[]              annotationDefault;
+    // private volatile MethodAccessor methodAccessor;
     // For sharing of MethodAccessors. This branching structure is
     // currently only two levels deep (i.e., one root Method and
     // potentially many Method objects pointing to it.)
@@ -117,10 +113,10 @@ public final class Method extends Executable {
            Class<?>[] checkedExceptions,
            int modifiers,
            int slot,
-           String signature,
+           String signature/*,
            byte[] annotations,
            byte[] parameterAnnotations,
-           byte[] annotationDefault) {
+           byte[] annotationDefault*/) {
         this.clazz = declaringClass;
         this.name = name;
         this.parameterTypes = parameterTypes;
@@ -129,9 +125,9 @@ public final class Method extends Executable {
         this.modifiers = modifiers;
         this.slot = slot;
         this.signature = signature;
-        this.annotations = annotations;
-        this.parameterAnnotations = parameterAnnotations;
-        this.annotationDefault = annotationDefault;
+        // this.annotations = annotations;
+        // this.parameterAnnotations = parameterAnnotations;
+        // this.annotationDefault = annotationDefault;
     }
 
     /**
@@ -151,11 +147,11 @@ public final class Method extends Executable {
             throw new IllegalArgumentException("Can not copy a non-root Method");
 
         Method res = new Method(clazz, name, parameterTypes, returnType,
-                                exceptionTypes, modifiers, slot, signature,
-                                annotations, parameterAnnotations, annotationDefault);
+                                exceptionTypes, modifiers, slot, signature/*,
+                                annotations, parameterAnnotations, annotationDefault*/);
         res.root = this;
         // Might as well eagerly propagate this if already present
-        res.methodAccessor = methodAccessor;
+        // res.methodAccessor = methodAccessor;
         return res;
     }
 
@@ -172,10 +168,10 @@ public final class Method extends Executable {
         return (getGenericSignature() != null);
     }
 
-    @Override
-    byte[] getAnnotationBytes() {
-        return annotations;
-    }
+    // @Override
+    // byte[] getAnnotationBytes() {
+    //     return annotations;
+    // }
 
     /**
      * {@inheritDoc}
@@ -485,7 +481,7 @@ public final class Method extends Executable {
         throws IllegalAccessException, IllegalArgumentException,
            InvocationTargetException
     {
-        if (!override) {
+/*        if (!override) {
             if (!Reflection.quickCheckMemberAccess(clazz, modifiers)) {
                 Class<?> caller = Reflection.getCallerClass();
                 checkAccess(caller, clazz, obj, modifiers);
@@ -495,7 +491,8 @@ public final class Method extends Executable {
         if (ma == null) {
             ma = acquireMethodAccessor();
         }
-        return ma.invoke(obj, args);
+        return ma.invoke(obj, args);*/
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -548,41 +545,41 @@ public final class Method extends Executable {
                 Modifier.PUBLIC) && getDeclaringClass().isInterface();
     }
 
-    // NOTE that there is no synchronization used here. It is correct
-    // (though not efficient) to generate more than one MethodAccessor
-    // for a given Method. However, avoiding synchronization will
-    // probably make the implementation more scalable.
-    private MethodAccessor acquireMethodAccessor() {
-        // First check to see if one has been created yet, and take it
-        // if so
-        MethodAccessor tmp = null;
-        if (root != null) tmp = root.getMethodAccessor();
-        if (tmp != null) {
-            methodAccessor = tmp;
-        } else {
-            // Otherwise fabricate one and propagate it up to the root
-            tmp = reflectionFactory.newMethodAccessor(this);
-            setMethodAccessor(tmp);
-        }
-
-        return tmp;
-    }
-
-    // Returns MethodAccessor for this Method object, not looking up
-    // the chain to the root
-    MethodAccessor getMethodAccessor() {
-        return methodAccessor;
-    }
-
-    // Sets the MethodAccessor for this Method object and
-    // (recursively) its root
-    void setMethodAccessor(MethodAccessor accessor) {
-        methodAccessor = accessor;
-        // Propagate up
-        if (root != null) {
-            root.setMethodAccessor(accessor);
-        }
-    }
+    // // NOTE that there is no synchronization used here. It is correct
+    // // (though not efficient) to generate more than one MethodAccessor
+    // // for a given Method. However, avoiding synchronization will
+    // // probably make the implementation more scalable.
+    // private MethodAccessor acquireMethodAccessor() {
+    //     // First check to see if one has been created yet, and take it
+    //     // if so
+    //     MethodAccessor tmp = null;
+    //     if (root != null) tmp = root.getMethodAccessor();
+    //     if (tmp != null) {
+    //         methodAccessor = tmp;
+    //     } else {
+    //         // Otherwise fabricate one and propagate it up to the root
+    //         tmp = reflectionFactory.newMethodAccessor(this);
+    //         setMethodAccessor(tmp);
+    //     }
+    //
+    //     return tmp;
+    // }
+    //
+    // // Returns MethodAccessor for this Method object, not looking up
+    // // the chain to the root
+    // MethodAccessor getMethodAccessor() {
+    //     return methodAccessor;
+    // }
+    //
+    // // Sets the MethodAccessor for this Method object and
+    // // (recursively) its root
+    // void setMethodAccessor(MethodAccessor accessor) {
+    //     methodAccessor = accessor;
+    //     // Propagate up
+    //     if (root != null) {
+    //         root.setMethodAccessor(accessor);
+    //     }
+    // }
 
     /**
      * Returns the default value for the annotation member represented by
@@ -599,7 +596,7 @@ public final class Method extends Executable {
      * @since  1.5
      */
     public Object getDefaultValue() {
-        if  (annotationDefault == null)
+/*        if  (annotationDefault == null)
             return null;
         Class<?> memberType = AnnotationType.invocationHandlerReturnType(
             getReturnType());
@@ -610,7 +607,8 @@ public final class Method extends Executable {
             getDeclaringClass());
         if (result instanceof sun.reflect.annotation.ExceptionProxy)
             throw new AnnotationFormatError("Invalid default: " + this);
-        return result;
+        return result;*/
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -636,7 +634,8 @@ public final class Method extends Executable {
      */
     @Override
     public Annotation[][] getParameterAnnotations() {
-        return sharedGetParameterAnnotations(parameterTypes, parameterAnnotations);
+        // return sharedGetParameterAnnotations(parameterTypes, parameterAnnotations);
+        throw new RuntimeException("Not implemented");
     }
 
     /**
@@ -648,8 +647,8 @@ public final class Method extends Executable {
         return getAnnotatedReturnType0(getGenericReturnType());
     }
 
-    @Override
-    void handleParameterNumberMismatch(int resultLength, int numParameters) {
-        throw new AnnotationFormatError("Parameter annotations don't match number of parameters");
-    }
+    // @Override
+    // void handleParameterNumberMismatch(int resultLength, int numParameters) {
+    //     throw new AnnotationFormatError("Parameter annotations don't match number of parameters");
+    // }
 }

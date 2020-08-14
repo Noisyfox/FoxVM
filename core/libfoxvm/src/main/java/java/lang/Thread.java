@@ -1438,11 +1438,12 @@ class Thread implements Runnable {
     public ClassLoader getContextClassLoader() {
         if (contextClassLoader == null)
             return null;
-        SecurityManager sm = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             ClassLoader.checkClassLoaderPermission(contextClassLoader,
                                                    Reflection.getCallerClass());
-        }
+        }*/
         return contextClassLoader;
     }
 

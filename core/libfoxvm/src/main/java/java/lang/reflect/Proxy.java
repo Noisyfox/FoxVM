@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
-import sun.misc.ProxyGenerator;
 import sun.misc.VM;
 import sun.reflect.CallerSensitive;
 import sun.reflect.Reflection;
@@ -640,21 +639,22 @@ public class Proxy implements java.io.Serializable {
             /*
              * Generate the specified proxy class.
              */
-            byte[] proxyClassFile = ProxyGenerator.generateProxyClass(
+/*            byte[] proxyClassFile = ProxyGenerator.generateProxyClass(
                 proxyName, interfaces, accessFlags);
             try {
                 return defineClass0(loader, proxyName,
                                     proxyClassFile, 0, proxyClassFile.length);
             } catch (ClassFormatError e) {
-                /*
+                *//*
                  * A ClassFormatError here means that (barring bugs in the
                  * proxy class generation code) there was some other
                  * invalid aspect of the arguments supplied to the proxy
                  * class creation (such as virtual machine limitations
                  * exceeded).
-                 */
+                 *//*
                 throw new IllegalArgumentException(e.toString());
-            }
+            }*/
+            throw new RuntimeException("Not implemented");
         }
     }
 
@@ -841,6 +841,6 @@ public class Proxy implements java.io.Serializable {
         return ih;
     }
 
-    private static native Class<?> defineClass0(ClassLoader loader, String name,
-                                                byte[] b, int off, int len);
+/*    private static native Class<?> defineClass0(ClassLoader loader, String name,
+                                                byte[] b, int off, int len);*/
 }

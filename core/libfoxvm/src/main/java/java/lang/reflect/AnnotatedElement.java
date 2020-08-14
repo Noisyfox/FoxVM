@@ -27,15 +27,9 @@ package java.lang.reflect;
 
 import java.lang.annotation.Annotation;
 import java.lang.annotation.AnnotationFormatError;
-import java.lang.annotation.Repeatable;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import sun.reflect.annotation.AnnotationSupport;
-import sun.reflect.annotation.AnnotationType;
+
+import libcore.reflect.AnnotatedElements;
 
 /**
  * Represents an annotated element of the program currently running in this
@@ -322,6 +316,7 @@ public interface AnnotatedElement {
      * @since 1.8
      */
     default <T extends Annotation> T[] getAnnotationsByType(Class<T> annotationClass) {
+        // FOXVM-changed: Use libcore.reflect.AnnotatedElements
          /*
           * Definition of associated: directly or indirectly present OR
           * neither directly nor indirectly present AND the element is
@@ -329,7 +324,7 @@ public interface AnnotatedElement {
           * annotation type is associated with the superclass of the
           * element.
           */
-         T[] result = getDeclaredAnnotationsByType(annotationClass);
+/*         T[] result = getDeclaredAnnotationsByType(annotationClass);
 
          if (result.length == 0 && // Neither directly nor indirectly present
              this instanceof Class && // the element is a class
@@ -342,7 +337,8 @@ public interface AnnotatedElement {
              }
          }
 
-         return result;
+         return result;*/
+        return AnnotatedElements.getDirectOrIndirectAnnotationsByType(this, annotationClass);
      }
 
     /**
@@ -423,14 +419,16 @@ public interface AnnotatedElement {
      * @since 1.8
      */
     default <T extends Annotation> T[] getDeclaredAnnotationsByType(Class<T> annotationClass) {
-        Objects.requireNonNull(annotationClass);
+        // FOXVM-changed: Use libcore.reflect.AnnotatedElements
+/*        Objects.requireNonNull(annotationClass);
         return AnnotationSupport.
             getDirectlyAndIndirectlyPresent(Arrays.stream(getDeclaredAnnotations()).
                                             collect(Collectors.toMap(Annotation::annotationType,
                                                                      Function.identity(),
                                                                      ((first,second) -> first),
                                                                      LinkedHashMap::new)),
-                                            annotationClass);
+                                            annotationClass);*/
+        return AnnotatedElements.getDirectOrIndirectAnnotationsByType(this, annotationClass);
     }
 
     /**

@@ -220,7 +220,8 @@ public final class SunCertPathBuilder extends CertPathBuilderSpi {
         adjacencyList.clear();
         adjacencyList.add(new LinkedList<Vertex>());
 
-        currentState.untrustedChecker = new UntrustedChecker();
+        // FoxVM-removed: not supported
+        // currentState.untrustedChecker = new UntrustedChecker();
 
         depthFirstSearchForward(buildParams.targetSubject(), currentState,
                                 new ForwardBuilder(buildParams,
