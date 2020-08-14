@@ -362,15 +362,19 @@ public class Proxy implements java.io.Serializable {
                                          Class<?>... interfaces)
         throws IllegalArgumentException
     {
-        final Class<?>[] intfs = interfaces.clone();
+        // FoxVM-changed: FoxVM does not support SecurityManager.
+/*        final Class<?>[] intfs = interfaces.clone();
         final SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             checkProxyAccess(Reflection.getCallerClass(), loader, intfs);
         }
 
-        return getProxyClass0(loader, intfs);
+        return getProxyClass0(loader, intfs);*/
+
+        return getProxyClass0(loader, interfaces);
     }
 
+    // FoxVM-removed: FoxVM does not support SecurityManager.
     /*
      * Check permissions required to create a Proxy class.
      *
@@ -389,7 +393,7 @@ public class Proxy implements java.io.Serializable {
      * will throw IllegalAccessError when the generated proxy class is
      * being defined via the defineClass0 method.
      */
-    private static void checkProxyAccess(Class<?> caller,
+/*    private static void checkProxyAccess(Class<?> caller,
                                          ClassLoader loader,
                                          Class<?>... interfaces)
     {
@@ -401,7 +405,7 @@ public class Proxy implements java.io.Serializable {
             }
             ReflectUtil.checkProxyPackageAccess(ccl, interfaces);
         }
-    }
+    }*/
 
     /**
      * Generate a proxy class.  Must call the checkProxyAccess method
@@ -708,10 +712,11 @@ public class Proxy implements java.io.Serializable {
         Objects.requireNonNull(h);
 
         final Class<?>[] intfs = interfaces.clone();
-        final SecurityManager sm = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        final SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             checkProxyAccess(Reflection.getCallerClass(), loader, intfs);
-        }
+        }*/
 
         /*
          * Look up or generate the designated proxy class.
@@ -722,19 +727,22 @@ public class Proxy implements java.io.Serializable {
          * Invoke its constructor with the designated invocation handler.
          */
         try {
-            if (sm != null) {
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+/*            if (sm != null) {
                 checkNewProxyPermission(Reflection.getCallerClass(), cl);
-            }
+            }*/
 
             final Constructor<?> cons = cl.getConstructor(constructorParams);
             final InvocationHandler ih = h;
             if (!Modifier.isPublic(cl.getModifiers())) {
-                AccessController.doPrivileged(new PrivilegedAction<Void>() {
+                // FoxVM-removed: FoxVM does not support SecurityManager.
+/*                AccessController.doPrivileged(new PrivilegedAction<Void>() {
                     public Void run() {
                         cons.setAccessible(true);
                         return null;
                     }
-                });
+                });*/
+                cons.setAccessible(true);
             }
             return cons.newInstance(new Object[]{h});
         } catch (IllegalAccessException|InstantiationException e) {
@@ -751,7 +759,8 @@ public class Proxy implements java.io.Serializable {
         }
     }
 
-    private static void checkNewProxyPermission(Class<?> caller, Class<?> proxyClass) {
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+/*    private static void checkNewProxyPermission(Class<?> caller, Class<?> proxyClass) {
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             if (ReflectUtil.isNonPublicProxyClass(proxyClass)) {
@@ -771,7 +780,7 @@ public class Proxy implements java.io.Serializable {
                 }
             }
         }
-    }
+    }*/
 
     /**
      * Returns true if and only if the specified class was dynamically
@@ -818,7 +827,8 @@ public class Proxy implements java.io.Serializable {
 
         final Proxy p = (Proxy) proxy;
         final InvocationHandler ih = p.h;
-        if (System.getSecurityManager() != null) {
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        if (System.getSecurityManager() != null) {
             Class<?> ihClass = ih.getClass();
             Class<?> caller = Reflection.getCallerClass();
             if (ReflectUtil.needsPackageAccessCheck(caller.getClassLoader(),
@@ -826,7 +836,7 @@ public class Proxy implements java.io.Serializable {
             {
                 ReflectUtil.checkPackageAccess(ihClass);
             }
-        }
+        }*/
 
         return ih;
     }

@@ -25,9 +25,6 @@
 
 package java.lang.reflect;
 
-import java.security.AccessController;
-import sun.reflect.Reflection;
-import sun.reflect.ReflectionFactory;
 import java.lang.annotation.Annotation;
 
 /**
@@ -56,13 +53,14 @@ import java.lang.annotation.Annotation;
  */
 public class AccessibleObject implements AnnotatedElement {
 
+    // FoxVM-removed: FoxVM does not support SecurityManager.
     /**
      * The Permission object that is used to check whether a client
      * has sufficient privilege to defeat Java language access
      * control checks.
      */
-    static final private java.security.Permission ACCESS_PERMISSION =
-        new ReflectPermission("suppressAccessChecks");
+    // static final private java.security.Permission ACCESS_PERMISSION =
+    //     new ReflectPermission("suppressAccessChecks");
 
     /**
      * Convenience method to set the {@code accessible} flag for an
@@ -91,8 +89,9 @@ public class AccessibleObject implements AnnotatedElement {
      */
     public static void setAccessible(AccessibleObject[] array, boolean flag)
         throws SecurityException {
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null) sm.checkPermission(ACCESS_PERMISSION);
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // SecurityManager sm = System.getSecurityManager();
+        // if (sm != null) sm.checkPermission(ACCESS_PERMISSION);
         for (int i = 0; i < array.length; i++) {
             setAccessible0(array[i], flag);
         }
@@ -124,8 +123,9 @@ public class AccessibleObject implements AnnotatedElement {
      * @see java.lang.RuntimePermission
      */
     public void setAccessible(boolean flag) throws SecurityException {
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null) sm.checkPermission(ACCESS_PERMISSION);
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // SecurityManager sm = System.getSecurityManager();
+        // if (sm != null) sm.checkPermission(ACCESS_PERMISSION);
         setAccessible0(this, flag);
     }
 
@@ -136,10 +136,19 @@ public class AccessibleObject implements AnnotatedElement {
     {
         if (obj instanceof Constructor && flag == true) {
             Constructor<?> c = (Constructor<?>)obj;
-            if (c.getDeclaringClass() == Class.class) {
+            // BEGIN FoxVM-changed: Disallow making Method & Field constructors accessible.
+            Class<?> clazz = c.getDeclaringClass();
+            if (clazz == Class.class) {
                 throw new SecurityException("Cannot make a java.lang.Class" +
                                             " constructor accessible");
+            } else if (clazz == Method.class) {
+                throw new SecurityException("Can not make a java.lang.reflect.Method" +
+                                            " constructor accessible");
+            } else if (clazz == Field.class) {
+                throw new SecurityException("Can not make a java.lang.reflect.Field" +
+                                            " constructor accessible");
             }
+            // END FoxVM-changed: Disallow making Method & Field constructors accessible.
         }
         obj.override = flag;
     }
@@ -166,12 +175,13 @@ public class AccessibleObject implements AnnotatedElement {
     // outside this package.
     boolean override;
 
+    // FoxVM-removed: FoxVM does not use ReflectionFactory.
     // Reflection factory used by subclasses for creating field,
     // method, and constructor accessors. Note that this is called
     // very early in the bootstrapping process.
-    static final ReflectionFactory reflectionFactory =
-        AccessController.doPrivileged(
-            new sun.reflect.ReflectionFactory.GetReflectionFactoryAction());
+    // static final ReflectionFactory reflectionFactory =
+    //     AccessController.doPrivileged(
+    //         new sun.reflect.ReflectionFactory.GetReflectionFactoryAction());
 
     /**
      * @throws NullPointerException {@inheritDoc}
@@ -239,6 +249,7 @@ public class AccessibleObject implements AnnotatedElement {
     }
 
 
+    // BEGIN FoxVM-removed: Not used.
     // Shared access checking logic.
 
     // For non-public members or members in package-private classes,
@@ -256,7 +267,7 @@ public class AccessibleObject implements AnnotatedElement {
     // The cache can be either null (empty cache), a 2-array of {caller,target},
     // or a caller (with target implicitly equal to this.clazz).
     // In the 2-array case, the target is always different from the clazz.
-    volatile Object securityCheckCache;
+/*    volatile Object securityCheckCache;
 
     void checkAccess(Class<?> caller, Class<?> clazz, Object obj, int modifiers)
         throws IllegalAccessException
@@ -305,5 +316,6 @@ public class AccessibleObject implements AnnotatedElement {
         // guarantees that the initializing stores for the cache
         // elements will occur before the volatile write.
         securityCheckCache = cache;         // write volatile
-    }
+    }*/
+    // END FoxVM-removed: Not used.
 }

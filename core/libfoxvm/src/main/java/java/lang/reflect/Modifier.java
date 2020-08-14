@@ -25,10 +25,6 @@
 
 package java.lang.reflect;
 
-import java.security.AccessController;
-import sun.reflect.LangReflectAccess;
-import sun.reflect.ReflectionFactory;
-
 /**
  * The Modifier class provides {@code static} methods and
  * constants to decode class and member access modifiers.  The sets of
@@ -49,12 +45,15 @@ public class Modifier {
      * Bootstrapping protocol between java.lang and java.lang.reflect
      *  packages
      */
+    // FoxVM-removed: ReflectionFactory bootstrapping code not used by FoxVM.
+    /*
     static {
         sun.reflect.ReflectionFactory factory =
             AccessController.doPrivileged(
                 new ReflectionFactory.GetReflectionFactoryAction());
         factory.setLangReflectAccess(new java.lang.reflect.ReflectAccess());
     }
+    */
 
     /**
      * Return {@code true} if the integer argument includes the
