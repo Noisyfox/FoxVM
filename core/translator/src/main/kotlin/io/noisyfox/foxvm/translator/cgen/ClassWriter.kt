@@ -7,6 +7,7 @@ import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.IntInsnNode
 import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.LineNumberNode
@@ -662,6 +663,19 @@ class ClassWriter(
                         else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                     }
                 }
+                is InsnNode -> {
+                    when (inst.opcode) {
+                        in byteCodesInstInst -> {
+                            val functionName = byteCodesInstInst[inst.opcode]
+                            cWriter.write(
+                                """
+                    |   ${functionName}();
+                    |""".trimMargin()
+                            )
+                        }
+//                        else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
+                    }
+                }
             }
         }
 
@@ -703,6 +717,40 @@ class ClassWriter(
         private val byteCodesIntInst = mapOf(
             Opcodes.BIPUSH to "bc_bipush",
             Opcodes.SIPUSH to "bc_sipush"
+        )
+
+        private val byteCodesInstInst = mapOf(
+            Opcodes.NOP to "bc_nop",
+
+            Opcodes.ACONST_NULL to "bc_aconst_null",
+
+            Opcodes.ICONST_M1 to "bc_iconst_m1",
+            Opcodes.ICONST_0  to "bc_iconst_0",
+            Opcodes.ICONST_1  to "bc_iconst_1",
+            Opcodes.ICONST_2  to "bc_iconst_2",
+            Opcodes.ICONST_3  to "bc_iconst_3",
+            Opcodes.ICONST_4  to "bc_iconst_4",
+            Opcodes.ICONST_5  to "bc_iconst_5",
+
+            Opcodes.LCONST_0 to "bc_lconst_0",
+            Opcodes.LCONST_1 to "bc_lconst_1",
+
+            Opcodes.FCONST_0 to "bc_fconst_0",
+            Opcodes.FCONST_1 to "bc_fconst_1",
+            Opcodes.FCONST_2 to "bc_fconst_2",
+
+            Opcodes.DCONST_0 to "bc_dconst_0",
+            Opcodes.DCONST_1 to "bc_dconst_1",
+
+            Opcodes.POP  to "bc_pop",
+            Opcodes.POP2 to "bc_pop2",
+
+            Opcodes.DUP     to "bc_dup",
+            Opcodes.DUP_X1  to "bc_dup_x1",
+            Opcodes.DUP_X2  to "bc_dup_x2",
+            Opcodes.DUP2    to "bc_dup2",
+            Opcodes.DUP2_X1 to "bc_dup2_x1",
+            Opcodes.DUP2_X2 to "bc_dup2_x2"
         )
     }
 }

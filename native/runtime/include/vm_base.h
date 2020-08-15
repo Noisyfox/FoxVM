@@ -331,6 +331,11 @@ typedef struct {
     VMStackSlotData data;
 } VMStackSlot;
 
+typedef enum {
+    VM_TYPE_CAT_1,
+    VM_TYPE_CAT_2,
+} VMTypeCategory;
+
 /**
  * Types that are stored as VM_SLOT_INT in a VMStackSlot.
  */
