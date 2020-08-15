@@ -7,6 +7,7 @@ import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.tree.IntInsnNode
 import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.LineNumberNode
 import org.objectweb.asm.tree.VarInsnNode
@@ -632,13 +633,29 @@ class ClassWriter(
                 is VarInsnNode -> {
                     when (inst.opcode) {
                         Opcodes.RET -> {
-
+                            // TODO
                         }
                         in byteCodesVarInst -> {
                             val functionName = byteCodesVarInst[inst.opcode]
                             cWriter.write(
                                 """
                     |   ${functionName}(${inst.`var`});
+                    |""".trimMargin()
+                            )
+                        }
+                        else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
+                    }
+                }
+                is IntInsnNode -> {
+                    when (inst.opcode) {
+                        Opcodes.NEWARRAY -> {
+                            // TODO
+                        }
+                        in byteCodesIntInst -> {
+                            val functionName = byteCodesIntInst[inst.opcode]
+                            cWriter.write(
+                                """
+                    |   ${functionName}(${inst.operand});
                     |""".trimMargin()
                             )
                         }
@@ -681,6 +698,11 @@ class ClassWriter(
             Opcodes.FSTORE to "bc_fstore",
             Opcodes.DSTORE to "bc_dstore",
             Opcodes.ASTORE to "bc_astore"
+        )
+
+        private val byteCodesIntInst = mapOf(
+            Opcodes.BIPUSH to "bc_bipush",
+            Opcodes.SIPUSH to "bc_sipush"
         )
     }
 }

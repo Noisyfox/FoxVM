@@ -61,6 +61,12 @@
 #define bc_dload(local) bc_load(local, VM_SLOT_DOUBLE)
 #define bc_aload(local) bc_load(local, VM_SLOT_OBJECT)
 
+/**
+ * Push the given value onto the top of the operand stack, sign-extended to a JAVA_INT
+ */
+#define bc_bipush(i) stack_push_int(i)
+#define bc_sipush(i) stack_push_int(i)
+
 // FoxVM specific instructions
 
 /** Record current source file line number. */

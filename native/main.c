@@ -10,6 +10,9 @@ JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT) {
     bc_astore(0);
     bc_aload(0);
     bc_astore(0);
+    bc_bipush(15);
+    bc_istore(0);
+    bc_sipush(-20);
 
     bc_line(0);
 

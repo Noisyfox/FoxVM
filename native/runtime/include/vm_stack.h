@@ -82,6 +82,13 @@ void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT);
     __stackFrame.operandStack.top++;                            \
 } while(0)
 
+#define stack_push_int(val) do { \
+    stack_check_overflow();                                     \
+    __stackFrame.operandStack.top->type = VM_SLOT_INT;          \
+    __stackFrame.operandStack.top->data.i = (val);              \
+    __stackFrame.operandStack.top++;                            \
+} while(0)
+
 /**
  * Push the value from [from] slot on to the top of the given stack.
  * This also checks if the data type matches the [required_type].
