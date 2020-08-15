@@ -2,7 +2,6 @@ package io.noisyfox.foxvm.bytecode.clazz
 
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.objectweb.asm.ClassReader
-import org.objectweb.asm.Opcodes
 import java.io.InputStream
 
 class Clazz(

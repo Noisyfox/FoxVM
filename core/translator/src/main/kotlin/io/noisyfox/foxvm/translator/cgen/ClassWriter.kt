@@ -4,6 +4,7 @@ import io.noisyfox.foxvm.bytecode.ClassPool
 import io.noisyfox.foxvm.bytecode.asCString
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
+import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -554,6 +555,45 @@ class ClassWriter(
         // TODO: resolve staticFieldReferences
 
         // TODO: set static const field to its initial value
+
+        cWriter.write(
+            """
+                    |}
+                    |
+                    |""".trimMargin()
+        )
+
+        // Write implementation of non-native methods
+        if (info.methods.isNotEmpty()) {
+            cWriter.write(
+                """
+                    |// Method implementations
+                    |
+                    |""".trimMargin()
+            )
+
+            info.methods.forEach {
+                writeMethodImpl(cWriter, info, it)
+            }
+        }
+    }
+
+    private fun writeMethodImpl(cWriter: Writer, clazzInfo: ClassInfo, method: MethodInfo) {
+        val clazz = clazzInfo.thisClass
+
+        cWriter.write(
+            """
+                    |// ${clazz.className}.${method.name}:${method.descriptor}
+                    |${method.cDeclaration(clazzInfo)} {
+                    |""".trimMargin()
+        )
+
+        // TODO: write instructions
+        cWriter.write(
+            """
+                    |    return 0;
+                    |""".trimMargin()
+        )
 
         cWriter.write(
             """
