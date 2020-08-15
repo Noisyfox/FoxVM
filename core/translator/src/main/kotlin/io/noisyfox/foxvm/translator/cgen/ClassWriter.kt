@@ -6,6 +6,8 @@ import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
+import org.objectweb.asm.tree.LabelNode
+import org.objectweb.asm.tree.LineNumberNode
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.Writer
@@ -580,15 +582,53 @@ class ClassWriter(
 
     private fun writeMethodImpl(cWriter: Writer, clazzInfo: ClassInfo, method: MethodInfo) {
         val clazz = clazzInfo.thisClass
+        val node = method.methodNode
 
         cWriter.write(
             """
                     |// ${clazz.className}.${method.name}:${method.descriptor}
                     |${method.cDeclaration(clazzInfo)} {
+                    |   stack_frame_start(${node.maxStack}, ${node.maxLocals});
                     |""".trimMargin()
         )
 
+        // Pass arguments
+        val argumentTypes = method.descriptor.argumentTypes
+        val argumentCount = if (method.isStatic) {
+            argumentTypes.size
+        } else {
+            argumentTypes.size + 1 // implicitly passed this
+        }
+        if (argumentCount > 0) {
+            cWriter.write(
+                """
+                    |   local_transfer_arguments(vmCurrentContext, ${argumentCount});
+                    |""".trimMargin()
+            )
+        }
+
         // TODO: write instructions
+
+        node.instructions.forEach { inst ->
+            when (inst) {
+                is LabelNode -> {
+                    cWriter.write(
+                        """
+                    |${inst.cName(method)}:
+                    |""".trimMargin()
+                    )
+                }
+                is LineNumberNode -> {
+                    cWriter.write(
+                        """
+                    |   bc_line(${inst.line}); // Line ${inst.line}
+                    |
+                    |""".trimMargin()
+                    )
+                }
+            }
+        }
+
         cWriter.write(
             """
                     |    return 0;

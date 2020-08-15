@@ -6,6 +6,7 @@ import io.noisyfox.foxvm.bytecode.clazz.PreResolvedInstanceFieldInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedStaticFieldInfo
 import io.noisyfox.foxvm.bytecode.resolver.mangleClassName
 import org.objectweb.asm.Type
+import org.objectweb.asm.tree.LabelNode
 
 fun Int.toCEnum(flagMap: Map<Int, String>): String {
     var f2 = this
@@ -286,4 +287,11 @@ fun MethodInfo.cName(info: ClassInfo): String {
  */
 fun MethodInfo.cDeclaration(info: ClassInfo): String {
     return "${this.descriptor.returnType.toCBaseTypeName()} ${this.cName(info)}(VM_PARAM_CURRENT_CONTEXT)"
+}
+
+/**
+ * The C label name of this node.
+ */
+fun LabelNode.cName(info: MethodInfo): String {
+    return "L${info.methodNode.instructions.indexOf(this)}"
 }
