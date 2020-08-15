@@ -117,6 +117,69 @@
 /** Swap the top two operand stack values */
 #define bc_swap() stack_swap(&__stackFrame.operandStack)
 
+// Variants of the arithmetic instructions
+#define decl_arithmetic_func(n) void bc_arithmetic_##n(VMOperandStack *stack)
+#define decl_arithmetic_func_prefix_all(n) \
+decl_arithmetic_func(i##n);\
+decl_arithmetic_func(l##n);\
+decl_arithmetic_func(f##n);\
+decl_arithmetic_func(d##n)
+
+decl_arithmetic_func_prefix_all(add);
+decl_arithmetic_func_prefix_all(sub);
+decl_arithmetic_func_prefix_all(mul);
+decl_arithmetic_func_prefix_all(div);
+decl_arithmetic_func_prefix_all(rem);
+decl_arithmetic_func_prefix_all(neg);
+
+#define bc_iadd() bc_arithmetic_iadd(&__stackFrame.operandStack)
+#define bc_ladd() bc_arithmetic_ladd(&__stackFrame.operandStack)
+#define bc_fadd() bc_arithmetic_fadd(&__stackFrame.operandStack)
+#define bc_dadd() bc_arithmetic_dadd(&__stackFrame.operandStack)
+
+#define bc_isub() bc_arithmetic_isub(&__stackFrame.operandStack)
+#define bc_lsub() bc_arithmetic_lsub(&__stackFrame.operandStack)
+#define bc_fsub() bc_arithmetic_fsub(&__stackFrame.operandStack)
+#define bc_dsub() bc_arithmetic_dsub(&__stackFrame.operandStack)
+
+#define bc_imul() bc_arithmetic_imul(&__stackFrame.operandStack)
+#define bc_lmul() bc_arithmetic_lmul(&__stackFrame.operandStack)
+#define bc_fmul() bc_arithmetic_fmul(&__stackFrame.operandStack)
+#define bc_dmul() bc_arithmetic_dmul(&__stackFrame.operandStack)
+
+#define bc_idiv() bc_arithmetic_idiv(&__stackFrame.operandStack)
+#define bc_ldiv() bc_arithmetic_ldiv(&__stackFrame.operandStack)
+#define bc_fdiv() bc_arithmetic_fdiv(&__stackFrame.operandStack)
+#define bc_ddiv() bc_arithmetic_ddiv(&__stackFrame.operandStack)
+
+#define bc_irem() bc_arithmetic_irem(&__stackFrame.operandStack)
+#define bc_lrem() bc_arithmetic_lrem(&__stackFrame.operandStack)
+#define bc_frem() bc_arithmetic_frem(&__stackFrame.operandStack)
+#define bc_drem() bc_arithmetic_drem(&__stackFrame.operandStack)
+
+#define bc_ineg() bc_arithmetic_ineg(&__stackFrame.operandStack)
+#define bc_lneg() bc_arithmetic_lneg(&__stackFrame.operandStack)
+#define bc_fneg() bc_arithmetic_fneg(&__stackFrame.operandStack)
+#define bc_dneg() bc_arithmetic_dneg(&__stackFrame.operandStack)
+
+// Variants of the bitwise instructions
+#define decl_bitwise_func_prefix_all(n) \
+decl_arithmetic_func(i##n);\
+decl_arithmetic_func(l##n)
+
+decl_bitwise_func_prefix_all(and);
+decl_bitwise_func_prefix_all(or);
+decl_bitwise_func_prefix_all(xor);
+
+#define bc_iand() bc_arithmetic_iand(&__stackFrame.operandStack)
+#define bc_land() bc_arithmetic_land(&__stackFrame.operandStack)
+
+#define bc_ior() bc_arithmetic_ior(&__stackFrame.operandStack)
+#define bc_lor() bc_arithmetic_lor(&__stackFrame.operandStack)
+
+#define bc_ixor() bc_arithmetic_ixor(&__stackFrame.operandStack)
+#define bc_lxor() bc_arithmetic_lxor(&__stackFrame.operandStack)
+
 // FoxVM specific instructions
 
 /** Record current source file line number. */

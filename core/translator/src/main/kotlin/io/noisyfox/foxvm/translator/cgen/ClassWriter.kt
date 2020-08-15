@@ -752,7 +752,46 @@ class ClassWriter(
             Opcodes.DUP2_X1 to "bc_dup2_x1",
             Opcodes.DUP2_X2 to "bc_dup2_x2",
 
-            Opcodes.SWAP to "bc_swap"
+            Opcodes.SWAP to "bc_swap",
+
+            Opcodes.IADD to "bc_iadd",
+            Opcodes.LADD to "bc_ladd",
+            Opcodes.FADD to "bc_fadd",
+            Opcodes.DADD to "bc_dadd",
+
+            Opcodes.ISUB to "bc_isub",
+            Opcodes.LSUB to "bc_lsub",
+            Opcodes.FSUB to "bc_fsub",
+            Opcodes.DSUB to "bc_dsub",
+
+            Opcodes.IMUL to "bc_imul",
+            Opcodes.LMUL to "bc_lmul",
+            Opcodes.FMUL to "bc_fmul",
+            Opcodes.DMUL to "bc_dmul",
+
+            Opcodes.IDIV to "bc_idiv",
+            Opcodes.LDIV to "bc_ldiv",
+            Opcodes.FDIV to "bc_fdiv",
+            Opcodes.DDIV to "bc_ddiv",
+
+            Opcodes.IREM to "bc_irem",
+            Opcodes.LREM to "bc_lrem",
+            Opcodes.FREM to "bc_frem",
+            Opcodes.DREM to "bc_drem",
+
+            Opcodes.INEG to "bc_ineg",
+            Opcodes.LNEG to "bc_lneg",
+            Opcodes.FNEG to "bc_fneg",
+            Opcodes.DNEG to "bc_dneg",
+
+            Opcodes.IAND to "bc_iand",
+            Opcodes.LAND to "bc_land",
+
+            Opcodes.IOR to "bc_ior",
+            Opcodes.LOR to "bc_lor",
+
+            Opcodes.IXOR to "bc_ixor",
+            Opcodes.LXOR to "bc_lxor"
         )
     }
 }

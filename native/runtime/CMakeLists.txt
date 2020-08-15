@@ -60,5 +60,6 @@ add_c_library(
 
         LOCAL_LIBRARIES
         Threads::Threads
+        m
         opa
 )
