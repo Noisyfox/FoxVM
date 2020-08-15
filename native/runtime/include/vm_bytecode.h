@@ -114,6 +114,9 @@
 #define bc_dup2_x1() stack_dup2_x1(&__stackFrame.operandStack)
 #define bc_dup2_x2() stack_dup2_x2(&__stackFrame.operandStack)
 
+/** Swap the top two operand stack values */
+#define bc_swap() stack_swap(&__stackFrame.operandStack)
+
 // FoxVM specific instructions
 
 /** Record current source file line number. */

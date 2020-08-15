@@ -134,6 +134,14 @@ void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT);
     (to)->data = (from)->data;   \
 } while(0)
 
+static inline void slot_swap(VMStackSlot *a, VMStackSlot *b) {
+    VMStackSlot tmp;
+
+    slot_copy(&tmp, a);
+    slot_copy(a, b);
+    slot_copy(b, &tmp);
+}
+
 /**
  * Push the value from [from] slot on to the top of the given stack.
  * This also checks if the data type matches the [required_type].
@@ -403,6 +411,18 @@ static inline void stack_dup2_x2(VMOperandStack *stack) {
             }
             break;
     }
+}
+
+/**
+ * Swap the top two operand stack values
+ */
+static inline void stack_swap(VMOperandStack *stack) {
+    stack_peek_value(1);
+    stack_assert_cat(1, VM_TYPE_CAT_1);
+    stack_peek_value(2);
+    stack_assert_cat(2, VM_TYPE_CAT_1);
+
+    slot_swap(value1, value2);
 }
 
 #undef _stack_dup2_x1

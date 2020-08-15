@@ -17,6 +17,8 @@ JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT) {
     bc_iconst_4();
     bc_dup();
     bc_dup2();
+    bc_fconst_2();
+    bc_swap();
 
     bc_nop();
 

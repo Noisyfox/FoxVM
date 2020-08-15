@@ -750,7 +750,9 @@ class ClassWriter(
             Opcodes.DUP_X2  to "bc_dup_x2",
             Opcodes.DUP2    to "bc_dup2",
             Opcodes.DUP2_X1 to "bc_dup2_x1",
-            Opcodes.DUP2_X2 to "bc_dup2_x2"
+            Opcodes.DUP2_X2 to "bc_dup2_x2",
+
+            Opcodes.SWAP to "bc_swap"
         )
     }
 }
