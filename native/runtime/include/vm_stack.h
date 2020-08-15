@@ -102,42 +102,25 @@ static inline void local_transfer_arguments(VM_PARAM_CURRENT_CONTEXT, uint16_t a
                 assert(!"Invalid slot type");
                 break;
             case VM_SLOT_OBJECT:
-                assert(localIndex < localsTo->maxLocals);
-                localsTo->slots[localIndex].type = VM_SLOT_OBJECT;
-                localsTo->slots[localIndex].data.o = stackSlotFrom->data.o;
-                localIndex++;
-                break;
             case VM_SLOT_INT:
+            case VM_SLOT_FLOAT:
                 assert(localIndex < localsTo->maxLocals);
-                localsTo->slots[localIndex].type = VM_SLOT_INT;
-                localsTo->slots[localIndex].data.i = stackSlotFrom->data.i;
+                localsTo->slots[localIndex].type = stackSlotFrom->type;
+                localsTo->slots[localIndex].data = stackSlotFrom->data;
                 localIndex++;
                 break;
             case VM_SLOT_LONG:
-                assert(localIndex + 1 < localsTo->maxLocals);
-                localsTo->slots[localIndex].type = VM_SLOT_LONG;
-                localsTo->slots[localIndex].data.l = stackSlotFrom->data.l;
-                localIndex++;
-                // Long uses 2 local slots
-                localsTo->slots[localIndex].type = VM_SLOT_INVALID;
-                localIndex++;
-                break;
-            case VM_SLOT_FLOAT:
-                assert(localIndex < localsTo->maxLocals);
-                localsTo->slots[localIndex].type = VM_SLOT_FLOAT;
-                localsTo->slots[localIndex].data.f = stackSlotFrom->data.f;
-                localIndex++;
-                break;
             case VM_SLOT_DOUBLE:
                 assert(localIndex + 1 < localsTo->maxLocals);
-                localsTo->slots[localIndex].type = VM_SLOT_DOUBLE;
-                localsTo->slots[localIndex].data.d = stackSlotFrom->data.d;
+                localsTo->slots[localIndex].type = stackSlotFrom->type;
+                localsTo->slots[localIndex].data = stackSlotFrom->data;
                 localIndex++;
-                // Double uses 2 local slots
+                // Long and Double use 2 local slots
                 localsTo->slots[localIndex].type = VM_SLOT_INVALID;
                 localIndex++;
                 break;
         }
+        stackSlotFrom->type = VM_SLOT_INVALID;
 
         stackSlotFrom++;
     }
