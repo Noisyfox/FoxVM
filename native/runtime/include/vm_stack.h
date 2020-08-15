@@ -83,6 +83,43 @@ void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT);
 } while(0)
 
 /**
+ * Push the value from [from] slot on to the top of the given stack.
+ * This also checks if the data type matches the [required_type].
+ */
+static inline void stack_push_from(VMOperandStack *stack, VMStackSlot *from, VMStackSlotType required_type) {
+    assert(stack->top < stack->slots + stack->maxStack); // Make sure stack is not full
+    assert(from->type == required_type); // Check the type
+
+    // Push the data
+    stack->top->type = required_type;
+    stack->top->data = from->data;
+
+    // Increase the top pointer
+    stack->top++;
+}
+
+/**
+ * Pop the top of the given stack, and store the data into given [to] slot.
+ * This also checks if the data type matches the [required_type].
+ */
+static inline void stack_pop_to(VMOperandStack *stack, VMStackSlot *to, VMStackSlotType required_type) {
+    VMStackSlot *newTop = stack->top - 1;
+    assert(newTop >= stack->slots); // Make sure the stack is not empty
+    assert(newTop->type == required_type); // Check the type
+
+    // Pop the data
+    stack->top = newTop;
+    newTop->type = VM_SLOT_INVALID;
+
+    // Copy the slot to the target slot
+    to->type = required_type;
+    to->data = newTop->data;
+}
+
+#define local_check_index(local) \
+    assert(local >= 0 && local < __stackFrame.locals.maxLocals)
+
+/**
  * Transfer arguments from caller's operand stack to current method's local slots
  */
 static inline void local_transfer_arguments(VM_PARAM_CURRENT_CONTEXT, uint16_t argument_count) {

@@ -6,8 +6,10 @@ import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.LineNumberNode
+import org.objectweb.asm.tree.VarInsnNode
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.Writer
@@ -614,6 +616,7 @@ class ClassWriter(
                 is LabelNode -> {
                     cWriter.write(
                         """
+                    |
                     |${inst.cName(method)}:
                     |""".trimMargin()
                     )
@@ -625,6 +628,22 @@ class ClassWriter(
                     |
                     |""".trimMargin()
                     )
+                }
+                is VarInsnNode -> {
+                    when (inst.opcode) {
+                        Opcodes.RET -> {
+
+                        }
+                        in byteCodesVarInst -> {
+                            val functionName = byteCodesVarInst[inst.opcode]
+                            cWriter.write(
+                                """
+                    |   ${functionName}(${inst.`var`});
+                    |""".trimMargin()
+                            )
+                        }
+                        else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
+                    }
                 }
             }
         }
@@ -649,5 +668,19 @@ class ClassWriter(
         private const val CNAME_BACKING_INTERFACES = "backingInterfaces"
         private const val CNAME_BACKING_STATIC_FIELDS = "backingStaticFields"
         private const val CNAME_BACKING_INSTANCE_FIELDS = "backingFields"
+
+        private val byteCodesVarInst = mapOf(
+            Opcodes.ILOAD to "bc_iload",
+            Opcodes.LLOAD to "bc_lload",
+            Opcodes.FLOAD to "bc_fload",
+            Opcodes.DLOAD to "bc_dload",
+            Opcodes.ALOAD to "bc_aload",
+
+            Opcodes.ISTORE to "bc_istore",
+            Opcodes.LSTORE to "bc_lstore",
+            Opcodes.FSTORE to "bc_fstore",
+            Opcodes.DSTORE to "bc_dstore",
+            Opcodes.ASTORE to "bc_astore"
+        )
     }
 }

@@ -3,8 +3,13 @@
 
 
 JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT) {
-    stack_frame_start(0, 1);
+    stack_frame_start(1, 1);
     local_transfer_arguments(vmCurrentContext, 1);
+
+    bc_aconst_null();
+    bc_astore(0);
+    bc_aload(0);
+    bc_astore(0);
 
     bc_line(0);
 
