@@ -90,12 +90,13 @@ static inline void local_transfer_arguments(VM_PARAM_CURRENT_CONTEXT, uint16_t a
     VMOperandStack *stackFrom = &currentFrame->prev->operandStack;
     VMLocals *localsTo = &currentFrame->locals;
 
-    VMStackSlot *stackSlotFrom = stackFrom->top - argument_count;
+    VMStackSlot *stackSlotFromLimit = stackFrom->top;
+    VMStackSlot *stackSlotFrom = stackSlotFromLimit - argument_count;
     assert(stackSlotFrom >= stackFrom->slots);
     stackFrom->top = stackSlotFrom; // Pop all arguments from previous stack frame
 
     int localIndex = 0;
-    while (stackSlotFrom < stackFrom->top) {
+    while (stackSlotFrom < stackSlotFromLimit) {
         switch (stackSlotFrom->type) {
             case VM_SLOT_INVALID:
                 assert(!"Invalid slot type");
