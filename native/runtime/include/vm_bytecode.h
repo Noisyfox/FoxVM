@@ -238,7 +238,7 @@ decl_arithmetic_func(i2s);
 #define bc_i2c() bc_arithmetic_i2c(OP_STACK)
 #define bc_i2s() bc_arithmetic_i2s(OP_STACK)
 
-// Comparison operations
+// Comparison instructions
 decl_arithmetic_func(lcmp);
 decl_arithmetic_func(fcmpl);
 decl_arithmetic_func(fcmpg);
@@ -251,7 +251,7 @@ decl_arithmetic_func(dcmpg);
 #define bc_dcmpl() bc_arithmetic_dcmpl(OP_STACK)
 #define bc_dcmpg() bc_arithmetic_dcmpg(OP_STACK)
 
-// Branch operations
+// Branch instructions
 #define decl_branch_func(name) JAVA_BOOLEAN bc_branch_##name(VMOperandStack *stack)
 
 decl_branch_func(ifeq);
