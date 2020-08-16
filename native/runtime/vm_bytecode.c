@@ -14,6 +14,7 @@
 #define JAVA_TYPE_s JAVA_SHORT
 #define java_type_of(prefix) JAVA_TYPE_##prefix
 
+#define SLOT_TYPE_a VM_SLOT_OBJECT
 #define SLOT_TYPE_i VM_SLOT_INT
 #define SLOT_TYPE_l VM_SLOT_LONG
 #define SLOT_TYPE_f VM_SLOT_FLOAT
@@ -23,6 +24,7 @@
 #define SLOT_TYPE_s VM_SLOT_INT
 #define slot_type_of(prefix) SLOT_TYPE_##prefix
 
+#define SLOT_VALUE_a o
 #define SLOT_VALUE_i i
 #define SLOT_VALUE_l l
 #define SLOT_VALUE_f f
@@ -48,6 +50,22 @@
     value2->type = VM_SLOT_INVALID
     // Store the result in the place of value1
 
+// ..., value1, value2 →
+// ...
+#define arithmetic_bi_operand_nr(required_type) \
+    VMStackSlot *value2 = stack->top - 1;       \
+    VMStackSlot *value1 = stack->top - 2;       \
+                                                \
+    assert(value1 >= stack->slots);             \
+                                                \
+    assert(value1->type == required_type);      \
+    assert(value2->type == required_type);      \
+                                                \
+    /* Pop value1 and value2 */                 \
+    stack->top = value1;                        \
+    value1->type = VM_SLOT_INVALID;             \
+    value2->type = VM_SLOT_INVALID
+
 // ..., value →
 // ..., result
 #define arithmetic_un_operand(required_type)    \
@@ -57,6 +75,19 @@
                                                 \
     assert(value->type == required_type)
 // Store the result in the place of value
+
+// ..., value →
+// ...
+#define arithmetic_un_operand_nr(required_type) \
+    VMStackSlot *value = stack->top - 1;        \
+                                                \
+    assert(value >= stack->slots);              \
+                                                \
+    assert(value->type == required_type);       \
+                                                \
+    /* Pop value */                             \
+    stack->top = value;                         \
+    value->type = VM_SLOT_INVALID
 
 #define def_arithmetic_bi_func(prefix, name, operation)                                     \
 decl_arithmetic_func(prefix##name) {                                                        \
@@ -249,3 +280,48 @@ def_cmp_func(f, l);
 def_cmp_func(f, g);
 def_cmp_func(d, l);
 def_cmp_func(d, g);
+
+// Branch operations
+#define CMP_eq ==
+#define CMP_ne !=
+#define CMP_lt <
+#define CMP_le <=
+#define CMP_gt >
+#define CMP_ge >=
+#define comparator_of(c) CMP_##c
+
+#define def_branch_if(suffix)                                               \
+JAVA_BOOLEAN bc_branch_if##suffix(VMOperandStack *stack) {                  \
+    arithmetic_un_operand_nr(VM_SLOT_INT);                                  \
+                                                                            \
+    return value->data.i comparator_of(suffix) 0 ? JAVA_TRUE : JAVA_FALSE;  \
+}
+def_branch_if(eq);
+def_branch_if(ne);
+def_branch_if(lt);
+def_branch_if(le);
+def_branch_if(gt);
+def_branch_if(ge);
+
+#define def_branch_ifcmp(prefix, suffix)                                    \
+JAVA_BOOLEAN bc_branch_if_##prefix##cmp##suffix(VMOperandStack *stack) {    \
+    arithmetic_bi_operand_nr(slot_type_of(prefix));                         \
+                                                                            \
+    return value1->data.slot_value_of(prefix)                               \
+        comparator_of(suffix) value2->data.slot_value_of(prefix)            \
+        ? JAVA_TRUE : JAVA_FALSE;                                           \
+}
+def_branch_ifcmp(i, eq);
+def_branch_ifcmp(i, ne);
+def_branch_ifcmp(i, lt);
+def_branch_ifcmp(i, le);
+def_branch_ifcmp(i, gt);
+def_branch_ifcmp(i, ge);
+def_branch_ifcmp(a, eq);
+def_branch_ifcmp(a, ne);
+
+JAVA_BOOLEAN bc_branch_ifnull(VMOperandStack *stack) {
+    arithmetic_un_operand_nr(VM_SLOT_OBJECT);
+
+    return value->data.o == JAVA_NULL ? JAVA_TRUE : JAVA_FALSE;
+}

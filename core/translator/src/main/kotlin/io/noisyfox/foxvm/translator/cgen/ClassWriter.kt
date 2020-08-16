@@ -10,6 +10,7 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.tree.IincInsnNode
 import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.IntInsnNode
+import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.LineNumberNode
 import org.objectweb.asm.tree.VarInsnNode
@@ -684,6 +685,19 @@ class ClassWriter(
 //                        else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                     }
                 }
+                is JumpInsnNode -> {
+                    when (inst.opcode) {
+                        in byteCodesJumpInst -> {
+                            val functionName = byteCodesJumpInst[inst.opcode]
+                            cWriter.write(
+                                """
+                    |   ${functionName}(${inst.label.cName(method)});
+                    |""".trimMargin()
+                            )
+                        }
+                        else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
+                    }
+                }
             }
         }
 
@@ -831,6 +845,27 @@ class ClassWriter(
             Opcodes.FCMPG to "bc_fcmpg",
             Opcodes.DCMPL to "bc_dcmpl",
             Opcodes.DCMPG to "bc_dcmpg"
+        )
+
+        private val byteCodesJumpInst = mapOf(
+            Opcodes.IFEQ        to "bc_ifeq",
+            Opcodes.IFNE        to "bc_ifne",
+            Opcodes.IFLT        to "bc_iflt",
+            Opcodes.IFLE        to "bc_ifle",
+            Opcodes.IFGT        to "bc_ifgt",
+            Opcodes.IFGE        to "bc_ifge",
+            Opcodes.IF_ICMPEQ   to "bc_if_icmpeq",
+            Opcodes.IF_ICMPNE   to "bc_if_icmpne",
+            Opcodes.IF_ICMPLT   to "bc_if_icmplt",
+            Opcodes.IF_ICMPLE   to "bc_if_icmple",
+            Opcodes.IF_ICMPGT   to "bc_if_icmpgt",
+            Opcodes.IF_ICMPGE   to "bc_if_icmpge",
+            Opcodes.IF_ACMPEQ   to "bc_if_acmpeq",
+            Opcodes.IF_ACMPNE   to "bc_if_acmpne",
+            Opcodes.IFNULL      to "bc_ifnull",
+            Opcodes.IFNONNULL   to "bc_ifnonnull",
+            Opcodes.GOTO        to "bc_goto"
+            // JSR not supported!
         )
     }
 }

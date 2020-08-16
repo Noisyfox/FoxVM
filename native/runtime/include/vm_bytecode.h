@@ -251,6 +251,52 @@ decl_arithmetic_func(dcmpg);
 #define bc_dcmpl() bc_arithmetic_dcmpl(OP_STACK)
 #define bc_dcmpg() bc_arithmetic_dcmpg(OP_STACK)
 
+// Branch operations
+#define decl_branch_func(name) JAVA_BOOLEAN bc_branch_##name(VMOperandStack *stack)
+
+decl_branch_func(ifeq);
+decl_branch_func(ifne);
+decl_branch_func(iflt);
+decl_branch_func(ifle);
+decl_branch_func(ifgt);
+decl_branch_func(ifge);
+
+decl_branch_func(if_icmpeq);
+decl_branch_func(if_icmpne);
+decl_branch_func(if_icmplt);
+decl_branch_func(if_icmple);
+decl_branch_func(if_icmpgt);
+decl_branch_func(if_icmpge);
+
+decl_branch_func(if_acmpeq);
+decl_branch_func(if_acmpne);
+
+decl_branch_func(ifnull);
+
+#define BC_BRANCH_IMPL(name, label) if (bc_branch_##name(OP_STACK)) goto label
+
+#define bc_ifeq(label) BC_BRANCH_IMPL(ifeq, label)
+#define bc_ifne(label) BC_BRANCH_IMPL(ifne, label)
+#define bc_iflt(label) BC_BRANCH_IMPL(iflt, label)
+#define bc_ifle(label) BC_BRANCH_IMPL(ifle, label)
+#define bc_ifgt(label) BC_BRANCH_IMPL(ifgt, label)
+#define bc_ifge(label) BC_BRANCH_IMPL(ifge, label)
+
+#define bc_if_icmpeq(label) BC_BRANCH_IMPL(if_icmpeq, label)
+#define bc_if_icmpne(label) BC_BRANCH_IMPL(if_icmpne, label)
+#define bc_if_icmplt(label) BC_BRANCH_IMPL(if_icmplt, label)
+#define bc_if_icmple(label) BC_BRANCH_IMPL(if_icmple, label)
+#define bc_if_icmpgt(label) BC_BRANCH_IMPL(if_icmpgt, label)
+#define bc_if_icmpge(label) BC_BRANCH_IMPL(if_icmpge, label)
+
+#define bc_if_acmpeq(label) BC_BRANCH_IMPL(if_acmpeq, label)
+#define bc_if_acmpne(label) BC_BRANCH_IMPL(if_acmpne, label)
+
+#define bc_ifnull(label)    if (bc_branch_ifnull(OP_STACK))  goto label
+#define bc_ifnonnull(label) if (!bc_branch_ifnull(OP_STACK)) goto label
+
+#define bc_goto(label)  goto label
+
 // FoxVM specific instructions
 
 /** Record current source file line number. */

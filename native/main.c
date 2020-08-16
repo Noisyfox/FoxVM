@@ -54,6 +54,15 @@ JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT) {
     bc_istore(0);
     bc_iinc(0, 2);
 
+    // Loop 5 times
+    bc_iconst_5();
+L1:
+    printf("Loop!\n");
+    bc_iconst_1();
+    bc_isub();
+    bc_dup();
+    bc_ifgt(L1);
+
     bc_line(0);
 
     printf("Hello, World!\n");
