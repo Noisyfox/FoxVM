@@ -20,6 +20,12 @@ data class MethodInfo(
 
     val isStatic: Boolean = (access and Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC
 
+    val isAbstract: Boolean = (access and Opcodes.ACC_ABSTRACT) == Opcodes.ACC_ABSTRACT
+
+    val isNative: Boolean = (access and Opcodes.ACC_NATIVE) == Opcodes.ACC_NATIVE
+
+    val isConcrete: Boolean = !(isAbstract || isNative)
+
     companion object {
         const val INIT = "<init>"
         const val CLINIT = "<clinit>"

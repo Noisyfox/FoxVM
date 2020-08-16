@@ -221,14 +221,15 @@ class ClassWriter(
         )
 
         // Generate method declaration
-        if (info.methods.isNotEmpty()) {
+        val nonAbstractMethods = info.methods.filterNot { it.isAbstract }
+        if (nonAbstractMethods.isNotEmpty()) {
             headerWriter.write(
                 """
                     |// Method declarations
                     |""".trimMargin()
             )
 
-            info.methods.forEach {
+            nonAbstractMethods.forEach {
                 headerWriter.write(
                     """
                     |${it.cDeclaration(info)};    // ${clazz.className}.${it.name}:${it.descriptor}
@@ -340,13 +341,18 @@ class ClassWriter(
             )
 
             info.methods.forEach {
+                val codeRef = if (it.isAbstract) {
+                    CNull
+                } else {
+                    it.cName(info)
+                }
                 cWriter.write(
                     """
                     |    {
                     |        .accessFlags = ${AccFlag.translateMethodAcc(it.access)},
                     |        .name = "${it.name.asCString()}",
                     |        .descriptor = "${it.descriptor.toString().asCString()}",
-                    |        .code = ${it.cName(info)},
+                    |        .code = $codeRef,
                     |    },
                     |""".trimMargin()
                 )
@@ -571,8 +577,9 @@ class ClassWriter(
                     |""".trimMargin()
         )
 
-        // Write implementation of non-native methods
-        if (info.methods.isNotEmpty()) {
+        // Write implementation of concrete methods
+        val concreteMethods = info.methods.filter { it.isConcrete }
+        if (concreteMethods.isNotEmpty()) {
             cWriter.write(
                 """
                     |// Method implementations
@@ -580,7 +587,7 @@ class ClassWriter(
                     |""".trimMargin()
             )
 
-            info.methods.forEach {
+            concreteMethods.forEach {
                 writeMethodImpl(cWriter, info, it)
             }
         }
