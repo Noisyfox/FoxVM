@@ -816,7 +816,13 @@ class ClassWriter(
             Opcodes.D2F to "bc_d2f",
             Opcodes.I2B to "bc_i2b",
             Opcodes.I2C to "bc_i2c",
-            Opcodes.I2S to "bc_i2s"
+            Opcodes.I2S to "bc_i2s",
+
+            Opcodes.LCMP to "bc_lcmp",
+            Opcodes.FCMPL to "bc_fcmpl",
+            Opcodes.FCMPG to "bc_fcmpg",
+            Opcodes.DCMPL to "bc_dcmpl",
+            Opcodes.DCMPG to "bc_dcmpg"
         )
     }
 }

@@ -203,3 +203,49 @@ def_conv_func(d, f);
 def_conv_func(i, b);
 def_conv_func(i, c);
 def_conv_func(i, s);
+
+// Comparison operations
+#define CMP_RESULT_g 1
+#define CMP_RESULT_l -1
+#define cmp_result_of(r) CMP_RESULT_##r
+
+#define IS_NAN_f isnanf
+#define IS_NAN_d isnan
+#define is_nan(prefix, v)  IS_NAN_##prefix(v)
+
+decl_arithmetic_func(lcmp) {
+    arithmetic_bi_operand(VM_SLOT_LONG);
+
+    if (value1->data.l == value2->data.l) {
+        value1->data.i = 0;
+    } else if (value1->data.l > value2->data.l) {
+        value1->data.i = cmp_result_of(g);
+    } else {
+        value1->data.i = cmp_result_of(l);
+    }
+    value1->type = VM_SLOT_INT;
+}
+
+#define def_cmp_func(prefix, suffix)                                \
+decl_arithmetic_func(prefix##cmp##suffix) {                         \
+    arithmetic_bi_operand(slot_type_of(prefix));                    \
+                                                                    \
+    java_type_of(prefix) v1 = value1->data.slot_value_of(prefix);   \
+    java_type_of(prefix) v2 = value2->data.slot_value_of(prefix);   \
+                                                                    \
+    if(is_nan(prefix, v1) || is_nan(prefix, v2)) {                  \
+        value1->data.i = cmp_result_of(suffix);                     \
+    } else if(v1 == v2){                                            \
+        value1->data.i = 0;                                         \
+    } else if(v1 > v2){                                             \
+        value1->data.i = cmp_result_of(g);                          \
+    } else {                                                        \
+        value1->data.i = cmp_result_of(l);                          \
+    }                                                               \
+    value1->type = VM_SLOT_INT;                                     \
+}
+
+def_cmp_func(f, l);
+def_cmp_func(f, g);
+def_cmp_func(d, l);
+def_cmp_func(d, g);

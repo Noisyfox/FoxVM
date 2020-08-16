@@ -225,6 +225,19 @@ decl_arithmetic_func(i2s);
 #define bc_i2c() bc_arithmetic_i2c(&__stackFrame.operandStack)
 #define bc_i2s() bc_arithmetic_i2s(&__stackFrame.operandStack)
 
+// Comparison operations
+decl_arithmetic_func(lcmp);
+decl_arithmetic_func(fcmpl);
+decl_arithmetic_func(fcmpg);
+decl_arithmetic_func(dcmpl);
+decl_arithmetic_func(dcmpg);
+
+#define bc_lcmp() bc_arithmetic_lcmp(&__stackFrame.operandStack)
+#define bc_fcmpl() bc_arithmetic_fcmpl(&__stackFrame.operandStack)
+#define bc_fcmpg() bc_arithmetic_fcmpg(&__stackFrame.operandStack)
+#define bc_dcmpl() bc_arithmetic_dcmpl(&__stackFrame.operandStack)
+#define bc_dcmpg() bc_arithmetic_dcmpg(&__stackFrame.operandStack)
+
 // FoxVM specific instructions
 
 /** Record current source file line number. */
