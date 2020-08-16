@@ -13,6 +13,19 @@
 #define bc_nop() do {} while(0)
 
 /**
+ * Iinc instruction
+ *
+ * Increment local variable by [amount]
+ */
+#define bc_iinc(local, amount) do {                 \
+    local_check_index(local);                       \
+    assert(local_of(local).type == VM_SLOT_INT);    \
+                                                    \
+    local_of(local).data.i += amount;               \
+} while(0)
+
+
+/**
  * Instruction `aconst_null`.
  * Push the `null` object reference onto the operand stack.
  */
@@ -51,20 +64,20 @@
 /**
  * Pop the top of the operand stack into given local variable
  */
-#define bc_store(local, required_type) do {                                                             \
-    switch (slot_type_category(required_type)) {                                                        \
-        case VM_TYPE_CAT_1:                                                                             \
-            local_check_index(local);                                                                   \
-            stack_pop_to(&__stackFrame.operandStack, &__stackFrame.locals.slots[local], required_type); \
-            break;                                                                                      \
-        case VM_TYPE_CAT_2:                                                                             \
-            local_check_index(local);                                                                   \
-            local_check_index(local + 1);                                                               \
-            stack_pop_to(&__stackFrame.operandStack, &__stackFrame.locals.slots[local], required_type); \
-            /* Cat2 use 2 local slots */                                                                \
-            __stackFrame.locals.slots[local + 1].type = VM_SLOT_INVALID;                                \
-            break;                                                                                      \
-    }                                                                                                   \
+#define bc_store(local, required_type) do {                            \
+    switch (slot_type_category(required_type)) {                       \
+        case VM_TYPE_CAT_1:                                            \
+            local_check_index(local);                                  \
+            stack_pop_to(OP_STACK, &local_of(local), required_type);   \
+            break;                                                     \
+        case VM_TYPE_CAT_2:                                            \
+            local_check_index(local);                                  \
+            local_check_index(local + 1);                              \
+            stack_pop_to(OP_STACK, &local_of(local), required_type);   \
+            /* Cat2 use 2 local slots */                               \
+            local_of(local + 1).type = VM_SLOT_INVALID;                \
+            break;                                                     \
+    }                                                                  \
 } while(0)
 
 // Variants of the store instructions
@@ -77,9 +90,9 @@
 /**
  * Push the given local variable on to the top of the operand stack
  */
-#define bc_load(local, required_type) do {                                                          \
-    local_check_index(local);                                                                       \
-    stack_push_from(&__stackFrame.operandStack, &__stackFrame.locals.slots[local], required_type);  \
+#define bc_load(local, required_type) do {                         \
+    local_check_index(local);                                      \
+    stack_push_from(OP_STACK, &local_of(local), required_type);    \
 } while(0)
 
 // Variants of the load instructions
@@ -100,22 +113,22 @@
  * The pop instruction must not be used unless value is a value of a
  * category 1 computational type
  */
-#define bc_pop() stack_pop(&__stackFrame.operandStack)
+#define bc_pop() stack_pop(OP_STACK)
 /**
  * Pop the top one or two values from the operand stack.
  */
-#define bc_pop2() stack_pop2(&__stackFrame.operandStack)
+#define bc_pop2() stack_pop2(OP_STACK)
 
 // Variants of the dup instructions
-#define bc_dup()     stack_dup(&__stackFrame.operandStack)
-#define bc_dup_x1()  stack_dup_x1(&__stackFrame.operandStack)
-#define bc_dup_x2()  stack_dup_x2(&__stackFrame.operandStack)
-#define bc_dup2()    stack_dup2(&__stackFrame.operandStack)
-#define bc_dup2_x1() stack_dup2_x1(&__stackFrame.operandStack)
-#define bc_dup2_x2() stack_dup2_x2(&__stackFrame.operandStack)
+#define bc_dup()     stack_dup(OP_STACK)
+#define bc_dup_x1()  stack_dup_x1(OP_STACK)
+#define bc_dup_x2()  stack_dup_x2(OP_STACK)
+#define bc_dup2()    stack_dup2(OP_STACK)
+#define bc_dup2_x1() stack_dup2_x1(OP_STACK)
+#define bc_dup2_x2() stack_dup2_x2(OP_STACK)
 
 /** Swap the top two operand stack values */
-#define bc_swap() stack_swap(&__stackFrame.operandStack)
+#define bc_swap() stack_swap(OP_STACK)
 
 // Variants of the arithmetic instructions
 #define decl_arithmetic_func(n) void bc_arithmetic_##n(VMOperandStack *stack)
@@ -132,35 +145,35 @@ decl_arithmetic_func_prefix_all(div);
 decl_arithmetic_func_prefix_all(rem);
 decl_arithmetic_func_prefix_all(neg);
 
-#define bc_iadd() bc_arithmetic_iadd(&__stackFrame.operandStack)
-#define bc_ladd() bc_arithmetic_ladd(&__stackFrame.operandStack)
-#define bc_fadd() bc_arithmetic_fadd(&__stackFrame.operandStack)
-#define bc_dadd() bc_arithmetic_dadd(&__stackFrame.operandStack)
+#define bc_iadd() bc_arithmetic_iadd(OP_STACK)
+#define bc_ladd() bc_arithmetic_ladd(OP_STACK)
+#define bc_fadd() bc_arithmetic_fadd(OP_STACK)
+#define bc_dadd() bc_arithmetic_dadd(OP_STACK)
 
-#define bc_isub() bc_arithmetic_isub(&__stackFrame.operandStack)
-#define bc_lsub() bc_arithmetic_lsub(&__stackFrame.operandStack)
-#define bc_fsub() bc_arithmetic_fsub(&__stackFrame.operandStack)
-#define bc_dsub() bc_arithmetic_dsub(&__stackFrame.operandStack)
+#define bc_isub() bc_arithmetic_isub(OP_STACK)
+#define bc_lsub() bc_arithmetic_lsub(OP_STACK)
+#define bc_fsub() bc_arithmetic_fsub(OP_STACK)
+#define bc_dsub() bc_arithmetic_dsub(OP_STACK)
 
-#define bc_imul() bc_arithmetic_imul(&__stackFrame.operandStack)
-#define bc_lmul() bc_arithmetic_lmul(&__stackFrame.operandStack)
-#define bc_fmul() bc_arithmetic_fmul(&__stackFrame.operandStack)
-#define bc_dmul() bc_arithmetic_dmul(&__stackFrame.operandStack)
+#define bc_imul() bc_arithmetic_imul(OP_STACK)
+#define bc_lmul() bc_arithmetic_lmul(OP_STACK)
+#define bc_fmul() bc_arithmetic_fmul(OP_STACK)
+#define bc_dmul() bc_arithmetic_dmul(OP_STACK)
 
-#define bc_idiv() bc_arithmetic_idiv(&__stackFrame.operandStack)
-#define bc_ldiv() bc_arithmetic_ldiv(&__stackFrame.operandStack)
-#define bc_fdiv() bc_arithmetic_fdiv(&__stackFrame.operandStack)
-#define bc_ddiv() bc_arithmetic_ddiv(&__stackFrame.operandStack)
+#define bc_idiv() bc_arithmetic_idiv(OP_STACK)
+#define bc_ldiv() bc_arithmetic_ldiv(OP_STACK)
+#define bc_fdiv() bc_arithmetic_fdiv(OP_STACK)
+#define bc_ddiv() bc_arithmetic_ddiv(OP_STACK)
 
-#define bc_irem() bc_arithmetic_irem(&__stackFrame.operandStack)
-#define bc_lrem() bc_arithmetic_lrem(&__stackFrame.operandStack)
-#define bc_frem() bc_arithmetic_frem(&__stackFrame.operandStack)
-#define bc_drem() bc_arithmetic_drem(&__stackFrame.operandStack)
+#define bc_irem() bc_arithmetic_irem(OP_STACK)
+#define bc_lrem() bc_arithmetic_lrem(OP_STACK)
+#define bc_frem() bc_arithmetic_frem(OP_STACK)
+#define bc_drem() bc_arithmetic_drem(OP_STACK)
 
-#define bc_ineg() bc_arithmetic_ineg(&__stackFrame.operandStack)
-#define bc_lneg() bc_arithmetic_lneg(&__stackFrame.operandStack)
-#define bc_fneg() bc_arithmetic_fneg(&__stackFrame.operandStack)
-#define bc_dneg() bc_arithmetic_dneg(&__stackFrame.operandStack)
+#define bc_ineg() bc_arithmetic_ineg(OP_STACK)
+#define bc_lneg() bc_arithmetic_lneg(OP_STACK)
+#define bc_fneg() bc_arithmetic_fneg(OP_STACK)
+#define bc_dneg() bc_arithmetic_dneg(OP_STACK)
 
 // Variants of the bitwise instructions
 #define decl_bitwise_func_prefix_all(n) \
@@ -174,23 +187,23 @@ decl_bitwise_func_prefix_all(and);
 decl_bitwise_func_prefix_all(or);
 decl_bitwise_func_prefix_all(xor);
 
-#define bc_ishl() bc_arithmetic_ishl(&__stackFrame.operandStack)
-#define bc_lshl() bc_arithmetic_lshl(&__stackFrame.operandStack)
+#define bc_ishl() bc_arithmetic_ishl(OP_STACK)
+#define bc_lshl() bc_arithmetic_lshl(OP_STACK)
 
-#define bc_ishr() bc_arithmetic_ishr(&__stackFrame.operandStack)
-#define bc_lshr() bc_arithmetic_lshr(&__stackFrame.operandStack)
+#define bc_ishr() bc_arithmetic_ishr(OP_STACK)
+#define bc_lshr() bc_arithmetic_lshr(OP_STACK)
 
-#define bc_iushr() bc_arithmetic_iushr(&__stackFrame.operandStack)
-#define bc_lushr() bc_arithmetic_lushr(&__stackFrame.operandStack)
+#define bc_iushr() bc_arithmetic_iushr(OP_STACK)
+#define bc_lushr() bc_arithmetic_lushr(OP_STACK)
 
-#define bc_iand() bc_arithmetic_iand(&__stackFrame.operandStack)
-#define bc_land() bc_arithmetic_land(&__stackFrame.operandStack)
+#define bc_iand() bc_arithmetic_iand(OP_STACK)
+#define bc_land() bc_arithmetic_land(OP_STACK)
 
-#define bc_ior() bc_arithmetic_ior(&__stackFrame.operandStack)
-#define bc_lor() bc_arithmetic_lor(&__stackFrame.operandStack)
+#define bc_ior() bc_arithmetic_ior(OP_STACK)
+#define bc_lor() bc_arithmetic_lor(OP_STACK)
 
-#define bc_ixor() bc_arithmetic_ixor(&__stackFrame.operandStack)
-#define bc_lxor() bc_arithmetic_lxor(&__stackFrame.operandStack)
+#define bc_ixor() bc_arithmetic_ixor(OP_STACK)
+#define bc_lxor() bc_arithmetic_lxor(OP_STACK)
 
 // Type conversion instructions
 decl_arithmetic_func(i2l);
@@ -209,21 +222,21 @@ decl_arithmetic_func(i2b);
 decl_arithmetic_func(i2c);
 decl_arithmetic_func(i2s);
 
-#define bc_i2l() bc_arithmetic_i2l(&__stackFrame.operandStack)
-#define bc_i2f() bc_arithmetic_i2f(&__stackFrame.operandStack)
-#define bc_i2d() bc_arithmetic_i2d(&__stackFrame.operandStack)
-#define bc_l2i() bc_arithmetic_l2i(&__stackFrame.operandStack)
-#define bc_l2f() bc_arithmetic_l2f(&__stackFrame.operandStack)
-#define bc_l2d() bc_arithmetic_l2d(&__stackFrame.operandStack)
-#define bc_f2i() bc_arithmetic_f2i(&__stackFrame.operandStack)
-#define bc_f2l() bc_arithmetic_f2l(&__stackFrame.operandStack)
-#define bc_f2d() bc_arithmetic_f2d(&__stackFrame.operandStack)
-#define bc_d2i() bc_arithmetic_d2i(&__stackFrame.operandStack)
-#define bc_d2l() bc_arithmetic_d2l(&__stackFrame.operandStack)
-#define bc_d2f() bc_arithmetic_d2f(&__stackFrame.operandStack)
-#define bc_i2b() bc_arithmetic_i2b(&__stackFrame.operandStack)
-#define bc_i2c() bc_arithmetic_i2c(&__stackFrame.operandStack)
-#define bc_i2s() bc_arithmetic_i2s(&__stackFrame.operandStack)
+#define bc_i2l() bc_arithmetic_i2l(OP_STACK)
+#define bc_i2f() bc_arithmetic_i2f(OP_STACK)
+#define bc_i2d() bc_arithmetic_i2d(OP_STACK)
+#define bc_l2i() bc_arithmetic_l2i(OP_STACK)
+#define bc_l2f() bc_arithmetic_l2f(OP_STACK)
+#define bc_l2d() bc_arithmetic_l2d(OP_STACK)
+#define bc_f2i() bc_arithmetic_f2i(OP_STACK)
+#define bc_f2l() bc_arithmetic_f2l(OP_STACK)
+#define bc_f2d() bc_arithmetic_f2d(OP_STACK)
+#define bc_d2i() bc_arithmetic_d2i(OP_STACK)
+#define bc_d2l() bc_arithmetic_d2l(OP_STACK)
+#define bc_d2f() bc_arithmetic_d2f(OP_STACK)
+#define bc_i2b() bc_arithmetic_i2b(OP_STACK)
+#define bc_i2c() bc_arithmetic_i2c(OP_STACK)
+#define bc_i2s() bc_arithmetic_i2s(OP_STACK)
 
 // Comparison operations
 decl_arithmetic_func(lcmp);
@@ -232,15 +245,15 @@ decl_arithmetic_func(fcmpg);
 decl_arithmetic_func(dcmpl);
 decl_arithmetic_func(dcmpg);
 
-#define bc_lcmp() bc_arithmetic_lcmp(&__stackFrame.operandStack)
-#define bc_fcmpl() bc_arithmetic_fcmpl(&__stackFrame.operandStack)
-#define bc_fcmpg() bc_arithmetic_fcmpg(&__stackFrame.operandStack)
-#define bc_dcmpl() bc_arithmetic_dcmpl(&__stackFrame.operandStack)
-#define bc_dcmpg() bc_arithmetic_dcmpg(&__stackFrame.operandStack)
+#define bc_lcmp() bc_arithmetic_lcmp(OP_STACK)
+#define bc_fcmpl() bc_arithmetic_fcmpl(OP_STACK)
+#define bc_fcmpg() bc_arithmetic_fcmpg(OP_STACK)
+#define bc_dcmpl() bc_arithmetic_dcmpl(OP_STACK)
+#define bc_dcmpg() bc_arithmetic_dcmpg(OP_STACK)
 
 // FoxVM specific instructions
 
 /** Record current source file line number. */
-#define bc_line(line_number) __stackFrame.currentLine = (line_number)
+#define bc_line(line_number) STACK_FRAME.currentLine = (line_number)
 
 #endif //FOXVM_VM_BYTECODE_H

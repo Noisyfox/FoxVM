@@ -50,6 +50,10 @@ JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT) {
 
     bc_nop();
 
+    bc_iconst_1();
+    bc_istore(0);
+    bc_iinc(0, 2);
+
     bc_line(0);
 
     printf("Hello, World!\n");

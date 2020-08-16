@@ -7,6 +7,7 @@ import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.tree.IincInsnNode
 import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.IntInsnNode
 import org.objectweb.asm.tree.LabelNode
@@ -646,6 +647,13 @@ class ClassWriter(
                         }
                         else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                     }
+                }
+                is IincInsnNode -> {
+                    cWriter.write(
+                        """
+                    |   bc_iinc(${inst.`var`}, ${inst.incr});
+                    |""".trimMargin()
+                    )
                 }
                 is IntInsnNode -> {
                     when (inst.opcode) {

@@ -61,23 +61,29 @@ void stack_frame_push(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame);
 /** Pop the top of the call stack frame */
 void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT);
 
+#define STACK_FRAME __stackFrame
+#define STACK_SLOTS __slots
+#define OP_STACK (&STACK_FRAME.operandStack)
+
 #define stack_frame_start(max_stack, max_locals)                            \
-    VMStackFrame __stackFrame;                                              \
-    VMStackSlot __slots[(max_stack) + (max_locals)];                        \
-    stack_frame_init(&__stackFrame, __slots, (max_stack), (max_locals));    \
-    __stackFrame.thisClass = vmCurrentContext->callingClass;                \
-    stack_frame_push(vmCurrentContext, &__stackFrame)
+    VMStackFrame STACK_FRAME;                                               \
+    VMStackSlot STACK_SLOTS[(max_stack) + (max_locals)];                    \
+    stack_frame_init(&STACK_FRAME, STACK_SLOTS, (max_stack), (max_locals)); \
+    STACK_FRAME.thisClass = vmCurrentContext->callingClass;                 \
+    stack_frame_push(vmCurrentContext, &STACK_FRAME)
 
 #define stack_frame_start_zero()                                            \
-    VMStackFrame __stackFrame;                                              \
-    stack_frame_init(&__stackFrame, NULL, 0, 0);                            \
-    __stackFrame.thisClass = vmCurrentContext->callingClass;                \
-    stack_frame_push(vmCurrentContext, &__stackFrame)
+    VMStackFrame STACK_FRAME;                                               \
+    stack_frame_init(&STACK_FRAME, NULL, 0, 0);                             \
+    STACK_FRAME.thisClass = vmCurrentContext->callingClass;                 \
+    stack_frame_push(vmCurrentContext, &STACK_FRAME)
 
 #define stack_frame_end() \
     stack_frame_pop(vmCurrentContext)
 
-#define THIS_CLASS __stackFrame->thisClass
+#define THIS_CLASS STACK_FRAME->thisClass
+
+#define local_of(local) STACK_SLOTS[local]
 
 #define stack_frame_iterate(thread, frame) \
     for (VMStackFrame *frame = stack_frame_top(thread); frame != &thread->frameRoot; frame = frame->prev)
@@ -92,41 +98,41 @@ void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT);
     assert((stack)->top < (stack)->slots + (stack)->maxStack)
 
 #define stack_check_overflow() \
-    stack_check_overflow0(&__stackFrame.operandStack)
+    stack_check_overflow0(OP_STACK)
 
-#define stack_push_object(obj) do {                             \
-    stack_check_overflow();                                     \
-    __stackFrame.operandStack.top->type = VM_SLOT_OBJECT;       \
-    __stackFrame.operandStack.top->data.o = (obj);              \
-    __stackFrame.operandStack.top++;                            \
+#define stack_push_object(obj) do {              \
+    stack_check_overflow();                      \
+    OP_STACK->top->type = VM_SLOT_OBJECT;        \
+    OP_STACK->top->data.o = (obj);               \
+    OP_STACK->top++;                             \
 } while(0)
 
-#define stack_push_int(val) do {                                \
-    stack_check_overflow();                                     \
-    __stackFrame.operandStack.top->type = VM_SLOT_INT;          \
-    __stackFrame.operandStack.top->data.i = (val);              \
-    __stackFrame.operandStack.top++;                            \
+#define stack_push_int(val) do {                 \
+    stack_check_overflow();                      \
+    OP_STACK->top->type = VM_SLOT_INT;           \
+    OP_STACK->top->data.i = (val);               \
+    OP_STACK->top++;                             \
 } while(0)
 
-#define stack_push_long(val) do {                               \
-    stack_check_overflow();                                     \
-    __stackFrame.operandStack.top->type = VM_SLOT_LONG;         \
-    __stackFrame.operandStack.top->data.l = (val);              \
-    __stackFrame.operandStack.top++;                            \
+#define stack_push_long(val) do {                \
+    stack_check_overflow();                      \
+    OP_STACK->top->type = VM_SLOT_LONG;          \
+    OP_STACK->top->data.l = (val);               \
+    OP_STACK->top++;                             \
 } while(0)
 
-#define stack_push_float(val) do {                              \
-    stack_check_overflow();                                     \
-    __stackFrame.operandStack.top->type = VM_SLOT_FLOAT;        \
-    __stackFrame.operandStack.top->data.f = (val);              \
-    __stackFrame.operandStack.top++;                            \
+#define stack_push_float(val) do {               \
+    stack_check_overflow();                      \
+    OP_STACK->top->type = VM_SLOT_FLOAT;         \
+    OP_STACK->top->data.f = (val);               \
+    OP_STACK->top++;                             \
 } while(0)
 
-#define stack_push_double(val) do {                             \
-    stack_check_overflow();                                     \
-    __stackFrame.operandStack.top->type = VM_SLOT_DOUBLE;       \
-    __stackFrame.operandStack.top->data.d = (val);              \
-    __stackFrame.operandStack.top++;                            \
+#define stack_push_double(val) do {              \
+    stack_check_overflow();                      \
+    OP_STACK->top->type = VM_SLOT_DOUBLE;        \
+    OP_STACK->top->data.d = (val);               \
+    OP_STACK->top++;                             \
 } while(0)
 
 #define slot_copy(to, from) do { \
@@ -431,7 +437,7 @@ static inline void stack_swap(VMOperandStack *stack) {
 #undef stack_peek_value
 
 #define local_check_index(local) \
-    assert(local >= 0 && local < __stackFrame.locals.maxLocals)
+    assert(local >= 0 && local < STACK_FRAME.locals.maxLocals)
 
 /**
  * Transfer arguments from caller's operand stack to current method's local slots
