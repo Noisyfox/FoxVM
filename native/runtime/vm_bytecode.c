@@ -87,6 +87,56 @@ def_arithmetic_un_func(l, neg, -, VM_SLOT_LONG);
 def_arithmetic_un_func(f, neg, -, VM_SLOT_FLOAT);
 def_arithmetic_un_func(d, neg, -, VM_SLOT_DOUBLE);
 
+#define def_ishift_func(name, operation)                                                        \
+decl_arithmetic_func(i##name) {                                                                 \
+    arithmetic_bi_operand(VM_SLOT_INT);                                                         \
+                                                                                                \
+    value1->data.i = (JAVA_UINT)value1->data.i operation ((JAVA_UINT)value2->data.i & 0x1Fu);   \
+}
+
+#define def_lshift_func(name, operation)                                                        \
+decl_arithmetic_func(l##name) {                                                                 \
+    arithmetic_bi_operand(VM_SLOT_LONG);                                                        \
+                                                                                                \
+    value1->data.l = (JAVA_ULONG)value1->data.l operation ((JAVA_ULONG)value2->data.l & 0x3Fu); \
+}
+
+// Left shift
+def_ishift_func(shl, <<);
+def_lshift_func(shl, <<);
+// Logical right shift
+def_ishift_func(ushr, >>);
+def_lshift_func(ushr, >>);
+// C dose not have a signed right shift (arithmetic right shift) operator
+decl_arithmetic_func(ishr) {
+    arithmetic_bi_operand(VM_SLOT_INT);
+
+    JAVA_UINT s = (JAVA_UINT)value2->data.i & 0x1Fu;
+    if(s > 0) {
+        JAVA_INT x = value1->data.i;
+        if(x < 0) {
+            value1->data.i = (JAVA_UINT)x >> s | ~(~((JAVA_UINT)0u) >> s);
+        } else {
+            // Same as logical shift
+            value1->data.i = (JAVA_UINT)x >> s;
+        }
+    }
+}
+decl_arithmetic_func(lshr) {
+    arithmetic_bi_operand(VM_SLOT_LONG);
+
+    JAVA_ULONG s = (JAVA_ULONG)value2->data.l & 0x3Fu;
+    if(s > 0) {
+        JAVA_LONG x = value1->data.l;
+        if(x < 0) {
+            value1->data.l = (JAVA_ULONG)x >> s | ~(~((JAVA_ULONG)0u) >> s);
+        } else {
+            // Same as logical shift
+            value1->data.l = (JAVA_ULONG)x >> s;
+        }
+    }
+}
+
 def_arithmetic_bi_func(i, and, &, VM_SLOT_INT);
 def_arithmetic_bi_func(l, and, &, VM_SLOT_LONG);
 

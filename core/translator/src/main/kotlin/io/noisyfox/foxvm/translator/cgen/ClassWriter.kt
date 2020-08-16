@@ -784,6 +784,15 @@ class ClassWriter(
             Opcodes.FNEG to "bc_fneg",
             Opcodes.DNEG to "bc_dneg",
 
+            Opcodes.ISHL to "bc_ishl",
+            Opcodes.LSHL to "bc_lshl",
+
+            Opcodes.ISHR to "bc_ishr",
+            Opcodes.LSHR to "bc_lshr",
+
+            Opcodes.IUSHR to "bc_iushr",
+            Opcodes.LUSHR to "bc_lushr",
+
             Opcodes.IAND to "bc_iand",
             Opcodes.LAND to "bc_land",
 

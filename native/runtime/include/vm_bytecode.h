@@ -167,9 +167,21 @@ decl_arithmetic_func_prefix_all(neg);
 decl_arithmetic_func(i##n);\
 decl_arithmetic_func(l##n)
 
+decl_bitwise_func_prefix_all(shl);
+decl_bitwise_func_prefix_all(shr);
+decl_bitwise_func_prefix_all(ushr);
 decl_bitwise_func_prefix_all(and);
 decl_bitwise_func_prefix_all(or);
 decl_bitwise_func_prefix_all(xor);
+
+#define bc_ishl() bc_arithmetic_ishl(&__stackFrame.operandStack)
+#define bc_lshl() bc_arithmetic_lshl(&__stackFrame.operandStack)
+
+#define bc_ishr() bc_arithmetic_ishr(&__stackFrame.operandStack)
+#define bc_lshr() bc_arithmetic_lshr(&__stackFrame.operandStack)
+
+#define bc_iushr() bc_arithmetic_iushr(&__stackFrame.operandStack)
+#define bc_lushr() bc_arithmetic_lushr(&__stackFrame.operandStack)
 
 #define bc_iand() bc_arithmetic_iand(&__stackFrame.operandStack)
 #define bc_land() bc_arithmetic_land(&__stackFrame.operandStack)
