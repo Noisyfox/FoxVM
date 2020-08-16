@@ -597,11 +597,16 @@ class ClassWriter(
         val clazz = clazzInfo.thisClass
         val node = method.methodNode
 
+        val stackStartStatement = if(node.maxStack == 0 && node.maxLocals == 0) {
+            "stack_frame_start_zero()"
+        } else {
+            "stack_frame_start(${node.maxStack}, ${node.maxLocals})"
+        }
         cWriter.write(
             """
                     |// ${clazz.className}.${method.name}:${method.descriptor}
                     |${method.cDeclaration(clazzInfo)} {
-                    |   stack_frame_start(${node.maxStack}, ${node.maxLocals});
+                    |   $stackStartStatement;
                     |""".trimMargin()
         )
 
