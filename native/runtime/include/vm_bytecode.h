@@ -192,6 +192,39 @@ decl_bitwise_func_prefix_all(xor);
 #define bc_ixor() bc_arithmetic_ixor(&__stackFrame.operandStack)
 #define bc_lxor() bc_arithmetic_lxor(&__stackFrame.operandStack)
 
+// Type conversion instructions
+decl_arithmetic_func(i2l);
+decl_arithmetic_func(i2f);
+decl_arithmetic_func(i2d);
+decl_arithmetic_func(l2i);
+decl_arithmetic_func(l2f);
+decl_arithmetic_func(l2d);
+decl_arithmetic_func(f2i);
+decl_arithmetic_func(f2l);
+decl_arithmetic_func(f2d);
+decl_arithmetic_func(d2i);
+decl_arithmetic_func(d2l);
+decl_arithmetic_func(d2f);
+decl_arithmetic_func(i2b);
+decl_arithmetic_func(i2c);
+decl_arithmetic_func(i2s);
+
+#define bc_i2l() bc_arithmetic_i2l(&__stackFrame.operandStack)
+#define bc_i2f() bc_arithmetic_i2f(&__stackFrame.operandStack)
+#define bc_i2d() bc_arithmetic_i2d(&__stackFrame.operandStack)
+#define bc_l2i() bc_arithmetic_l2i(&__stackFrame.operandStack)
+#define bc_l2f() bc_arithmetic_l2f(&__stackFrame.operandStack)
+#define bc_l2d() bc_arithmetic_l2d(&__stackFrame.operandStack)
+#define bc_f2i() bc_arithmetic_f2i(&__stackFrame.operandStack)
+#define bc_f2l() bc_arithmetic_f2l(&__stackFrame.operandStack)
+#define bc_f2d() bc_arithmetic_f2d(&__stackFrame.operandStack)
+#define bc_d2i() bc_arithmetic_d2i(&__stackFrame.operandStack)
+#define bc_d2l() bc_arithmetic_d2l(&__stackFrame.operandStack)
+#define bc_d2f() bc_arithmetic_d2f(&__stackFrame.operandStack)
+#define bc_i2b() bc_arithmetic_i2b(&__stackFrame.operandStack)
+#define bc_i2c() bc_arithmetic_i2c(&__stackFrame.operandStack)
+#define bc_i2s() bc_arithmetic_i2s(&__stackFrame.operandStack)
+
 // FoxVM specific instructions
 
 /** Record current source file line number. */

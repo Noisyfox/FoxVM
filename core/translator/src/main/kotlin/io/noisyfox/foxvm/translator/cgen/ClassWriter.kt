@@ -800,7 +800,23 @@ class ClassWriter(
             Opcodes.LOR to "bc_lor",
 
             Opcodes.IXOR to "bc_ixor",
-            Opcodes.LXOR to "bc_lxor"
+            Opcodes.LXOR to "bc_lxor",
+
+            Opcodes.I2L to "bc_i2l",
+            Opcodes.I2F to "bc_i2f",
+            Opcodes.I2D to "bc_i2d",
+            Opcodes.L2I to "bc_l2i",
+            Opcodes.L2F to "bc_l2f",
+            Opcodes.L2D to "bc_l2d",
+            Opcodes.F2I to "bc_f2i",
+            Opcodes.F2L to "bc_f2l",
+            Opcodes.F2D to "bc_f2d",
+            Opcodes.D2I to "bc_d2i",
+            Opcodes.D2L to "bc_d2l",
+            Opcodes.D2F to "bc_d2f",
+            Opcodes.I2B to "bc_i2b",
+            Opcodes.I2C to "bc_i2c",
+            Opcodes.I2S to "bc_i2s"
         )
     }
 }

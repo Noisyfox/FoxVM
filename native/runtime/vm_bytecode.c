@@ -5,6 +5,33 @@
 #include "vm_bytecode.h"
 #include <math.h>
 
+#define JAVA_TYPE_i JAVA_INT
+#define JAVA_TYPE_l JAVA_LONG
+#define JAVA_TYPE_f JAVA_FLOAT
+#define JAVA_TYPE_d JAVA_DOUBLE
+#define JAVA_TYPE_b JAVA_BYTE
+#define JAVA_TYPE_c JAVA_CHAR
+#define JAVA_TYPE_s JAVA_SHORT
+#define java_type_of(prefix) JAVA_TYPE_##prefix
+
+#define SLOT_TYPE_i VM_SLOT_INT
+#define SLOT_TYPE_l VM_SLOT_LONG
+#define SLOT_TYPE_f VM_SLOT_FLOAT
+#define SLOT_TYPE_d VM_SLOT_DOUBLE
+#define SLOT_TYPE_b VM_SLOT_INT
+#define SLOT_TYPE_c VM_SLOT_INT
+#define SLOT_TYPE_s VM_SLOT_INT
+#define slot_type_of(prefix) SLOT_TYPE_##prefix
+
+#define SLOT_VALUE_i i
+#define SLOT_VALUE_l l
+#define SLOT_VALUE_f f
+#define SLOT_VALUE_d d
+#define SLOT_VALUE_b i
+#define SLOT_VALUE_c i
+#define SLOT_VALUE_s i
+#define slot_value_of(prefix) SLOT_VALUE_##prefix
+
 // ..., value1, value2 →
 // ..., result
 #define arithmetic_bi_operand(required_type)    \
@@ -31,42 +58,43 @@
     assert(value->type == required_type)
 // Store the result in the place of value
 
-#define def_arithmetic_bi_func(prefix, name, operation, required_type)          \
-decl_arithmetic_func(prefix##name) {                                            \
-    arithmetic_bi_operand(required_type);                                       \
-                                                                                \
-    value1->data.prefix = value1->data.prefix operation value2->data.prefix;    \
+#define def_arithmetic_bi_func(prefix, name, operation)                                     \
+decl_arithmetic_func(prefix##name) {                                                        \
+    arithmetic_bi_operand(slot_type_of(prefix));                                            \
+                                                                                            \
+    value1->data.slot_value_of(prefix)                                                      \
+        = value1->data.slot_value_of(prefix) operation value2->data.slot_value_of(prefix);  \
 }
 
-#define def_arithmetic_un_func(prefix, name, operation, required_type)          \
-decl_arithmetic_func(prefix##name) {                                            \
-    arithmetic_un_operand(required_type);                                       \
-                                                                                \
-    value->data.prefix = operation value->data.prefix;                          \
+#define def_arithmetic_un_func(prefix, name, operation)                                 \
+decl_arithmetic_func(prefix##name) {                                                    \
+    arithmetic_un_operand(slot_type_of(prefix));                                        \
+                                                                                        \
+    value->data.slot_value_of(prefix) = operation value->data.slot_value_of(prefix);    \
 }
 
-def_arithmetic_bi_func(i, add, +, VM_SLOT_INT);
-def_arithmetic_bi_func(l, add, +, VM_SLOT_LONG);
-def_arithmetic_bi_func(f, add, +, VM_SLOT_FLOAT);
-def_arithmetic_bi_func(d, add, +, VM_SLOT_DOUBLE);
+def_arithmetic_bi_func(i, add, +);
+def_arithmetic_bi_func(l, add, +);
+def_arithmetic_bi_func(f, add, +);
+def_arithmetic_bi_func(d, add, +);
 
-def_arithmetic_bi_func(i, sub, -, VM_SLOT_INT);
-def_arithmetic_bi_func(l, sub, -, VM_SLOT_LONG);
-def_arithmetic_bi_func(f, sub, -, VM_SLOT_FLOAT);
-def_arithmetic_bi_func(d, sub, -, VM_SLOT_DOUBLE);
+def_arithmetic_bi_func(i, sub, -);
+def_arithmetic_bi_func(l, sub, -);
+def_arithmetic_bi_func(f, sub, -);
+def_arithmetic_bi_func(d, sub, -);
 
-def_arithmetic_bi_func(i, mul, *, VM_SLOT_INT);
-def_arithmetic_bi_func(l, mul, *, VM_SLOT_LONG);
-def_arithmetic_bi_func(f, mul, *, VM_SLOT_FLOAT);
-def_arithmetic_bi_func(d, mul, *, VM_SLOT_DOUBLE);
+def_arithmetic_bi_func(i, mul, *);
+def_arithmetic_bi_func(l, mul, *);
+def_arithmetic_bi_func(f, mul, *);
+def_arithmetic_bi_func(d, mul, *);
 
-def_arithmetic_bi_func(i, div, /, VM_SLOT_INT);
-def_arithmetic_bi_func(l, div, /, VM_SLOT_LONG);
-def_arithmetic_bi_func(f, div, /, VM_SLOT_FLOAT);
-def_arithmetic_bi_func(d, div, /, VM_SLOT_DOUBLE);
+def_arithmetic_bi_func(i, div, /);
+def_arithmetic_bi_func(l, div, /);
+def_arithmetic_bi_func(f, div, /);
+def_arithmetic_bi_func(d, div, /);
 
-def_arithmetic_bi_func(i, rem, %, VM_SLOT_INT);
-def_arithmetic_bi_func(l, rem, %, VM_SLOT_LONG);
+def_arithmetic_bi_func(i, rem, %);
+def_arithmetic_bi_func(l, rem, %);
 // % does not work with float and double
 decl_arithmetic_func(frem) {
     arithmetic_bi_operand(VM_SLOT_FLOAT);
@@ -82,10 +110,10 @@ decl_arithmetic_func(drem) {
     value1->data.d = fmod(value1->data.d, value2->data.d);
 }
 
-def_arithmetic_un_func(i, neg, -, VM_SLOT_INT);
-def_arithmetic_un_func(l, neg, -, VM_SLOT_LONG);
-def_arithmetic_un_func(f, neg, -, VM_SLOT_FLOAT);
-def_arithmetic_un_func(d, neg, -, VM_SLOT_DOUBLE);
+def_arithmetic_un_func(i, neg, -);
+def_arithmetic_un_func(l, neg, -);
+def_arithmetic_un_func(f, neg, -);
+def_arithmetic_un_func(d, neg, -);
 
 #define def_ishift_func(name, operation)                                                        \
 decl_arithmetic_func(i##name) {                                                                 \
@@ -137,11 +165,41 @@ decl_arithmetic_func(lshr) {
     }
 }
 
-def_arithmetic_bi_func(i, and, &, VM_SLOT_INT);
-def_arithmetic_bi_func(l, and, &, VM_SLOT_LONG);
+def_arithmetic_bi_func(i, and, &);
+def_arithmetic_bi_func(l, and, &);
 
-def_arithmetic_bi_func(i, or, |, VM_SLOT_INT);
-def_arithmetic_bi_func(l, or, |, VM_SLOT_LONG);
+def_arithmetic_bi_func(i, or, |);
+def_arithmetic_bi_func(l, or, |);
 
-def_arithmetic_bi_func(i, xor, ^, VM_SLOT_INT);
-def_arithmetic_bi_func(l, xor, ^, VM_SLOT_LONG);
+def_arithmetic_bi_func(i, xor, ^);
+def_arithmetic_bi_func(l, xor, ^);
+
+// Type conversion operations
+#define def_conv_func(from_prefix, to_prefix)                                   \
+decl_arithmetic_func(from_prefix##2##to_prefix) {                               \
+    arithmetic_un_operand(slot_type_of(from_prefix));                           \
+                                                                                \
+    java_type_of(to_prefix) converted = value->data.slot_value_of(from_prefix); \
+    value->type = slot_type_of(to_prefix);                                      \
+    value->data.slot_value_of(to_prefix) = converted;                           \
+}
+
+def_conv_func(i, l);
+def_conv_func(i, f);
+def_conv_func(i, d);
+
+def_conv_func(l, i);
+def_conv_func(l, f);
+def_conv_func(l, d);
+
+def_conv_func(f, i);
+def_conv_func(f, l);
+def_conv_func(f, d);
+
+def_conv_func(d, i);
+def_conv_func(d, l);
+def_conv_func(d, f);
+
+def_conv_func(i, b);
+def_conv_func(i, c);
+def_conv_func(i, s);
