@@ -601,6 +601,17 @@ typedef enum {
     a_state_trigger_full_gc,
 } AllocationState;
 
+static const char * const g_allocationStateStr[] = {
+        "a_state_start",
+        "a_state_check_budget",
+        "a_state_can_allocate",
+        "a_state_cant_allocate",
+        "a_state_try_fit",
+        "a_state_trigger_gen0_gc",
+        "a_state_trigger_ephemeral_gc",
+        "a_state_trigger_full_gc",
+};
+
 typedef enum {
     f_can_fit,
     f_too_large,
@@ -647,7 +658,7 @@ static JAVA_BOOLEAN heap_alloc_soh(VM_PARAM_CURRENT_CONTEXT, size_t size, void *
     AllocationState alloc_state = a_state_start;
 
     while (1) {
-        printf("SOH alloc state: %d\n", alloc_state);
+        printf("SOH alloc state: %s\n", g_allocationStateStr[alloc_state]);
 
         switch (alloc_state) {
             case a_state_start: {
