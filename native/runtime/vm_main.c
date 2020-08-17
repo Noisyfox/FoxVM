@@ -43,7 +43,7 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     // start GC thread
 //    gc_thread_start(vmCurrentContext);
 
-    stack_frame_start(1, 0);
+    stack_frame_start(0, 1, 0);
 
     bc_aconst_null();
     entrance(vmCurrentContext);

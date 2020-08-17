@@ -40,6 +40,7 @@ typedef struct _VMStackFrame {
     struct _VMStackFrame *next;
 
     JAVA_CLASS thisClass; // Reference to current class
+    uint16_t methodIndex; // The index of current method in [thisClass->methods]
     VMOperandStack operandStack;
     VMLocals locals;
 
@@ -66,17 +67,19 @@ void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT);
 #define STACK_SLOTS __slots
 #define OP_STACK (&STACK_FRAME.operandStack)
 
-#define stack_frame_start(max_stack, max_locals)                            \
+#define stack_frame_start(index, max_stack, max_locals)                     \
     VMStackFrame STACK_FRAME;                                               \
     VMStackSlot STACK_SLOTS[(max_stack) + (max_locals)];                    \
     stack_frame_init(&STACK_FRAME, STACK_SLOTS, (max_stack), (max_locals)); \
     STACK_FRAME.thisClass = vmCurrentContext->callingClass;                 \
+    STACK_FRAME.methodIndex = index;                                        \
     stack_frame_push(vmCurrentContext, &STACK_FRAME)
 
-#define stack_frame_start_zero()                                            \
+#define stack_frame_start_zero(index)                                       \
     VMStackFrame STACK_FRAME;                                               \
     stack_frame_init(&STACK_FRAME, NULL, 0, 0);                             \
     STACK_FRAME.thisClass = vmCurrentContext->callingClass;                 \
+    STACK_FRAME.methodIndex = index;                                        \
     stack_frame_push(vmCurrentContext, &STACK_FRAME)
 
 #define stack_frame_end() \

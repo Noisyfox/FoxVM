@@ -578,7 +578,7 @@ class ClassWriter(
         )
 
         // Write implementation of concrete methods
-        val concreteMethods = info.methods.filter { it.isConcrete }
+        val concreteMethods = info.methods.withIndex().filter { it.value.isConcrete }
         if (concreteMethods.isNotEmpty()) {
             cWriter.write(
                 """
@@ -588,19 +588,19 @@ class ClassWriter(
             )
 
             concreteMethods.forEach {
-                writeMethodImpl(cWriter, info, it)
+                writeMethodImpl(cWriter, info, it.index, it.value)
             }
         }
     }
 
-    private fun writeMethodImpl(cWriter: Writer, clazzInfo: ClassInfo, method: MethodInfo) {
+    private fun writeMethodImpl(cWriter: Writer, clazzInfo: ClassInfo, index: Int, method: MethodInfo) {
         val clazz = clazzInfo.thisClass
         val node = method.methodNode
 
         val stackStartStatement = if(node.maxStack == 0 && node.maxLocals == 0) {
-            "stack_frame_start_zero()"
+            "stack_frame_start_zero(${index})"
         } else {
-            "stack_frame_start(${node.maxStack}, ${node.maxLocals})"
+            "stack_frame_start(${index}, ${node.maxStack}, ${node.maxLocals})"
         }
         cWriter.write(
             """
