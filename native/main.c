@@ -57,6 +57,7 @@ JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT) {
     // Loop 5 times
     bc_iconst_5();
 L1:
+    bc_label(1);
     printf("Loop!\n");
     bc_iconst_1();
     bc_isub();

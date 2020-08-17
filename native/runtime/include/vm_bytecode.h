@@ -302,4 +302,7 @@ decl_branch_func(ifnull);
 /** Record current source file line number. */
 #define bc_line(line_number) STACK_FRAME.currentLine = (line_number)
 
+/** Record current label. */
+#define bc_label(label_number) STACK_FRAME.currentLabel = (label_number)
+
 #endif //FOXVM_VM_BYTECODE_H

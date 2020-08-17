@@ -290,8 +290,15 @@ fun MethodInfo.cDeclaration(info: ClassInfo): String {
 }
 
 /**
+ * The index of this node.
+ */
+fun LabelNode.index(info: MethodInfo): Int {
+    return info.methodNode.instructions.indexOf(this)
+}
+
+/**
  * The C label name of this node.
  */
 fun LabelNode.cName(info: MethodInfo): String {
-    return "L${info.methodNode.instructions.indexOf(this)}"
+    return "L${index(info)}"
 }

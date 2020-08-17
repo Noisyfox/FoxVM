@@ -44,6 +44,7 @@ typedef struct _VMStackFrame {
     VMLocals locals;
 
     uint16_t currentLine; // Current line number in the source file
+    int32_t currentLabel; // Current label in the instruction stream
 } VMStackFrame;
 
 /** Init the thread root stack frame */

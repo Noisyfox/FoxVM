@@ -634,6 +634,7 @@ class ClassWriter(
                         """
                     |
                     |${inst.cName(method)}:
+                    |   bc_label(${inst.index(method)});
                     |""".trimMargin()
                     )
                 }
