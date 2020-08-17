@@ -9,6 +9,7 @@ data class FieldInfo(
     val name: String,
     val cIdentifier: String,
     val descriptor: Type,
+    val signature: String?,
     val defaultValue: Any?
 ) {
     val isStatic: Boolean = (access and Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC

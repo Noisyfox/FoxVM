@@ -1,5 +1,6 @@
 package io.noisyfox.foxvm.translator.cgen
 
+import io.noisyfox.foxvm.bytecode.asCString
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedInstanceFieldInfo
@@ -61,6 +62,11 @@ fun Type.toCBaseTypeName(): String = when (sort) {
     Type.OBJECT -> "JAVA_OBJECT"
     else -> throw IllegalArgumentException("Unknown type ${sort}.")
 }
+
+/**
+ * A string to "string", or NULL
+ */
+fun String?.toCString(): String = this?.let { "\"${it.asCString()}\"".intern() } ?: CNull
 
 /**
  * n-dimensions Array of type C where <sig_C> starts with number -> A<n>_<sig_C>

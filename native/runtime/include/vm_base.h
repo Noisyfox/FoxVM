@@ -154,6 +154,7 @@ typedef struct {
     uint16_t accessFlags;
     C_CSTR name; // UTF-8 string of the field name
     C_CSTR descriptor; // Type descriptor of this field
+    C_CSTR signature; // Signature of this field if it is generic type, or `NULL`
 
     // TODO: Add field attributes
 } FieldInfo;
@@ -191,6 +192,7 @@ typedef struct {
     uint16_t accessFlags;
     C_CSTR name; // UTF-8 string of the method name
     C_CSTR descriptor; // Type descriptor of this method
+    C_CSTR signature; // Signature of this method if it contains generic type, or `NULL`
 
     void *code; // Pointer to the function
 } MethodInfo;
@@ -218,6 +220,7 @@ typedef JAVA_VOID (*ClassResolveHandler)(JAVA_CLASS c);
 struct _JavaClassInfo {
     uint16_t accessFlags;
     C_CSTR thisClass; // UTF-8 string of the fully qualified name of this class
+    C_CSTR signature; // Signature of this class if it is generic type, or `NULL`
     JavaClassInfo *superClass; // The parent class
     uint16_t interfaceCount; // Number of direct interfaces
     JavaClassInfo **interfaces; // Array of direct interfaces

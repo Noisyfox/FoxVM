@@ -318,6 +318,7 @@ class ClassWriter(
                     |        .accessFlags = ${AccFlag.translateFieldAcc(it.access)},
                     |        .name = "${it.name.asCString()}",
                     |        .descriptor = "${it.descriptor.toString().asCString()}",
+                    |        .signature = ${it.signature.toCString()},
                     |    },
                     |""".trimMargin()
                 )
@@ -352,6 +353,7 @@ class ClassWriter(
                     |        .accessFlags = ${AccFlag.translateMethodAcc(it.access)},
                     |        .name = "${it.name.asCString()}",
                     |        .descriptor = "${it.descriptor.toString().asCString()}",
+                    |        .signature = ${it.signature.toCString()},
                     |        .code = $codeRef,
                     |    },
                     |""".trimMargin()
@@ -437,6 +439,7 @@ class ClassWriter(
                     |JavaClassInfo ${info.cName} = {
                     |    .accessFlags = ${AccFlag.translateClassAcc(clazz.access)},
                     |    .thisClass = "${clazz.className.asCString()}",
+                    |    .signature = ${info.signature.toCString()},
                     |    .superClass = ${info.cSuperClass},
                     |    .interfaceCount = ${info.interfaces.size},
                     |    .interfaces = ${info.cNameInterfaces},

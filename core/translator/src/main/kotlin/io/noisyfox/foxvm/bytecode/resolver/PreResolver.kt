@@ -84,6 +84,7 @@ private class PreResolverClassVisitor(
             thisClass = clazz,
             cIdentifier = mangleClassName(clazz.className),
             version = version,
+            signature = signature,
             superClass = superName?.let(this::ensureResolved),
             interfaces = interfaces?.map(this::ensureResolved)?.toList() ?: emptyList()
         )
@@ -110,6 +111,7 @@ private class PreResolverClassVisitor(
             name = name.intern(),
             cIdentifier = mangleFieldName(name),
             descriptor = Type.getType(descriptor.intern()),
+            signature = signature,
             defaultValue = value
         )
 
@@ -133,6 +135,7 @@ private class PreResolverClassVisitor(
             name = name.intern(),
             cIdentifier = mangleMethodName(name),
             descriptor = Type.getMethodType(descriptor.intern()),
+            signature = signature,
             methodNode = MethodNode(Opcodes.ASM8, access, name, descriptor, signature, exceptions)
         )
 

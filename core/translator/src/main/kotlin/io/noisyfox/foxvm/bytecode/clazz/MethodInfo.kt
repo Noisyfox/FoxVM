@@ -9,6 +9,7 @@ data class MethodInfo(
     val name: String,
     val cIdentifier: String,
     val descriptor: Type,
+    val signature: String?,
     val methodNode: MethodNode
 ) {
 

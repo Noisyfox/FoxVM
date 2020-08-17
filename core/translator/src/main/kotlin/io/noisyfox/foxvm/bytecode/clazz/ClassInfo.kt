@@ -6,6 +6,7 @@ data class ClassInfo(
     val thisClass: Clazz,
     val cIdentifier: String,
     val version: Int,
+    val signature: String?,
     val superClass: Clazz?,
     val interfaces: List<Clazz>,
     val fields: MutableList<FieldInfo> = mutableListOf(),
