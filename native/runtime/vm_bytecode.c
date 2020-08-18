@@ -325,3 +325,9 @@ JAVA_BOOLEAN bc_branch_ifnull(VMOperandStack *stack) {
 
     return value->data.o == JAVA_NULL ? JAVA_TRUE : JAVA_FALSE;
 }
+
+JAVA_INT bc_switch_get_index(VMOperandStack *stack) {
+    arithmetic_un_operand_nr(VM_SLOT_INT);
+
+    return value->data.i;
+}

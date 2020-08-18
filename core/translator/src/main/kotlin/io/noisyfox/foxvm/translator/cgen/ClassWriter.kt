@@ -14,6 +14,8 @@ import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.LdcInsnNode
 import org.objectweb.asm.tree.LineNumberNode
+import org.objectweb.asm.tree.LookupSwitchInsnNode
+import org.objectweb.asm.tree.TableSwitchInsnNode
 import org.objectweb.asm.tree.VarInsnNode
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -715,7 +717,13 @@ class ClassWriter(
                         else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                     }
                 }
-                is LdcInsnNode ->{
+                is TableSwitchInsnNode -> {
+                    writeSwitch(cWriter, method, (inst.min..inst.max).toList(), inst.labels, inst.dflt)
+                }
+                is LookupSwitchInsnNode -> {
+                    writeSwitch(cWriter, method, inst.keys, inst.labels, inst.dflt)
+                }
+                is LdcInsnNode -> {
                     when(val v = inst.cst) {
                         is Int -> {
                             cWriter.write(
@@ -760,6 +768,37 @@ class ClassWriter(
             """
                     |}
                     |
+                    |""".trimMargin()
+        )
+    }
+
+    private fun writeSwitch(
+        cWriter: Writer,
+        method: MethodInfo,
+        keys: List<Int>,
+        branches: List<LabelNode>,
+        default: LabelNode
+    ) {
+        assert(keys.size == branches.size) {
+            "switch: key count (${keys.size}) != branch count (${branches.size})"
+        }
+
+        cWriter.write(
+            """
+                    |   bc_switch() {
+                    |""".trimMargin()
+        )
+        keys.zip(branches).forEach { (k, label) ->
+            cWriter.write(
+                """
+                    |       case ${k.toCConst()}: goto ${label.cName(method)};
+                    |""".trimMargin()
+            )
+        }
+        cWriter.write(
+            """
+                    |       default: goto ${default.cName(method)};
+                    |   }
                     |""".trimMargin()
         )
     }

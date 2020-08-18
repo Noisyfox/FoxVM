@@ -297,6 +297,10 @@ decl_branch_func(ifnull);
 
 #define bc_goto(label)  goto label
 
+// tableswitch and lookupswitch are both implemented by C switch-case statement
+JAVA_INT bc_switch_get_index(VMOperandStack *stack);
+#define bc_switch() switch(bc_switch_get_index(OP_STACK))
+
 // ldc instructions
 #define bc_ldc_int(v)    stack_push_int(v)
 #define bc_ldc_long(v)   stack_push_long(v)
