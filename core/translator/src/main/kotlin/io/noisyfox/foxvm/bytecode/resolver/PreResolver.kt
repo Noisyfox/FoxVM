@@ -38,6 +38,7 @@ class PreResolver(
             // Don't parse code for runtime classes
             ClassReader.SKIP_FRAMES or ClassReader.SKIP_CODE
         } else {
+            // For now we don't generate codes for frame verification, will consider adding this later
             ClassReader.SKIP_FRAMES
         }
 
