@@ -12,6 +12,7 @@ import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.IntInsnNode
 import org.objectweb.asm.tree.JumpInsnNode
 import org.objectweb.asm.tree.LabelNode
+import org.objectweb.asm.tree.LdcInsnNode
 import org.objectweb.asm.tree.LineNumberNode
 import org.objectweb.asm.tree.VarInsnNode
 import org.slf4j.LoggerFactory
@@ -712,6 +713,38 @@ class ClassWriter(
                             )
                         }
                         else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
+                    }
+                }
+                is LdcInsnNode ->{
+                    when(val v = inst.cst) {
+                        is Int -> {
+                            cWriter.write(
+                                """
+                    |   bc_ldc_int(${v.toCConst()});
+                    |""".trimMargin()
+                            )
+                        }
+                        is Long -> {
+                            cWriter.write(
+                                """
+                    |   bc_ldc_long(${v.toCConst()});
+                    |""".trimMargin()
+                            )
+                        }
+                        is Float -> {
+                            cWriter.write(
+                                """
+                    |   bc_ldc_float(${v.toCConst()});
+                    |""".trimMargin()
+                            )
+                        }
+                        is Double -> {
+                            cWriter.write(
+                                """
+                    |   bc_ldc_double(${v.toCConst()});
+                    |""".trimMargin()
+                            )
+                        }
                     }
                 }
             }

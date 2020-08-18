@@ -48,6 +48,48 @@ fun Boolean.translate(): String = if (this) {
  */
 const val CNull = "NULL"
 
+/**
+ * C constants for NaN and infinity
+ */
+const val C_FLOAT_NAN = "JAVA_FLOAT_NAN"
+const val C_FLOAT_INF = "JAVA_FLOAT_INF"
+const val C_FLOAT_NEG_INF = "JAVA_FLOAT_NEG_INF"
+const val C_DOUBLE_NAN = "JAVA_DOUBLE_NAN"
+const val C_DOUBLE_INF = "JAVA_DOUBLE_INF"
+const val C_DOUBLE_NEG_INF = "JAVA_DOUBLE_NEG_INF"
+
+fun Number.toCConst(): String = when (this) {
+    is Int -> "${this}l"
+    is Long -> "${this}ll"
+    is Float -> {
+        when {
+            isNaN() -> C_FLOAT_NAN
+            isInfinite() -> {
+                if (this > 0) {
+                    C_FLOAT_INF
+                } else {
+                    C_FLOAT_NEG_INF
+                }
+            }
+            else -> "${this}f"
+        }
+    }
+    is Double -> {
+        when {
+            isNaN() -> C_DOUBLE_NAN
+            isInfinite() -> {
+                if (this > 0) {
+                    C_DOUBLE_INF
+                } else {
+                    C_DOUBLE_NEG_INF
+                }
+            }
+            else -> "$this"
+        }
+    }
+    else -> throw IllegalArgumentException("Unsupported type ${this.javaClass}")
+}
+
 fun Type.toCBaseTypeName(): String = when (sort) {
     Type.VOID -> "JAVA_VOID"
     Type.BOOLEAN -> "JAVA_BOOLEAN"

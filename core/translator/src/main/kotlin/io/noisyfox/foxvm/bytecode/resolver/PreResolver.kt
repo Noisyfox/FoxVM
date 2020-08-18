@@ -171,8 +171,8 @@ private class PreResolverClassVisitor(
         }
 
         // Sort fields based on types
-        info.preResolvedStaticFields.sortWith(compareBy(FieldLayout, { info.fields[it.fieldIndex].descriptor }))
-        instanceFields.sortWith(compareBy(FieldLayout, { info.fields[it.fieldIndex].descriptor }))
+        info.preResolvedStaticFields.sortWith(compareBy(FieldLayout) { info.fields[it.fieldIndex].descriptor })
+        instanceFields.sortWith(compareBy(FieldLayout) { info.fields[it.fieldIndex].descriptor })
 
         info.preResolvedInstanceFields.addAll(instanceFields)
     }

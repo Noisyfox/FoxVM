@@ -297,6 +297,12 @@ decl_branch_func(ifnull);
 
 #define bc_goto(label)  goto label
 
+// ldc instructions
+#define bc_ldc_int(v)    stack_push_int(v)
+#define bc_ldc_long(v)   stack_push_long(v)
+#define bc_ldc_float(v)  stack_push_float(v)
+#define bc_ldc_double(v) stack_push_double(v)
+
 // FoxVM specific instructions
 
 /** Record current source file line number. */
