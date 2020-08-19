@@ -7,6 +7,7 @@ import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
 import org.objectweb.asm.tree.IincInsnNode
 import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.IntInsnNode
@@ -584,8 +585,8 @@ class ClassWriter(
         )
 
         // Write implementation of concrete methods
-        val concreteMethods = info.methods.withIndex().filter { it.value.isConcrete }
-        if (concreteMethods.isNotEmpty()) {
+        val nonAbstractMethods = info.methods.withIndex().filterNot { it.value.isAbstract }
+        if (nonAbstractMethods.isNotEmpty()) {
             cWriter.write(
                 """
                     |// Method implementations
@@ -593,8 +594,17 @@ class ClassWriter(
                     |""".trimMargin()
             )
 
-            concreteMethods.forEach {
-                writeMethodImpl(cWriter, info, it.index, it.value)
+            nonAbstractMethods.forEach {
+                when {
+                    it.value.isConcrete -> writeMethodImpl(cWriter, info, it.index, it.value)
+                    it.value.isNative -> writeNativeMethodBridge(cWriter, info, it.index, it.value)
+                    else -> LOGGER.error(
+                        "Unable to generate method impl for {}.{}{}: unexpected method type",
+                        clazz.className,
+                        it.value.name,
+                        it.value.descriptor
+                    )
+                }
             }
         }
     }
@@ -612,7 +622,7 @@ class ClassWriter(
             """
                     |// ${clazz.className}.${method.name}:${method.descriptor}
                     |${method.cDeclaration(clazzInfo)} {
-                    |   $stackStartStatement;
+                    |    $stackStartStatement;
                     |""".trimMargin()
         )
 
@@ -626,7 +636,7 @@ class ClassWriter(
         if (argumentCount > 0) {
             cWriter.write(
                 """
-                    |   local_transfer_arguments(vmCurrentContext, ${argumentCount});
+                    |    local_transfer_arguments(vmCurrentContext, ${argumentCount});
                     |""".trimMargin()
             )
         }
@@ -640,14 +650,14 @@ class ClassWriter(
                         """
                     |
                     |${inst.cName(method)}:
-                    |   bc_label(${inst.index(method)});
+                    |    bc_label(${inst.index(method)});
                     |""".trimMargin()
                     )
                 }
                 is LineNumberNode -> {
                     cWriter.write(
                         """
-                    |   bc_line(${inst.line}); // Line ${inst.line}
+                    |    bc_line(${inst.line}); // Line ${inst.line}
                     |
                     |""".trimMargin()
                     )
@@ -661,7 +671,7 @@ class ClassWriter(
                             val functionName = byteCodesVarInst[inst.opcode]
                             cWriter.write(
                                 """
-                    |   ${functionName}(${inst.`var`});
+                    |    ${functionName}(${inst.`var`});
                     |""".trimMargin()
                             )
                         }
@@ -671,7 +681,7 @@ class ClassWriter(
                 is IincInsnNode -> {
                     cWriter.write(
                         """
-                    |   bc_iinc(${inst.`var`}, ${inst.incr});
+                    |    bc_iinc(${inst.`var`}, ${inst.incr});
                     |""".trimMargin()
                     )
                 }
@@ -684,7 +694,7 @@ class ClassWriter(
                             val functionName = byteCodesIntInst[inst.opcode]
                             cWriter.write(
                                 """
-                    |   ${functionName}(${inst.operand});
+                    |    ${functionName}(${inst.operand});
                     |""".trimMargin()
                             )
                         }
@@ -697,7 +707,7 @@ class ClassWriter(
                             val functionName = byteCodesInstInst[inst.opcode]
                             cWriter.write(
                                 """
-                    |   ${functionName}();
+                    |    ${functionName}();
                     |""".trimMargin()
                             )
                         }
@@ -710,7 +720,7 @@ class ClassWriter(
                             val functionName = byteCodesJumpInst[inst.opcode]
                             cWriter.write(
                                 """
-                    |   ${functionName}(${inst.label.cName(method)});
+                    |    ${functionName}(${inst.label.cName(method)});
                     |""".trimMargin()
                             )
                         }
@@ -728,28 +738,28 @@ class ClassWriter(
                         is Int -> {
                             cWriter.write(
                                 """
-                    |   bc_ldc_int(${v.toCConst()});
+                    |    bc_ldc_int(${v.toCConst()});
                     |""".trimMargin()
                             )
                         }
                         is Long -> {
                             cWriter.write(
                                 """
-                    |   bc_ldc_long(${v.toCConst()});
+                    |    bc_ldc_long(${v.toCConst()});
                     |""".trimMargin()
                             )
                         }
                         is Float -> {
                             cWriter.write(
                                 """
-                    |   bc_ldc_float(${v.toCConst()});
+                    |    bc_ldc_float(${v.toCConst()});
                     |""".trimMargin()
                             )
                         }
                         is Double -> {
                             cWriter.write(
                                 """
-                    |   bc_ldc_double(${v.toCConst()});
+                    |    bc_ldc_double(${v.toCConst()});
                     |""".trimMargin()
                             )
                         }
@@ -785,20 +795,155 @@ class ClassWriter(
 
         cWriter.write(
             """
-                    |   bc_switch() {
+                    |    bc_switch() {
                     |""".trimMargin()
         )
         keys.zip(branches).forEach { (k, label) ->
             cWriter.write(
                 """
-                    |       case ${k.toCConst()}: goto ${label.cName(method)};
+                    |        case ${k.toCConst()}: goto ${label.cName(method)};
                     |""".trimMargin()
             )
         }
         cWriter.write(
             """
-                    |       default: goto ${default.cName(method)};
-                    |   }
+                    |        default: goto ${default.cName(method)};
+                    |    }
+                    |""".trimMargin()
+        )
+    }
+
+    private fun writeNativeMethodBridge(cWriter: Writer, clazzInfo: ClassInfo, index: Int, method: MethodInfo) {
+        val clazz = clazzInfo.thisClass
+        val node = method.methodNode
+
+        // For native method, `maxStack` and `maxLocals` are always 0
+        // here we use the parameter count as the `maxLocals` so we can pass parameters
+        // like a normal method.
+        val argumentTypes = method.descriptor.argumentTypes
+        val argumentCount = if (method.isStatic) {
+            argumentTypes.size
+        } else {
+            argumentTypes.size + 1 // implicitly passed this
+        }
+
+        val stackStartStatement = if(argumentCount == 0) {
+            "stack_frame_start_zero(${index})"
+        } else {
+            "stack_frame_start(${index}, 0 /* native method does not use stack */, $argumentCount)"
+        }
+        cWriter.write(
+            """
+                    |// Native method bridge for ${clazz.className}.${method.name}:${method.descriptor}
+                    |${method.cDeclaration(clazzInfo)} {
+                    |    $stackStartStatement;
+                    |""".trimMargin()
+        )
+
+        // Pass arguments
+        if (argumentCount > 0) {
+            cWriter.write(
+                """
+                    |    local_transfer_arguments(vmCurrentContext, ${argumentCount});
+                    |""".trimMargin()
+            )
+        }
+
+        // TODO: resolve the function pointer to the native method
+        cWriter.write(
+            """
+                |
+                |    // Resolve the function ptr
+                |    ${Jni.declFunctionPtr("ptr", method.isStatic, method.descriptor.returnType, argumentTypes.toList())};
+                |    ptr = NULL; // TODO
+                |
+                |""".trimMargin()
+        )
+
+        // Call real function
+        val hasReturnValue = method.descriptor.returnType.sort != Type.VOID
+        if (hasReturnValue) {
+            cWriter.write(
+                """
+                |    // Call real function
+                |    ${method.descriptor.returnType.toJNIType()} result = ptr(
+                |""".trimMargin()
+            )
+        } else {
+            cWriter.write(
+                """
+                |    // Call real function
+                |    ptr(
+                |""".trimMargin()
+            )
+        }
+        // Build argument list
+        val jniArgs = mutableListOf<String>()
+        // Pass JNIEnv
+        jniArgs.add("env")
+        // Pass second param
+        if(method.isStatic) {
+            // Pass current class
+            jniArgs.add("(${Jni.TYPE_CLASS}) THIS_CLASS")
+        } else {
+            // $this is stored in the local[0]
+            jniArgs.add("bc_jni_arg_jref(0, ${Jni.TYPE_OBJECT})")
+        }
+        // Pass remaining arguments
+        val localOffset = if (method.isStatic) {
+            0
+        } else {
+            1
+        }
+        argumentTypes.withIndex().mapTo(jniArgs) { (index, arg) ->
+            when (arg.sort) {
+                Type.BOOLEAN,
+                Type.CHAR,
+                Type.BYTE,
+                Type.SHORT,
+                Type.INT,
+                Type.FLOAT,
+                Type.LONG,
+                Type.DOUBLE -> "bc_jni_arg_${arg.toJNIType()}(${index + localOffset})"
+
+                Type.ARRAY,
+                Type.OBJECT -> "bc_jni_arg_jref(${index + localOffset}, ${arg.toJNIType()})"
+
+                else -> throw IllegalArgumentException("Unexpected type ${arg.sort} for argument.")
+            }
+        }
+        val jniArgStr = jniArgs.joinToString(separator = """
+                |,
+                |        """.trimMargin())
+        cWriter.write(
+            """
+                |        $jniArgStr
+                |    );
+                |
+                |""".trimMargin()
+        )
+
+        // End the frame
+        cWriter.write(
+            """
+                    |    stack_frame_end();
+                    |""".trimMargin()
+        )
+
+        // Handle return
+        if(hasReturnValue) {
+            cWriter.write(
+                """
+                    |
+                    |    return result;
+                    |""".trimMargin()
+            )
+        }
+
+        cWriter.write(
+            """
+                    |}
+                    |
                     |""".trimMargin()
         )
     }

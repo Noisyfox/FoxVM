@@ -315,4 +315,15 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack);
 /** Record current label. */
 #define bc_label(label_number) STACK_FRAME.currentLabel = (label_number)
 
+// JNI argument passing helpers
+#define bc_jni_arg_jboolean(local)       (local_of(local).data.i == 0 ? JNI_FALSE : JNI_TRUE)
+#define bc_jni_arg_jchar(local)          ((jchar)local_of(local).data.i)
+#define bc_jni_arg_jbyte(local)          ((jbyte)local_of(local).data.i)
+#define bc_jni_arg_jshort(local)         ((jshort)local_of(local).data.i)
+#define bc_jni_arg_jint(local)           ((jint)local_of(local).data.i)
+#define bc_jni_arg_jfloat(local)         ((jfloat)local_of(local).data.f)
+#define bc_jni_arg_jlong(local)          ((jlong)local_of(local).data.l)
+#define bc_jni_arg_jdouble(local)        ((jdouble)local_of(local).data.d)
+#define bc_jni_arg_jref(local, ref_type) ((ref_type)local_of(local).data.o)
+
 #endif //FOXVM_VM_BYTECODE_H
