@@ -6,6 +6,7 @@ import io.noisyfox.foxvm.bytecode.SimpleClassPool
 import io.noisyfox.foxvm.bytecode.resolver.PreResolver
 import io.noisyfox.foxvm.bytecode.visitor.ClassPoolFiller
 import io.noisyfox.foxvm.bytecode.visitor.ClassPresenceFilter
+import io.noisyfox.foxvm.translator.cgen.ClassInfoHeaderWriter
 import io.noisyfox.foxvm.translator.cgen.ClassWriter
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -64,7 +65,11 @@ class Translator(
      * Write all application classes to C file
      */
     private fun writeClasses() {
+        // Write each classes
         applicationClassPool.accept(ClassWriter(fullClassPool, outputPath))
+
+        // Write header contains ref to all classes
+        applicationClassPool.accept(ClassInfoHeaderWriter(outputPath))
     }
 
     companion object {

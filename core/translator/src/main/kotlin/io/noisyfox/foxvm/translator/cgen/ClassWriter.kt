@@ -268,6 +268,10 @@ class ClassWriter(
         cWriter.write(
             """
                     |#include "_${info.cIdentifier}.h"
+                    |#include "vm_thread.h"
+                    |#include "vm_bytecode.h"
+                    |
+                    |#include "${ClassInfoHeaderWriter.FILE_NAME}"
                     |
                     |""".trimMargin()
         )

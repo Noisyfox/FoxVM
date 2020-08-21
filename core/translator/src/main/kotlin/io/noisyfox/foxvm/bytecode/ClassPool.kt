@@ -2,6 +2,7 @@ package io.noisyfox.foxvm.bytecode
 
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
+import io.noisyfox.foxvm.bytecode.visitor.ClassPoolVisitor
 import java.util.TreeMap
 
 interface ClassPool {
@@ -19,7 +20,24 @@ interface ClassPool {
     fun accept(classHandler: ClassHandler)
 }
 
-class SimpleClassPool : ClassPool {
+abstract class AbstractClassPool : ClassPool {
+
+    final override fun accept(classHandler: ClassHandler) {
+        if (classHandler is ClassPoolVisitor) {
+            classHandler.visitStart()
+        }
+
+        visitClasses(classHandler)
+
+        if (classHandler is ClassPoolVisitor) {
+            classHandler.visitEnd()
+        }
+    }
+
+    abstract fun visitClasses(classHandler: ClassHandler)
+}
+
+class SimpleClassPool : AbstractClassPool() {
     private val classes: TreeMap<String, Clazz> = TreeMap()
 
     override fun addClass(clazz: Clazz) {
@@ -32,7 +50,7 @@ class SimpleClassPool : ClassPool {
 
     override fun getClass(className: String): Clazz? = classes[className]
 
-    override fun accept(classHandler: ClassHandler) {
+    override fun visitClasses(classHandler: ClassHandler) {
         classes.forEach { (_, clazz) ->
             clazz.accept(classHandler)
         }
@@ -42,7 +60,7 @@ class SimpleClassPool : ClassPool {
 class CombinedClassPool(
     private val runtimeClassPool: ClassPool,
     private val applicationClassPool: ClassPool
-) : ClassPool {
+) : AbstractClassPool() {
     override fun addClass(clazz: Clazz) {
         if (clazz.isRuntimeClass) {
             runtimeClassPool.addClass(clazz)
@@ -60,8 +78,16 @@ class CombinedClassPool(
         return applicationClassPool.getClass(className) ?: runtimeClassPool.getClass(className)
     }
 
-    override fun accept(classHandler: ClassHandler) {
-        applicationClassPool.accept(classHandler)
-        runtimeClassPool.accept(classHandler)
+    override fun visitClasses(classHandler: ClassHandler) {
+        if (applicationClassPool is AbstractClassPool) {
+            applicationClassPool.visitClasses(classHandler)
+        } else {
+            applicationClassPool.accept(classHandler)
+        }
+        if (runtimeClassPool is AbstractClassPool) {
+            runtimeClassPool.visitClasses(classHandler)
+        } else {
+            runtimeClassPool.accept(classHandler)
+        }
     }
 }
