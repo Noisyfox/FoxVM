@@ -6,6 +6,7 @@
 #define FOXVM_VM_BYTECODE_H
 
 #include "vm_stack.h"
+#include "jni.h"
 
 /**
  * Nop instruction
