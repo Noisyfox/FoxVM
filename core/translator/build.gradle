@@ -44,3 +44,20 @@ test {
 application {
     mainClassName = 'io.noisyfox.foxvm.translator.MainKt'
 }
+
+jar {
+    manifest {
+        attributes(
+                "Main-Class": application.mainClassName
+        )
+    }
+}
+
+task devRt(type: Exec) {
+    dependsOn ":core:libfoxvm:classes", shadowJar
+    group = "foxvm"
+    description = "Translate the libfoxvm to native/dev_rt"
+    commandLine "java", "-jar", shadowJar.archiveFile.get(),
+            "-i", project(":core:libfoxvm").sourceSets.main.output.classesDirs.asPath,
+            "-o", rootProject.file('native/dev_rt/').absolutePath
+}
