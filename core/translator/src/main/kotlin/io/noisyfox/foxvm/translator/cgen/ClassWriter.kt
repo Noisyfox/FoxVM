@@ -768,11 +768,14 @@ class ClassWriter(
             }
         }
 
-        cWriter.write(
-            """
+        if(method.descriptor.returnType.sort != Type.VOID) {
+            // TODO: throw exception if control flow reaches here
+            cWriter.write(
+                """
                     |    return 0;
                     |""".trimMargin()
-        )
+            )
+        }
 
         cWriter.write(
             """
