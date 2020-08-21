@@ -85,7 +85,7 @@ void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT);
 #define stack_frame_end() \
     stack_frame_pop(vmCurrentContext)
 
-#define THIS_CLASS STACK_FRAME->thisClass
+#define THIS_CLASS STACK_FRAME.thisClass
 
 #define local_of(local) STACK_SLOTS[local]
 
