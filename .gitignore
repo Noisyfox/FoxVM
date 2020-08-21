@@ -21,3 +21,4 @@ cmake-build-*/
 # IntelliJ
 .idea
 out/
+native/testGen

@@ -6,6 +6,7 @@ import io.noisyfox.foxvm.bytecode.SimpleClassPool
 import io.noisyfox.foxvm.bytecode.resolver.PreResolver
 import io.noisyfox.foxvm.bytecode.visitor.ClassPoolFiller
 import io.noisyfox.foxvm.bytecode.visitor.ClassPresenceFilter
+import io.noisyfox.foxvm.translator.cgen.CMakeListsWriter
 import io.noisyfox.foxvm.translator.cgen.ClassInfoHeaderWriter
 import io.noisyfox.foxvm.translator.cgen.ClassWriter
 import org.slf4j.LoggerFactory
@@ -33,6 +34,9 @@ class Translator(
         }
 
         writeClasses()
+
+        // Write cmakelists
+        applicationClassPool.accept(CMakeListsWriter(outputPath))
     }
 
     /**

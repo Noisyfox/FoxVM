@@ -11,8 +11,11 @@ find_package(CTargets)
 add_subdirectory(runtime)
 include_directories($<TARGET_PROPERTY:foxvm_runtime,INCLUDE_DIRECTORIES>)
 
+add_subdirectory(testGen)
+
 add_executable(foxvm main.c)
 
 target_link_libraries(foxvm
         foxvm_runtime
+        foxvm_app
         )
