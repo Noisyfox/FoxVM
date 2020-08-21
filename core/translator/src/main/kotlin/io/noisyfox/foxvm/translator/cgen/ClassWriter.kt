@@ -293,7 +293,7 @@ class ClassWriter(
             info.interfaces.forEach {
                 cWriter.write(
                     """
-                    |    ${it.classInfo!!.cName},
+                    |    &${it.classInfo!!.cName},
                     |""".trimMargin()
                 )
             }
@@ -413,7 +413,7 @@ class ClassWriter(
                 val dc = if (it.declaringClass == clazz) {
                     CNull
                 } else {
-                    it.declaringClass.classInfo!!.cName
+                    "&${it.declaringClass.classInfo!!.cName}"
                 }
                 cWriter.write(
                     """

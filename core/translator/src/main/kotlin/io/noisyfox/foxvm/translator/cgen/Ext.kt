@@ -188,7 +188,7 @@ val ClassInfo.cObjectName: String
  */
 val ClassInfo.cSuperClass: String
     get() = superClass?.let {
-        it.classInfo!!.cName
+        "&${it.classInfo!!.cName}"
     } ?: CNull
 
 /**
