@@ -49,6 +49,19 @@ fun Boolean.translate(): String = if (this) {
 const val CNull = "NULL"
 
 /**
+ * C constants for MAX integer literals
+ *
+ * In C/C++ the integer literals do not take account into the sign, which means
+ * -2,147,483,648 and -9,223,372,036,854,775,808 gives you warning like
+ * "integer constant is so large that it is unsigned". So we take care of those
+ * edge cases by using predefined C constants.
+ */
+const val C_INT_MIN = "JAVA_INT_MIN"
+const val C_INT_MAX = "JAVA_INT_MAX"
+const val C_LONG_MIN = "JAVA_LONG_MIN"
+const val C_LONG_MAX = "JAVA_LONG_MAX"
+
+/**
  * C constants for NaN and infinity
  */
 const val C_FLOAT_NAN = "JAVA_FLOAT_NAN"
@@ -59,8 +72,20 @@ const val C_DOUBLE_INF = "JAVA_DOUBLE_INF"
 const val C_DOUBLE_NEG_INF = "JAVA_DOUBLE_NEG_INF"
 
 fun Number.toCConst(): String = when (this) {
-    is Int -> "${this}l"
-    is Long -> "${this}ll"
+    is Int -> {
+        when(this) {
+            Int.MIN_VALUE -> C_INT_MIN
+            Int.MAX_VALUE -> C_INT_MAX
+            else -> "${this}l"
+        }
+    }
+    is Long -> {
+        when(this) {
+            Long.MIN_VALUE -> C_LONG_MIN
+            Long.MAX_VALUE -> C_LONG_MAX
+            else -> "${this}ll"
+        }
+    }
     is Float -> {
         when {
             isNaN() -> C_FLOAT_NAN

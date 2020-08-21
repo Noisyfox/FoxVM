@@ -58,8 +58,10 @@ typedef uint64_t    JAVA_ULONG;
 typedef char*       C_STR;
 typedef const char* C_CSTR;
 
-#define JAVA_INT_MIN ((JAVA_INT)1 << (sizeof(JAVA_INT)*8-1))        // 0x80000000 == smallest jint
-#define JAVA_INT_MAX ((JAVA_INT)((JAVA_UINT)(JAVA_INT_MIN) - 1))    // 0x7FFFFFFF == largest jint
+#define JAVA_INT_MIN ((JAVA_INT)(((JAVA_UINT)1) << (sizeof(JAVA_INT)*8-1)))     // 0x80000000 == smallest jint
+#define JAVA_INT_MAX ((JAVA_INT)((JAVA_UINT)(JAVA_INT_MIN) - 1))                // 0x7FFFFFFF == largest jint
+#define JAVA_LONG_MIN ((JAVA_LONG)(((JAVA_ULONG)1) << (sizeof(JAVA_LONG)*8-1))) // 0x8000000000000000 == smallest jlong
+#define JAVA_LONG_MAX ((JAVA_LONG)((JAVA_ULONG)(JAVA_LONG_MIN) - 1))            // 0x7FFFFFFFFFFFFFFF == largest jlong
 #define JAVA_FLOAT_NAN (0.0f/0.0f)
 #define JAVA_FLOAT_INF (1.0f/0.0f)
 #define JAVA_FLOAT_NEG_INF (-1.0f/0.0f)
