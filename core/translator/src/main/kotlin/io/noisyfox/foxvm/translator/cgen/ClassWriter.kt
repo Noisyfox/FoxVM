@@ -275,10 +275,21 @@ class ClassWriter(
                     |
                     |""".trimMargin()
         )
+        // Include super classes
+        clazz.visitSuperClasses(object : ClassHandler{
+            override fun handleAnyClass(clazz: Clazz) {
+                cWriter.write(
+                    """
+                    |#include "_${clazz.requireClassInfo().cIdentifier}.h"
+                    |""".trimMargin()
+                )
+            }
+        })
 
         // Write declarations
         cWriter.write(
             """
+                    |
                     |// Declaration of the class resolve handler
                     |static JAVA_VOID ${info.cNameResolveHandler}(JAVA_CLASS c);
                     |
