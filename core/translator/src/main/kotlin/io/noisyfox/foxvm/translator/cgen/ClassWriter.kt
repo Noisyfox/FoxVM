@@ -898,7 +898,7 @@ class ClassWriter(
         // Build argument list
         val jniArgs = mutableListOf<String>()
         // Pass JNIEnv
-        jniArgs.add("env")
+        jniArgs.add("NULL") // TODO: pass env
         // Pass second param
         if(method.isStatic) {
             // Pass current class
