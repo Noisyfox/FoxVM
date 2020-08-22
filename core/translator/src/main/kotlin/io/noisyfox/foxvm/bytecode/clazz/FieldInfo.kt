@@ -5,6 +5,7 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 
 data class FieldInfo(
+    val declaringClass: ClassInfo,
     val access: Int,
     val name: String,
     val cIdentifier: String,

@@ -76,7 +76,7 @@ class ClassWriter(
             info.preResolvedStaticFields.forEachIndexed { i, field ->
                 headerWriter.write(
                     """
-                    |    ${field.cNameEnum(info)} = ${i},    // Static field ${info.fields[field.fieldIndex].name}: ${info.fields[field.fieldIndex].descriptor}
+                    |    ${field.cNameEnum} = ${i},    // Static field ${info.fields[field.fieldIndex].name}: ${info.fields[field.fieldIndex].descriptor}
                     |""".trimMargin()
                 )
             }
@@ -90,7 +90,7 @@ class ClassWriter(
         }
 
         // Generate instance field index enum, we only care about the fields declared by this class
-        if (info.preResolvedInstanceFields.any { it.declaringClass == clazz }) {
+        if (info.preResolvedInstanceFields.any { it.field.declaringClass == info }) {
             headerWriter.write(
                 """
                     |// Index of instance fields
@@ -99,7 +99,7 @@ class ClassWriter(
             )
 
             info.preResolvedInstanceFields.forEachIndexed { i, field ->
-                if (field.declaringClass == clazz) {
+                if (field.field.declaringClass == info) {
                     headerWriter.write(
                         """
                     |    ${field.cNameEnum} = ${i},    // Instance field ${info.fields[field.fieldIndex].name}: ${info.fields[field.fieldIndex].descriptor}
@@ -182,7 +182,7 @@ class ClassWriter(
             info.preResolvedStaticFields.forEach {
                 headerWriter.write(
                     """
-                    |    ${it.cStorageType(info)} ${it.cName(info)};
+                    |    ${it.cStorageType} ${it.cName};
                     |""".trimMargin()
                 )
             }
@@ -236,7 +236,7 @@ class ClassWriter(
             nonAbstractMethods.forEach {
                 headerWriter.write(
                     """
-                    |${it.cDeclaration(info)};    // ${clazz.className}.${it.name}:${it.descriptor}
+                    |${it.cDeclaration};    // ${clazz.className}.${it.name}:${it.descriptor}
                     |""".trimMargin()
                 )
             }
@@ -364,7 +364,7 @@ class ClassWriter(
                 val codeRef = if (it.isAbstract) {
                     CNull
                 } else {
-                    it.cName(info)
+                    it.cName
                 }
                 cWriter.write(
                     """
@@ -425,10 +425,10 @@ class ClassWriter(
             )
 
             info.preResolvedInstanceFields.forEach {
-                val dc = if (it.declaringClass == clazz) {
+                val dc = if (it.field.declaringClass == info) {
                     CNull
                 } else {
-                    "&${it.declaringClass.classInfo!!.cName}"
+                    "&${it.field.declaringClass.cName}"
                 }
                 cWriter.write(
                     """
@@ -482,7 +482,7 @@ class ClassWriter(
                     |    .preResolvedStaticFieldRefCount = 0,
                     |    .preResolvedStaticFieldReferences = ${CNull},
                     |
-                    |    .finalizer = ${info.cNameFinalizer},
+                    |    .finalizer = ${info.finalizer?.cName ?: CNull},
                     |};
                     |
                     |""".trimMargin()
@@ -530,7 +530,7 @@ class ClassWriter(
                 cWriter.write(
                     """
                     |    clazz->staticFields[$i].info = &${info.cNameStaticFields}[$i];
-                    |    clazz->staticFields[$i].offset = offsetof(${info.cClassName}, ${field.cName(info)});
+                    |    clazz->staticFields[$i].offset = offsetof(${info.cClassName}, ${field.cName});
                     |""".trimMargin()
                 )
                 hasRef = hasRef || field.isReference
@@ -636,7 +636,7 @@ class ClassWriter(
         cWriter.write(
             """
                     |// ${clazz.className}.${method.name}:${method.descriptor}
-                    |${method.cDeclaration(clazzInfo)} {
+                    |${method.cDeclaration} {
                     |    $stackStartStatement;
                     |""".trimMargin()
         )
@@ -853,7 +853,7 @@ class ClassWriter(
         cWriter.write(
             """
                     |// Native method bridge for ${clazz.className}.${method.name}:${method.descriptor}
-                    |${method.cDeclaration(clazzInfo)} {
+                    |${method.cDeclaration} {
                     |    $stackStartStatement;
                     |""".trimMargin()
         )

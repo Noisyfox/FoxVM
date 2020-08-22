@@ -17,7 +17,8 @@ data class ClassInfo(
 
     val isEnum: Boolean = (thisClass.access and Opcodes.ACC_ENUM) == Opcodes.ACC_ENUM
 
-    val finalizer: MethodInfo?
+    /** The finalizer declared by this class */
+    val declFinalizer: MethodInfo?
         get() = when {
             isEnum -> {
                 // Enums do not have finalizer
@@ -30,6 +31,10 @@ data class ClassInfo(
                 methods.firstOrNull { it.isFinalizer }
             }
         }
+
+    /** The finalizer declared by this class or inherited from [superClass] */
+    val finalizer: MethodInfo?
+        get() = declFinalizer ?: superClass?.requireClassInfo()?.finalizer
 
     private companion object {
         private val UnfinalizableClasses = setOf(

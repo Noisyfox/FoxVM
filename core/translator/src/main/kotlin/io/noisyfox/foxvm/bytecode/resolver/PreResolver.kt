@@ -108,6 +108,7 @@ private class PreResolverClassVisitor(
         val info = clazz.requireClassInfo()
 
         val field = FieldInfo(
+            declaringClass = info,
             access = access,
             name = name.intern(),
             cIdentifier = mangleFieldName(name),
@@ -132,6 +133,7 @@ private class PreResolverClassVisitor(
 
         // Signature and exceptions are ignored atm
         val method = MethodInfo(
+            declaringClass = info,
             access = access,
             name = name.intern(),
             cIdentifier = mangleMethodName(name),
@@ -155,6 +157,7 @@ private class PreResolverClassVisitor(
             if (f.isStatic) {
                 info.preResolvedStaticFields.add(
                     PreResolvedStaticFieldInfo(
+                        field = f,
                         fieldIndex = i,
                         isReference = f.isReference
                     )
@@ -162,7 +165,7 @@ private class PreResolverClassVisitor(
             } else {
                 instanceFields.add(
                     PreResolvedInstanceFieldInfo(
-                        declaringClass = clazz,
+                        field = f,
                         fieldIndex = i,
                         isReference = f.isReference
                     )

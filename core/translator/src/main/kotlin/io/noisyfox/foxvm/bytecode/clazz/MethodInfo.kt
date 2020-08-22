@@ -5,6 +5,7 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.tree.MethodNode
 
 data class MethodInfo(
+    val declaringClass: ClassInfo,
     val access: Int,
     val name: String,
     val cIdentifier: String,

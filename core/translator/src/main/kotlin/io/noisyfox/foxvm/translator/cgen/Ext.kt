@@ -278,52 +278,35 @@ val ClassInfo.cNameResolveHandler: String
     get() = "resolve_${this.cIdentifier}"
 
 /**
- * The C function name of the finalizer, either from superclass, or declared by this class,
- * or [CNull] if none of the super classes or this class itself declare a finalizer.
- */
-val ClassInfo.cNameFinalizer: String
-    get() {
-        return finalizer?.cName(this) // Check if this class declares a finalizer
-            ?: superClass?.requireClassInfo()?.cNameFinalizer // Check super class
-            ?: CNull
-    }
-
-/**
  * The C enum name for referencing the given static field
  */
-fun PreResolvedStaticFieldInfo.cNameEnum(info: ClassInfo): String {
-    val field = info.fields[this.fieldIndex]
-
-    return "FIELD_STATIC_${info.cIdentifier}${field.cIdentifier}"
-}
+val PreResolvedStaticFieldInfo.cNameEnum: String
+    get() {
+        return "FIELD_STATIC_${field.declaringClass.cIdentifier}${field.cIdentifier}"
+    }
 
 /**
  * The C field name for storing the given static field
  */
-fun PreResolvedStaticFieldInfo.cName(info: ClassInfo): String {
-    val field = info.fields[this.fieldIndex]
-
-    return "fieldStorage${field.cIdentifier}"
-}
+val PreResolvedStaticFieldInfo.cName: String
+    get() {
+        return "fieldStorage${field.cIdentifier}"
+    }
 
 /**
  * The C type name for storing the given static field
  */
-fun PreResolvedStaticFieldInfo.cStorageType(info: ClassInfo): String {
-    val field = info.fields[this.fieldIndex]
-
-    return field.descriptor.toCBaseTypeName()
-}
+val PreResolvedStaticFieldInfo.cStorageType: String
+    get() {
+        return field.descriptor.toCBaseTypeName()
+    }
 
 /**
  * The C enum name for referencing the given instance field
  */
 val PreResolvedInstanceFieldInfo.cNameEnum: String
     get() {
-        val info = declaringClass.requireClassInfo()
-        val field = info.fields[this.fieldIndex]
-
-        return "FIELD_INSTANCE_${info.cIdentifier}${field.cIdentifier}"
+        return "FIELD_INSTANCE_${field.declaringClass.cIdentifier}${field.cIdentifier}"
     }
 
 /**
@@ -331,10 +314,7 @@ val PreResolvedInstanceFieldInfo.cNameEnum: String
  */
 val PreResolvedInstanceFieldInfo.cName: String
     get() {
-        val info = declaringClass.requireClassInfo()
-        val field = info.fields[this.fieldIndex]
-
-        return "fieldStorage${info.cIdentifier}${field.cIdentifier}"
+        return "fieldStorage${field.declaringClass.cIdentifier}${field.cIdentifier}"
     }
 
 /**
@@ -342,25 +322,24 @@ val PreResolvedInstanceFieldInfo.cName: String
  */
 val PreResolvedInstanceFieldInfo.cStorageType: String
     get() {
-        val info = declaringClass.requireClassInfo()
-        val field = info.fields[this.fieldIndex]
-
         return field.descriptor.toCBaseTypeName()
     }
 
 /**
  * The C function name of the method.
  */
-fun MethodInfo.cName(info: ClassInfo): String {
-    return "method_${info.cIdentifier}_${this.cIdentifier}${this.descriptor.toCMethodSignature()}"
-}
+val MethodInfo.cName: String
+    get() {
+        return "method_${declaringClass.cIdentifier}_${this.cIdentifier}${this.descriptor.toCMethodSignature()}"
+    }
 
 /**
  * The C function declaration of the method.
  */
-fun MethodInfo.cDeclaration(info: ClassInfo): String {
-    return "${this.descriptor.returnType.toCBaseTypeName()} ${this.cName(info)}(VM_PARAM_CURRENT_CONTEXT)"
-}
+val MethodInfo.cDeclaration: String
+    get() {
+        return "${this.descriptor.returnType.toCBaseTypeName()} ${this.cName}(VM_PARAM_CURRENT_CONTEXT)"
+    }
 
 /**
  * The index of this node.
