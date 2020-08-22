@@ -26,7 +26,7 @@
 package java.security;
 
 /**
- * FOXVM-changed: FoxVM does not support SecurityManager.
+ * FoxVM-changed: FoxVM does not support SecurityManager.
  */
 public abstract class Permission implements Guard, java.io.Serializable {
     private String name;

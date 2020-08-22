@@ -219,7 +219,8 @@ public class Cipher {
     // strength that this Cipher object can be used for. (The cryptographic
     // strength is a function of the keysize and algorithm parameters encoded
     // in the crypto permission.)
-    private CryptoPermission cryptoPerm;
+    // FoxVM-changed: remove cryptoPerm.
+    // private CryptoPermission cryptoPerm;
 
     // The exemption mechanism that needs to be enforced
     private ExemptionMechanism exmech;
@@ -264,13 +265,15 @@ public class Cipher {
         // See bug 4341369 & 4334690 for more info.
         // If the caller is trusted, then okey.
         // Otherwise throw a NullPointerException.
-        if (!JceSecurityManager.INSTANCE.isCallerTrusted()) {
-            throw new NullPointerException();
-        }
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // if (!JceSecurityManager.INSTANCE.isCallerTrusted()) {
+        //     throw new NullPointerException();
+        // }
         this.spi = cipherSpi;
         this.provider = provider;
         this.transformation = transformation;
-        this.cryptoPerm = CryptoAllPermission.INSTANCE;
+        // FoxVM-changed: remove cryptoPerm.
+        // this.cryptoPerm = CryptoAllPermission.INSTANCE;
         this.lock = null;
     }
 
@@ -283,7 +286,8 @@ public class Cipher {
     Cipher(CipherSpi cipherSpi, String transformation) {
         this.spi = cipherSpi;
         this.transformation = transformation;
-        this.cryptoPerm = CryptoAllPermission.INSTANCE;
+        // FoxVM-changed: remove cryptoPerm.
+        // this.cryptoPerm = CryptoAllPermission.INSTANCE;
         this.lock = null;
     }
 
@@ -673,7 +677,8 @@ public class Cipher {
                 tr.setModePadding(spi);
                 Cipher cipher = new Cipher(spi, transformation);
                 cipher.provider = s.getProvider();
-                cipher.initCryptoPermission();
+                // FoxVM-removed: FoxVM does not support SecurityManager.
+                // cipher.initCryptoPermission();
                 return cipher;
             } catch (Exception e) {
                 failure = e;
@@ -694,19 +699,20 @@ public class Cipher {
 
     // If the requested crypto service is export-controlled,
     // determine the maximum allowable keysize.
-    private void initCryptoPermission() throws NoSuchAlgorithmException {
-        if (JceSecurity.isRestricted() == false) {
-            cryptoPerm = CryptoAllPermission.INSTANCE;
-            exmech = null;
-            return;
-        }
-        cryptoPerm = getConfiguredPermission(transformation);
-        // Instantiate the exemption mechanism (if required)
-        String exmechName = cryptoPerm.getExemptionMechanism();
-        if (exmechName != null) {
-            exmech = ExemptionMechanism.getInstance(exmechName);
-        }
-    }
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // private void initCryptoPermission() throws NoSuchAlgorithmException {
+    //     if (JceSecurity.isRestricted() == false) {
+    //         cryptoPerm = CryptoAllPermission.INSTANCE;
+    //         exmech = null;
+    //         return;
+    //     }
+    //     cryptoPerm = getConfiguredPermission(transformation);
+    //     // Instantiate the exemption mechanism (if required)
+    //     String exmechName = cryptoPerm.getExemptionMechanism();
+    //     if (exmechName != null) {
+    //         exmech = ExemptionMechanism.getInstance(exmechName);
+    //     }
+    // }
 
     // max number of debug warnings to print from chooseFirstProvider()
     private static int warnCount = 10;
@@ -769,7 +775,8 @@ public class Cipher {
                         thisSpi = (CipherSpi)obj;
                     }
                     tr.setModePadding(thisSpi);
-                    initCryptoPermission();
+                    // FoxVM-removed: FoxVM does not support SecurityManager.
+                    // initCryptoPermission();
                     spi = thisSpi;
                     provider = s.getProvider();
                     // not needed any more
@@ -801,19 +808,23 @@ public class Cipher {
             InvalidAlgorithmParameterException {
         switch (type) {
         case I_KEY:
-            checkCryptoPerm(thisSpi, key);
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+            // checkCryptoPerm(thisSpi, key);
             thisSpi.engineInit(opmode, key, random);
             break;
         case I_PARAMSPEC:
-            checkCryptoPerm(thisSpi, key, paramSpec);
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+            // checkCryptoPerm(thisSpi, key, paramSpec);
             thisSpi.engineInit(opmode, key, paramSpec, random);
             break;
         case I_PARAMS:
-            checkCryptoPerm(thisSpi, key, params);
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+            // checkCryptoPerm(thisSpi, key, params);
             thisSpi.engineInit(opmode, key, params, random);
             break;
         case I_CERT:
-            checkCryptoPerm(thisSpi, key);
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+            // checkCryptoPerm(thisSpi, key);
             thisSpi.engineInit(opmode, key, random);
             break;
         default:
@@ -863,7 +874,8 @@ public class Cipher {
                         thisSpi = (CipherSpi)s.newInstance(null);
                     }
                     tr.setModePadding(thisSpi);
-                    initCryptoPermission();
+                    // FoxVM-removed: FoxVM does not support SecurityManager.
+                    // initCryptoPermission();
                     implInit(thisSpi, initType, opmode, key, paramSpec,
                                                         params, random);
                     provider = s.getProvider();
@@ -1009,10 +1021,11 @@ public class Cipher {
         return exmech;
     }
 
+    // FoxVM-removed: FoxVM does not support SecurityManager.
     //
     // Crypto permission check code below
     //
-    private void checkCryptoPerm(CipherSpi checkSpi, Key key)
+/*    private void checkCryptoPerm(CipherSpi checkSpi, Key key)
             throws InvalidKeyException {
         if (cryptoPerm == CryptoAllPermission.INSTANCE) {
             return;
@@ -1108,7 +1121,7 @@ public class Cipher {
             return false;
         }
         return true;
-    }
+    }*/
 
     // check if opmode is one of the defined constants
     // throw InvalidParameterExeption if not
@@ -1245,7 +1258,8 @@ public class Cipher {
         checkOpmode(opmode);
 
         if (spi != null) {
-            checkCryptoPerm(spi, key);
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+            // checkCryptoPerm(spi, key);
             spi.engineInit(opmode, key, random);
         } else {
             try {
@@ -1393,7 +1407,8 @@ public class Cipher {
         checkOpmode(opmode);
 
         if (spi != null) {
-            checkCryptoPerm(spi, key, params);
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+            // checkCryptoPerm(spi, key, params);
             spi.engineInit(opmode, key, params, random);
         } else {
             chooseProvider(I_PARAMSPEC, opmode, key, params, null, random);
@@ -1536,7 +1551,8 @@ public class Cipher {
         checkOpmode(opmode);
 
         if (spi != null) {
-            checkCryptoPerm(spi, key, params);
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+            // checkCryptoPerm(spi, key, params);
             spi.engineInit(opmode, key, params, random);
         } else {
             chooseProvider(I_PARAMS, opmode, key, null, params, random);
@@ -1721,7 +1737,8 @@ public class Cipher {
             (certificate==null? null:certificate.getPublicKey());
 
         if (spi != null) {
-            checkCryptoPerm(spi, publicKey);
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+            // checkCryptoPerm(spi, publicKey);
             spi.engineInit(opmode, publicKey, random);
         } else {
             try {
@@ -2582,13 +2599,14 @@ public class Cipher {
         return null;
     }
 
-    private static CryptoPermission getConfiguredPermission(
-            String transformation) throws NullPointerException,
-            NoSuchAlgorithmException {
-        if (transformation == null) throw new NullPointerException();
-        String[] parts = tokenizeTransformation(transformation);
-        return JceSecurityManager.INSTANCE.getCryptoPermission(parts[0]);
-    }
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // private static CryptoPermission getConfiguredPermission(
+    //         String transformation) throws NullPointerException,
+    //         NoSuchAlgorithmException {
+    //     if (transformation == null) throw new NullPointerException();
+    //     String[] parts = tokenizeTransformation(transformation);
+    //     return JceSecurityManager.INSTANCE.getCryptoPermission(parts[0]);
+    // }
 
     /**
      * Returns the maximum key length for the specified transformation
@@ -2611,8 +2629,15 @@ public class Cipher {
      */
     public static final int getMaxAllowedKeyLength(String transformation)
             throws NoSuchAlgorithmException {
-        CryptoPermission cp = getConfiguredPermission(transformation);
-        return cp.getMaxKeySize();
+        // FoxVM-changed: Remove references to CryptoPermission.
+        // CryptoPermission cp = getConfiguredPermission(transformation);
+        // return cp.getMaxKeySize();
+        if (transformation == null) {
+            throw new NullPointerException("transformation == null");
+        }
+        // Throws NoSuchAlgorithmException if necessary.
+        tokenizeTransformation(transformation);
+        return Integer.MAX_VALUE;
     }
 
     /**
@@ -2635,8 +2660,15 @@ public class Cipher {
      */
     public static final AlgorithmParameterSpec getMaxAllowedParameterSpec(
             String transformation) throws NoSuchAlgorithmException {
-        CryptoPermission cp = getConfiguredPermission(transformation);
-        return cp.getAlgorithmParameterSpec();
+        // FoxVM-changed: Remove references to CryptoPermission.
+        // CryptoPermission cp = getConfiguredPermission(transformation);
+        // return cp.getAlgorithmParameterSpec();
+        if (transformation == null) {
+            throw new NullPointerException("transformation == null");
+        }
+        // Throws NoSuchAlgorithmException if necessary.
+        tokenizeTransformation(transformation);
+        return null;
     }
 
     /**

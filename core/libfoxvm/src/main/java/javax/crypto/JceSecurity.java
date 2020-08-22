@@ -29,14 +29,12 @@ import java.util.*;
 import java.util.jar.*;
 import java.io.*;
 import java.net.URL;
-import java.nio.file.*;
 import java.security.*;
 
 import java.security.Provider.Service;
 
 import sun.security.jca.*;
 import sun.security.jca.GetInstance.Instance;
-import sun.security.util.Debug;
 
 /**
  * This class instantiates implementations of JCE engine classes from
@@ -66,10 +64,12 @@ final class JceSecurity {
     private final static Map<Provider, Object> verifyingProviders =
             new IdentityHashMap<>();
 
-    private static final boolean isRestricted;
+    // FoxVM-removed: FoxVM does not have the restriction.
+    // private static final boolean isRestricted;
 
-    private static final Debug debug =
-                        Debug.getInstance("jca", "Cipher");
+    // FoxVM-removed: not used.
+    // private static final Debug debug =
+    //                     Debug.getInstance("jca", "Cipher");
 
     /*
      * Don't let anyone instantiate this.
@@ -77,7 +77,8 @@ final class JceSecurity {
     private JceSecurity() {
     }
 
-    static {
+    // FoxVM-removed: FoxVM does not have the restriction.
+/*    static {
         try {
             AccessController.doPrivileged(
                 new PrivilegedExceptionAction<Object>() {
@@ -93,7 +94,7 @@ final class JceSecurity {
             throw new SecurityException(
                     "Can not initialize cryptographic mechanism", e);
         }
-    }
+    }*/
 
     static Instance getInstance(String type, Class<?> clazz, String algorithm,
             String provider) throws NoSuchAlgorithmException,
@@ -201,7 +202,9 @@ final class JceSecurity {
 
     // return whether this provider is properly signed and can be used by JCE
     static boolean canUseProvider(Provider p) {
-        return getVerificationResult(p) == null;
+        // FoxVM-changed: All providers are available.
+        // return getVerificationResult(p) == null;
+        return true;
     }
 
     // dummy object to represent null
@@ -264,7 +267,8 @@ final class JceSecurity {
      * to using the unlimited crypto policy files found in the
      * <java-home>/lib/security/policy/unlimited/ directory
      */
-    private static void setupJurisdictionPolicies() throws Exception {
+    // FoxVM-removed: FoxVM does not have the restriction.
+/*    private static void setupJurisdictionPolicies() throws Exception {
         // Sanity check the crypto.policy Security property.  Single
         // directory entry, no pseudo-directories (".", "..", leading/trailing
         // path separators). normalize()/getParent() will help later.
@@ -339,7 +343,7 @@ final class JceSecurity {
         } else {
             exemptPolicy = exemptExport.getMinimum(exemptImport);
         }
-    }
+    }*/
 
     /**
      * Load the policies from the specified file. Also checks that the
@@ -390,7 +394,8 @@ final class JceSecurity {
         return exemptPolicy;
     }
 
-    static boolean isRestricted() {
-        return isRestricted;
-    }
+    // FoxVM-removed: FoxVM does not have the restriction.
+    // static boolean isRestricted() {
+    //     return isRestricted;
+    // }
 }
