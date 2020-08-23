@@ -25,25 +25,12 @@
 package java.lang;
 
 import java.io.*;
-import java.lang.reflect.Executable;
-import java.lang.annotation.Annotation;
-import java.security.AccessControlContext;
 import java.util.Properties;
-import java.util.PropertyPermission;
-import java.util.StringTokenizer;
-import java.util.Map;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.security.AllPermission;
 import java.nio.channels.Channel;
 import java.nio.channels.spi.SelectorProvider;
 import sun.nio.ch.Interruptible;
 import sun.reflect.CallerSensitive;
 import sun.reflect.Reflection;
-import sun.security.util.SecurityConstants;
-// import sun.reflect.annotation.AnnotationType;
-
-// import jdk.internal.util.StaticProperty;
 
 /**
  * The <code>System</code> class contains several useful class fields
@@ -799,11 +786,12 @@ public final class System {
      */
     public static String setProperty(String key, String value) {
         checkKey(key);
-        SecurityManager sm = getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager sm = getSecurityManager();
         if (sm != null) {
             sm.checkPermission(new PropertyPermission(key,
                 SecurityConstants.PROPERTY_WRITE_ACTION));
-        }
+        }*/
 
         return (String) props.setProperty(key, value);
     }
@@ -837,10 +825,11 @@ public final class System {
      */
     public static String clearProperty(String key) {
         checkKey(key);
-        SecurityManager sm = getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager sm = getSecurityManager();
         if (sm != null) {
             sm.checkPermission(new PropertyPermission(key, "write"));
-        }
+        }*/
 
         return (String) props.remove(key);
     }
@@ -1276,9 +1265,10 @@ public final class System {
             public String newStringUnsafe(char[] chars) {
                 return new String(chars, true);
             }
-            public Thread newThreadWithAcc(Runnable target, AccessControlContext acc) {
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+/*            public Thread newThreadWithAcc(Runnable target, AccessControlContext acc) {
                 return new Thread(target, acc);
-            }
+            }*/
             public void invokeFinalize(Object o) throws Throwable {
                 o.finalize();
             }

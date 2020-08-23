@@ -310,10 +310,11 @@ class ThreadGroup implements Thread.UncaughtExceptionHandler {
      * @since      JDK1.0
      */
     public final void checkAccess() {
-        SecurityManager security = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager security = System.getSecurityManager();
         if (security != null) {
             security.checkAccess(this);
-        }
+        }*/
     }
 
     /**

@@ -25,13 +25,6 @@
 
 package sun.misc;
 
-// import java.lang.annotation.Annotation;
-// import java.lang.reflect.Executable;
-import java.security.AccessControlContext;
-// import java.util.Map;
-
-// import sun.reflect.ConstantPool;
-// import sun.reflect.annotation.AnnotationType;
 import sun.nio.ch.Interruptible;
 
 public interface JavaLangAccess {
@@ -126,7 +119,8 @@ public interface JavaLangAccess {
      * Returns a new Thread with the given Runnable and an
      * inherited AccessControlContext.
      */
-    Thread newThreadWithAcc(Runnable target, AccessControlContext acc);
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // Thread newThreadWithAcc(Runnable target, AccessControlContext acc);
 
     /**
      * Invokes the finalize method of the given object.

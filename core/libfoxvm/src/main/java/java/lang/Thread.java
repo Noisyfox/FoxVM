@@ -25,21 +25,11 @@
 
 package java.lang;
 
-import java.lang.ref.Reference;
-import java.lang.ref.ReferenceQueue;
-import java.lang.ref.WeakReference;
-import java.security.AccessController;
-import java.security.AccessControlContext;
-import java.security.PrivilegedAction;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.LockSupport;
 import sun.nio.ch.Interruptible;
 import sun.reflect.CallerSensitive;
-import sun.reflect.Reflection;
-import sun.security.util.SecurityConstants;
 
 
 /**
@@ -169,7 +159,8 @@ class Thread implements Runnable {
     private ClassLoader contextClassLoader;
 
     /* The inherited AccessControlContext of this thread */
-    private AccessControlContext inheritedAccessControlContext;
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // private AccessControlContext inheritedAccessControlContext;
 
     /* For autonumbering anonymous threads. */
     private static int threadInitNumber;
@@ -342,11 +333,11 @@ class Thread implements Runnable {
 
     /**
      * Initializes a Thread with the current AccessControlContext.
-     * @see #init(ThreadGroup,Runnable,String,long,AccessControlContext,boolean)
+     * @see #init(ThreadGroup,Runnable,String,long,boolean)
      */
     private void init(ThreadGroup g, Runnable target, String name,
                       long stackSize) {
-        init(g, target, name, stackSize, null, true);
+        init(g, target, name, stackSize/*, null*/, true);
     }
 
     /**
@@ -357,13 +348,11 @@ class Thread implements Runnable {
      * @param name the name of the new Thread
      * @param stackSize the desired stack size for the new thread, or
      *        zero to indicate that this parameter is to be ignored.
-     * @param acc the AccessControlContext to inherit, or
-     *            AccessController.getContext() if null
      * @param inheritThreadLocals if {@code true}, inherit initial values for
      *            inheritable thread-locals from the constructing thread
      */
     private void init(ThreadGroup g, Runnable target, String name,
-                      long stackSize, AccessControlContext acc,
+                      long stackSize/*, AccessControlContext acc*/,
                       boolean inheritThreadLocals) {
         if (name == null) {
             throw new NullPointerException("name cannot be null");
@@ -372,47 +361,49 @@ class Thread implements Runnable {
         this.name = name;
 
         Thread parent = currentThread();
-        SecurityManager security = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // SecurityManager security = System.getSecurityManager();
         if (g == null) {
             /* Determine if it's an applet or not */
 
             /* If there is a security manager, ask the security manager
                what to do. */
-            if (security != null) {
-                g = security.getThreadGroup();
-            }
+            // if (security != null) {
+            //     g = security.getThreadGroup();
+            // }
 
             /* If the security doesn't have a strong opinion of the matter
                use the parent thread group. */
-            if (g == null) {
+            // if (g == null) {
                 g = parent.getThreadGroup();
-            }
+            // }
         }
 
         /* checkAccess regardless of whether or not threadgroup is
            explicitly passed in. */
-        g.checkAccess();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // g.checkAccess();
 
         /*
          * Do we have the required permissions?
          */
-        if (security != null) {
+/*        if (security != null) {
             if (isCCLOverridden(getClass())) {
                 security.checkPermission(SUBCLASS_IMPLEMENTATION_PERMISSION);
             }
-        }
+        }*/
 
         g.addUnstarted();
 
         this.group = g;
         this.daemon = parent.isDaemon();
         this.priority = parent.getPriority();
-        if (security == null || isCCLOverridden(parent.getClass()))
+        // if (security == null || isCCLOverridden(parent.getClass()))
             this.contextClassLoader = parent.getContextClassLoader();
-        else
-            this.contextClassLoader = parent.contextClassLoader;
-        this.inheritedAccessControlContext =
-                acc != null ? acc : AccessController.getContext();
+        // else
+        //     this.contextClassLoader = parent.contextClassLoader;
+        // this.inheritedAccessControlContext =
+        //         acc != null ? acc : AccessController.getContext();
         this.target = target;
         setPriority(priority);
         if (inheritThreadLocals && parent.inheritableThreadLocals != null)
@@ -468,9 +459,10 @@ class Thread implements Runnable {
      * Creates a new Thread that inherits the given AccessControlContext.
      * This is not a public constructor.
      */
-    Thread(Runnable target, AccessControlContext acc) {
-        init(null, target, "Thread-" + nextThreadNum(), 0, acc, false);
-    }
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // Thread(Runnable target, AccessControlContext acc) {
+    //     init(null, target, "Thread-" + nextThreadNum(), 0, acc, false);
+    // }
 
     /**
      * Allocates a new {@code Thread} object. This constructor has the same
@@ -763,7 +755,8 @@ class Thread implements Runnable {
         /* Speed the release of some of these resources */
         threadLocals = null;
         inheritableThreadLocals = null;
-        inheritedAccessControlContext = null;
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+        // inheritedAccessControlContext = null;
         blocker = null;
         uncaughtExceptionHandler = null;
     }
@@ -836,7 +829,8 @@ class Thread implements Runnable {
      */
     @Deprecated
     public final void stop() {
-        SecurityManager security = System.getSecurityManager();
+        // FoxVM-removed: Not supported
+/*        SecurityManager security = System.getSecurityManager();
         if (security != null) {
             checkAccess();
             if (this != Thread.currentThread()) {
@@ -850,7 +844,8 @@ class Thread implements Runnable {
         }
 
         // The VM can handle all thread states
-        stop0(new ThreadDeath());
+        stop0(new ThreadDeath());*/
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -1028,8 +1023,10 @@ class Thread implements Runnable {
      */
     @Deprecated
     public final void suspend() {
-        checkAccess();
-        suspend0();
+        // FoxVM-removed: Not supported
+/*        checkAccess();
+        suspend0();*/
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -1054,8 +1051,10 @@ class Thread implements Runnable {
      */
     @Deprecated
     public final void resume() {
-        checkAccess();
-        resume0();
+        // FoxVM-removed: Not supported
+/*        checkAccess();
+        resume0();*/
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -1385,10 +1384,11 @@ class Thread implements Runnable {
      * @see        SecurityManager#checkAccess(Thread)
      */
     public final void checkAccess() {
-        SecurityManager security = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager security = System.getSecurityManager();
         if (security != null) {
             security.checkAccess(this);
-        }
+        }*/
     }
 
     /**
@@ -1470,10 +1470,11 @@ class Thread implements Runnable {
      * @since 1.2
      */
     public void setContextClassLoader(ClassLoader cl) {
-        SecurityManager sm = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(new RuntimePermission("setContextClassLoader"));
-        }
+        }*/
         contextClassLoader = cl;
     }
 
@@ -1537,11 +1538,12 @@ class Thread implements Runnable {
     public StackTraceElement[] getStackTrace() {
         if (this != Thread.currentThread()) {
             // check for getStackTrace permission
-            SecurityManager security = System.getSecurityManager();
+            // FoxVM-removed: FoxVM does not support SecurityManager.
+/*            SecurityManager security = System.getSecurityManager();
             if (security != null) {
                 security.checkPermission(
                     SecurityConstants.GET_STACK_TRACE_PERMISSION);
-            }
+            }*/
             // optimization so we do not call into the vm for threads that
             // have not yet started or have terminated
             if (!isAlive()) {
@@ -1598,13 +1600,14 @@ class Thread implements Runnable {
      */
     public static Map<Thread, StackTraceElement[]> getAllStackTraces() {
         // check for getStackTrace permission
-        SecurityManager security = System.getSecurityManager();
+        // FoxVM-removed: FoxVM does not support SecurityManager.
+/*        SecurityManager security = System.getSecurityManager();
         if (security != null) {
             security.checkPermission(
                 SecurityConstants.GET_STACK_TRACE_PERMISSION);
             security.checkPermission(
                 SecurityConstants.MODIFY_THREADGROUP_PERMISSION);
-        }
+        }*/
 
         // Get a snapshot of the list of all threads
         Thread[] threads = getThreads();
@@ -1621,21 +1624,22 @@ class Thread implements Runnable {
     }
 
 
-    private static final RuntimePermission SUBCLASS_IMPLEMENTATION_PERMISSION =
-                    new RuntimePermission("enableContextClassLoaderOverride");
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // private static final RuntimePermission SUBCLASS_IMPLEMENTATION_PERMISSION =
+    //                 new RuntimePermission("enableContextClassLoaderOverride");
 
     /** cache of subclass security audit results */
     /* Replace with ConcurrentReferenceHashMap when/if it appears in a future
      * release */
-    private static class Caches {
-        /** cache of subclass security audit results */
-        static final ConcurrentMap<WeakClassKey,Boolean> subclassAudits =
-            new ConcurrentHashMap<>();
-
-        /** queue for WeakReferences to audited subclasses */
-        static final ReferenceQueue<Class<?>> subclassAuditsQueue =
-            new ReferenceQueue<>();
-    }
+    // private static class Caches {
+    //     /** cache of subclass security audit results */
+    //     static final ConcurrentMap<WeakClassKey,Boolean> subclassAudits =
+    //         new ConcurrentHashMap<>();
+    //
+    //     /** queue for WeakReferences to audited subclasses */
+    //     static final ReferenceQueue<Class<?>> subclassAuditsQueue =
+    //         new ReferenceQueue<>();
+    // }
 
     /**
      * Verifies that this (possibly subclass) instance can be constructed
@@ -1643,7 +1647,8 @@ class Thread implements Runnable {
      * security-sensitive non-final methods, or else the
      * "enableContextClassLoaderOverride" RuntimePermission is checked.
      */
-    private static boolean isCCLOverridden(Class<?> cl) {
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+/*    private static boolean isCCLOverridden(Class<?> cl) {
         if (cl == Thread.class)
             return false;
 
@@ -1656,14 +1661,15 @@ class Thread implements Runnable {
         }
 
         return result.booleanValue();
-    }
+    }*/
 
     /**
      * Performs reflective checks on given subclass to verify that it doesn't
      * override security-sensitive non-final methods.  Returns true if the
      * subclass overrides any of the methods, false otherwise.
      */
-    private static boolean auditSubclass(final Class<?> subcl) {
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+/*    private static boolean auditSubclass(final Class<?> subcl) {
         Boolean result = AccessController.doPrivileged(
             new PrivilegedAction<Boolean>() {
                 public Boolean run() {
@@ -1688,7 +1694,7 @@ class Thread implements Runnable {
             }
         );
         return result.booleanValue();
-    }
+    }*/
 
     private native static StackTraceElement[][] dumpThreads(Thread[] threads);
     private native static Thread[] getThreads();
@@ -1964,63 +1970,65 @@ class Thread implements Runnable {
      * Removes from the specified map any keys that have been enqueued
      * on the specified reference queue.
      */
-    static void processQueue(ReferenceQueue<Class<?>> queue,
-                             ConcurrentMap<? extends
-                             WeakReference<Class<?>>, ?> map)
-    {
-        Reference<? extends Class<?>> ref;
-        while((ref = queue.poll()) != null) {
-            map.remove(ref);
-        }
-    }
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // static void processQueue(ReferenceQueue<Class<?>> queue,
+    //                          ConcurrentMap<? extends
+    //                          WeakReference<Class<?>>, ?> map)
+    // {
+    //     Reference<? extends Class<?>> ref;
+    //     while((ref = queue.poll()) != null) {
+    //         map.remove(ref);
+    //     }
+    // }
 
     /**
      *  Weak key for Class objects.
      **/
-    static class WeakClassKey extends WeakReference<Class<?>> {
-        /**
-         * saved value of the referent's identity hash code, to maintain
-         * a consistent hash code after the referent has been cleared
-         */
-        private final int hash;
-
-        /**
-         * Create a new WeakClassKey to the given object, registered
-         * with a queue.
-         */
-        WeakClassKey(Class<?> cl, ReferenceQueue<Class<?>> refQueue) {
-            super(cl, refQueue);
-            hash = System.identityHashCode(cl);
-        }
-
-        /**
-         * Returns the identity hash code of the original referent.
-         */
-        @Override
-        public int hashCode() {
-            return hash;
-        }
-
-        /**
-         * Returns true if the given object is this identical
-         * WeakClassKey instance, or, if this object's referent has not
-         * been cleared, if the given object is another WeakClassKey
-         * instance with the identical non-null referent as this one.
-         */
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == this)
-                return true;
-
-            if (obj instanceof WeakClassKey) {
-                Object referent = get();
-                return (referent != null) &&
-                       (referent == ((WeakClassKey) obj).get());
-            } else {
-                return false;
-            }
-        }
-    }
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+    // static class WeakClassKey extends WeakReference<Class<?>> {
+    //     /**
+    //      * saved value of the referent's identity hash code, to maintain
+    //      * a consistent hash code after the referent has been cleared
+    //      */
+    //     private final int hash;
+    //
+    //     /**
+    //      * Create a new WeakClassKey to the given object, registered
+    //      * with a queue.
+    //      */
+    //     WeakClassKey(Class<?> cl, ReferenceQueue<Class<?>> refQueue) {
+    //         super(cl, refQueue);
+    //         hash = System.identityHashCode(cl);
+    //     }
+    //
+    //     /**
+    //      * Returns the identity hash code of the original referent.
+    //      */
+    //     @Override
+    //     public int hashCode() {
+    //         return hash;
+    //     }
+    //
+    //     /**
+    //      * Returns true if the given object is this identical
+    //      * WeakClassKey instance, or, if this object's referent has not
+    //      * been cleared, if the given object is another WeakClassKey
+    //      * instance with the identical non-null referent as this one.
+    //      */
+    //     @Override
+    //     public boolean equals(Object obj) {
+    //         if (obj == this)
+    //             return true;
+    //
+    //         if (obj instanceof WeakClassKey) {
+    //             Object referent = get();
+    //             return (referent != null) &&
+    //                    (referent == ((WeakClassKey) obj).get());
+    //         } else {
+    //             return false;
+    //         }
+    //     }
+    // }
 
 
     // The following three initially uninitialized fields are exclusively
@@ -2043,9 +2051,10 @@ class Thread implements Runnable {
 
     /* Some private helper methods */
     private native void setPriority0(int newPriority);
-    private native void stop0(Object o);
-    private native void suspend0();
-    private native void resume0();
+    // FoxVM-removed: Not supported
+    // private native void stop0(Object o);
+    // private native void suspend0();
+    // private native void resume0();
     private native void interrupt0();
     private native void setNativeName(String name);
 }
