@@ -3,6 +3,7 @@ package io.noisyfox.foxvm.bytecode.clazz
 import io.noisyfox.foxvm.bytecode.isReference
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
+import org.objectweb.asm.tree.FieldInsnNode
 
 data class FieldInfo(
     val declaringClass: ClassInfo,
@@ -16,4 +17,15 @@ data class FieldInfo(
     val isStatic: Boolean = (access and Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC
 
     val isReference: Boolean = descriptor.isReference()
+
+    /**
+     * jvms8 $5.4.3.2 Field Resolution states:
+     * > If C declares a field with the name and descriptor specified by the field
+     * > reference, field lookup succeeds.
+     *
+     * Here we check if the name and descriptor matches.
+     */
+    fun matches(inst: FieldInsnNode): Boolean {
+        return this.name == inst.name && descriptor.descriptor == inst.desc
+    }
 }

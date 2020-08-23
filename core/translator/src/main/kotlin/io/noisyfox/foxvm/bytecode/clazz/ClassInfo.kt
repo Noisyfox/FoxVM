@@ -1,6 +1,7 @@
 package io.noisyfox.foxvm.bytecode.clazz
 
 import org.objectweb.asm.Opcodes
+import org.objectweb.asm.tree.FieldInsnNode
 
 data class ClassInfo(
     val thisClass: Clazz,
@@ -35,6 +36,44 @@ data class ClassInfo(
     /** The finalizer declared by this class or inherited from [superClass] */
     val finalizer: MethodInfo?
         get() = declFinalizer ?: superClass?.requireClassInfo()?.finalizer
+
+    /**
+     * Look up the field referenced by [inst] in current class.
+     *
+     * See jvms8 §5.4.3.2 Field Resolution for more details
+     *
+     * @return the [FieldInfo] if the referenced field is found, `null` otherwise.
+     */
+    fun fieldLookup(inst: FieldInsnNode): FieldInfo? {
+        // 1. If C declares a field with the name and descriptor specified by the field
+        //    reference, field lookup succeeds. The declared field is the result of the field
+        //    lookup.
+        val decls = this.fields.filter { it.matches(inst) }
+        when (decls.size) {
+            0 -> {
+            }
+            1 -> return decls.single()
+            else -> throw ClassFormatError("Multiple fields with same name and descriptor found in class ${this.thisClass.className}: $decls")
+        }
+
+        // 2. Otherwise, field lookup is applied recursively to the direct superinterfaces of
+        //    the specified class or interface C.
+        this.interfaces.forEach {
+            val f = it.requireClassInfo().fieldLookup(inst)
+            if (f != null) {
+                return f
+            }
+        }
+
+        // 3. Otherwise, if C has a superclass S, field lookup is applied recursively to S.
+        val f = this.superClass?.requireClassInfo()?.fieldLookup(inst)
+        if (f != null) {
+            return f
+        }
+
+        // 4. Otherwise, field lookup fails.
+        return null
+    }
 
     private companion object {
         private val UnfinalizableClasses = setOf(

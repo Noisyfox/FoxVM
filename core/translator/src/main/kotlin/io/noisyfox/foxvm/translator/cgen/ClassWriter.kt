@@ -8,6 +8,7 @@ import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
+import org.objectweb.asm.tree.FieldInsnNode
 import org.objectweb.asm.tree.IincInsnNode
 import org.objectweb.asm.tree.InsnNode
 import org.objectweb.asm.tree.IntInsnNode
@@ -778,7 +779,31 @@ class ClassWriter(
                     |""".trimMargin()
                             )
                         }
+                        else -> {
+                            // TODO
+                        }
                     }
+                }
+                is FieldInsnNode -> {
+                    // first we resolve the field
+                    val ownerClass = requireNotNull(classPool.getClass(inst.owner)) {
+                        "Could not find class ${inst.owner}"
+                    }
+                    // jvms8 §5.4.3.2 Field Resolution
+                    // When resolving a field reference, field resolution first attempts to look up the
+                    // referenced field in C and its superclasses
+                    val field = ownerClass.requireClassInfo().fieldLookup(inst)
+                    // Then:
+                    // • If field lookup fails, field resolution throws a NoSuchFieldError.
+                    if (field == null) {
+                        throw NoSuchFieldError("Unable to find field ${inst.name} from class ${ownerClass.className} and its super classes")
+                    }
+                    // • Otherwise, if field lookup succeeds but the referenced field is not accessible
+                    // (§5.4.4) to D, field resolution throws an IllegalAccessError.
+                    // TODO: check accessibility
+                    // Here we ignore the loading constraint
+
+
                 }
             }
         }
