@@ -75,6 +75,10 @@ data class ClassInfo(
         return null
     }
 
+    override fun toString(): String {
+        return "${ClassInfo::class.simpleName} [${thisClass.className}]"
+    }
+
     private companion object {
         private val UnfinalizableClasses = setOf(
             Clazz.CLASS_JAVA_LANG_OBJECT,
