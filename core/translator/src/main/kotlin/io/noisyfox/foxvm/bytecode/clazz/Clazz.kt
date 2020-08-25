@@ -24,7 +24,7 @@ class Clazz(
         }
     }
 
-    fun visitSuperClasses(classHandler: ClassHandler) {
+    fun allSuperClasses(): List<Clazz> {
         val info = requireClassInfo()
         val supers = LinkedHashSet<Clazz>()
         val superGatherer = object : ClassHandler {
@@ -42,7 +42,11 @@ class Clazz(
             supers.add(it)
         }
 
-        supers.forEach {
+        return supers.toList()
+    }
+
+    fun visitSuperClasses(classHandler: ClassHandler) {
+        allSuperClasses().forEach {
             it.accept(classHandler)
         }
     }

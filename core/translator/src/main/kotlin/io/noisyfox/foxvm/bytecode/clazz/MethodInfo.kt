@@ -20,6 +20,10 @@ data class MethodInfo(
 
     val isFinalizer: Boolean = FINALIZE == name
 
+    val isPublic: Boolean = (access and Opcodes.ACC_PUBLIC) == Opcodes.ACC_PUBLIC
+
+    val isPrivate: Boolean = (access and Opcodes.ACC_PRIVATE) == Opcodes.ACC_PRIVATE
+
     val isStatic: Boolean = (access and Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC
 
     val isAbstract: Boolean = (access and Opcodes.ACC_ABSTRACT) == Opcodes.ACC_ABSTRACT
@@ -27,6 +31,10 @@ data class MethodInfo(
     val isNative: Boolean = (access and Opcodes.ACC_NATIVE) == Opcodes.ACC_NATIVE
 
     val isConcrete: Boolean = !(isAbstract || isNative)
+
+    fun matches(name: String, desc: String): Boolean {
+        return this.name == name && descriptor.descriptor == desc
+    }
 
     companion object {
         const val INIT = "<init>"

@@ -3,7 +3,6 @@ package io.noisyfox.foxvm.bytecode.clazz
 import io.noisyfox.foxvm.bytecode.isReference
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
-import org.objectweb.asm.tree.FieldInsnNode
 
 data class FieldInfo(
     val declaringClass: ClassInfo,
@@ -25,7 +24,7 @@ data class FieldInfo(
      *
      * Here we check if the name and descriptor matches.
      */
-    fun matches(inst: FieldInsnNode): Boolean {
-        return this.name == inst.name && descriptor.descriptor == inst.desc
+    fun matches(name: String, desc: String): Boolean {
+        return this.name == name && descriptor.descriptor == desc
     }
 }

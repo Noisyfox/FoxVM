@@ -17,6 +17,7 @@ import org.objectweb.asm.tree.LabelNode
 import org.objectweb.asm.tree.LdcInsnNode
 import org.objectweb.asm.tree.LineNumberNode
 import org.objectweb.asm.tree.LookupSwitchInsnNode
+import org.objectweb.asm.tree.MethodInsnNode
 import org.objectweb.asm.tree.TableSwitchInsnNode
 import org.objectweb.asm.tree.VarInsnNode
 import org.slf4j.LoggerFactory
@@ -792,10 +793,10 @@ class ClassWriter(
                     // jvms8 §5.4.3.2 Field Resolution
                     // When resolving a field reference, field resolution first attempts to look up the
                     // referenced field in C and its superclasses
-                    val field = ownerClass.requireClassInfo().fieldLookup(inst)
+                    val resolvedField = ownerClass.requireClassInfo().fieldLookup(inst.name, inst.desc)
                     // Then:
                     // • If field lookup fails, field resolution throws a NoSuchFieldError.
-                    if (field == null) {
+                    if (resolvedField == null) {
                         throw NoSuchFieldError("Unable to find field ${inst.name} from class ${ownerClass.className} and its super classes")
                     }
                     // • Otherwise, if field lookup succeeds but the referenced field is not accessible
@@ -804,6 +805,28 @@ class ClassWriter(
                     // Here we ignore the loading constraint
 
 
+                }
+                is MethodInsnNode -> {
+                    // first we resolve the method
+                    if (inst.owner.startsWith("[") || inst.owner == "java/lang/invoke/SerializedLambda") {
+                        // TODO: handle array method
+                    } else {
+                        val ownerClass = requireNotNull(classPool.getClass(inst.owner)) {
+                            "Could not find class ${inst.owner}"
+                        }
+                        require(ownerClass.requireClassInfo().isInterface == inst.itf)
+                        // jvms8 §5.4.3.3 Method Resolution and §5.4.3.4 Interface Method Resolution
+                        val resolvedMethod = ownerClass.requireClassInfo().methodLookup(inst.name, inst.desc)
+                        // Then:
+                        // • If method lookup fails, method resolution throws a NoSuchMethodError.
+                        if (resolvedMethod == null) {
+                            throw NoSuchMethodError("Unable to find method ${inst.name} from class ${ownerClass.className} and its super classes")
+                        }
+                        // • Otherwise, if method lookup succeeds and the referenced method is not
+                        //   accessible (§5.4.4) to D, method resolution throws an IllegalAccessError.
+                        // TODO: check accessibility
+                        // Here we ignore the loading constraint
+                    }
                 }
             }
         }
