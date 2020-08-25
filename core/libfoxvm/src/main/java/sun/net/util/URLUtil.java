@@ -25,10 +25,7 @@
 
 package sun.net.util;
 
-import java.io.IOException;
 import java.net.URL;
-import java.net.URLPermission;
-import java.security.Permission;
 
 /**
  * URL Utility class.
@@ -80,7 +77,8 @@ public class URLUtil {
         return strForm.toString();
     }
 
-    public static Permission getConnectPermission(URL url) throws IOException {
+    // FoxVM-removed: FoxVM does not support SecurityManager.
+/*    public static Permission getConnectPermission(URL url) throws IOException {
         String urlStringLowerCase = url.toString().toLowerCase();
         if (urlStringLowerCase.startsWith("http:") || urlStringLowerCase.startsWith("https:")) {
             return getURLConnectPermission(url);
@@ -99,6 +97,6 @@ public class URLUtil {
     private static Permission getURLConnectPermission(URL url) {
         String urlString = url.getProtocol() + "://" + url.getAuthority() + url.getPath();
         return new URLPermission(urlString);
-    }
+    }*/
 }
 
