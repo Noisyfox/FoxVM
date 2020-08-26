@@ -73,6 +73,8 @@ function(add_c_library __TARGET_NAME)
     include_directories(
             ${PROJECT_SOURCE_DIR}/include
             ${PROJECT_BINARY_DIR}/include
+            ${PROJECT_SOURCE_DIR}
+            ${PROJECT_BINARY_DIR}
     )
     add_library(${__TARGET_NAME} STATIC ${__SOURCES})
 
@@ -86,6 +88,8 @@ function(add_c_library __TARGET_NAME)
         ${__TARGET_NAME} PUBLIC
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_BINARY_DIR}/include
+        ${CMAKE_SOURCE_DIR}
+        ${CMAKE_BINARY_DIR}
     )
 
     target_add_static_libraries(

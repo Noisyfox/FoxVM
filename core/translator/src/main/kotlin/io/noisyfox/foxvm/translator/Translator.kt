@@ -7,13 +7,14 @@ import io.noisyfox.foxvm.bytecode.resolver.PreResolver
 import io.noisyfox.foxvm.bytecode.visitor.ClassPoolFiller
 import io.noisyfox.foxvm.bytecode.visitor.ClassPresenceFilter
 import io.noisyfox.foxvm.translator.cgen.CMakeListsWriter
-import io.noisyfox.foxvm.translator.cgen.ClassInfoHeaderWriter
+import io.noisyfox.foxvm.translator.cgen.ClassInfoWriter
 import io.noisyfox.foxvm.translator.cgen.ClassWriter
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.IOException
 
 class Translator(
+    private val isRt: Boolean,
     private val runtimeClasspath: Array<File>,
     private val inClasspath: Array<File>,
     private val outputPath: File
@@ -36,7 +37,7 @@ class Translator(
         writeClasses()
 
         // Write cmakelists
-        applicationClassPool.accept(CMakeListsWriter(outputPath))
+        applicationClassPool.accept(CMakeListsWriter(isRt = isRt, outputDir = outputPath))
     }
 
     /**
@@ -70,10 +71,10 @@ class Translator(
      */
     private fun writeClasses() {
         // Write each classes
-        applicationClassPool.accept(ClassWriter(fullClassPool, outputPath))
+        applicationClassPool.accept(ClassWriter(isRt = isRt, classPool = fullClassPool, outputDir = outputPath))
 
         // Write header contains ref to all classes
-        applicationClassPool.accept(ClassInfoHeaderWriter(outputPath))
+        applicationClassPool.accept(ClassInfoWriter(isRt = isRt, outputDir = outputPath))
     }
 
     companion object {

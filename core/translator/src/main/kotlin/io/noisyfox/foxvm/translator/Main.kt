@@ -14,16 +14,30 @@ import kotlin.system.exitProcess
 )
 object TranslatorCommand : Callable<Int> {
 
-    @CommandLine.Option(
-        names = ["-r", "--runtimeClasspath"],
-        split = "\${sys:path.separator}",
-        description = [
-            "Runtime classpath that won't be translated.",
-            "A \${sys:path.separator} separated list of directories, JAR archives, and ZIP archives to search for class files."
-        ],
-        required = false
-    )
-    var runtimeClasspath: Array<File>? = null
+    class Exclusive {
+        @CommandLine.Option(
+            names = ["-t", "--rt"],
+            description = [
+                "Whether we are translating FoxVM rt library (libfoxvm)."
+            ],
+            required = false
+        )
+        var isRt: Boolean = false
+
+        @CommandLine.Option(
+            names = ["-r", "--runtimeClasspath"],
+            split = "\${sys:path.separator}",
+            description = [
+                "Runtime classpath that won't be translated.",
+                "A \${sys:path.separator} separated list of directories, JAR archives, and ZIP archives to search for class files."
+            ],
+            required = false
+        )
+        var runtimeClasspath: Array<File>? = null
+    }
+
+    @CommandLine.ArgGroup(exclusive = true, multiplicity = "0..1")
+    var exclusive: Exclusive = Exclusive()
 
     @CommandLine.Option(
         names = ["-i", "--inClasspath"],
@@ -44,7 +58,7 @@ object TranslatorCommand : Callable<Int> {
     lateinit var outputPath: File
 
     override fun call(): Int {
-        Translator(runtimeClasspath ?: emptyArray(), inClasspath, outputPath).execute()
+        Translator(exclusive.isRt,exclusive.runtimeClasspath ?: emptyArray(), inClasspath, outputPath).execute()
 
         return 0
     }

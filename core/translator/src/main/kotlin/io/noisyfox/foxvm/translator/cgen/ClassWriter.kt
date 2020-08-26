@@ -28,6 +28,7 @@ import java.io.Writer
  * Must be synced with .\native\runtime\include\vm_base.h
  */
 class ClassWriter(
+    private val isRt: Boolean,
     private val classPool: ClassPool,
     private val outputDir: File
 ) : ClassHandler {
@@ -273,7 +274,7 @@ class ClassWriter(
                     |#include "vm_thread.h"
                     |#include "vm_bytecode.h"
                     |
-                    |#include "${ClassInfoHeaderWriter.FILE_NAME}"
+                    |#include "${ClassInfoWriter.headerNameOf(isRt)}"
                     |
                     |""".trimMargin()
         )
