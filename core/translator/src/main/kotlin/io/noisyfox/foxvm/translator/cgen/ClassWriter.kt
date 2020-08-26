@@ -805,6 +805,59 @@ class ClassWriter(
                         throw IllegalAccessError("tried to access field $resolvedField from class $clazzInfo")
                     }
                     // Here we ignore the loading constraint
+
+                    when (inst.opcode) {
+                        Opcodes.GETSTATIC -> {
+                            // if the resolved field is not a static
+                            // (class) field or an interface field, getstatic throws an
+                            // IncompatibleClassChangeError.
+                            if (!resolvedField.isStatic) {
+                                throw IncompatibleClassChangeError("$resolvedField is not a static field")
+                            }
+                        }
+                        Opcodes.PUTSTATIC -> {
+                            // if the resolved field is not a static
+                            // (class) field or an interface field, putstatic throws an
+                            // IncompatibleClassChangeError.
+                            if (!resolvedField.isStatic) {
+                                throw IncompatibleClassChangeError("$resolvedField is not a static field")
+                            }
+
+                            // Otherwise, if the field is final, it must be declared in the current
+                            // class, and the instruction must occur in the <clinit> method of
+                            // the current class. Otherwise, an IllegalAccessError is thrown.
+                            if (resolvedField.isFinal) {
+                                if (resolvedField.declaringClass != clazzInfo || !method.isClassInitializer) {
+                                    throw IllegalAccessError("tried to write a static final field $resolvedField outside the <clinit> of current class")
+                                }
+                            }
+                        }
+                        Opcodes.GETFIELD -> {
+                            // if the resolved field is a static field, getfield throws
+                            // an IncompatibleClassChangeError.
+                            if (resolvedField.isStatic) {
+                                throw IncompatibleClassChangeError("$resolvedField is not a instance field")
+                            }
+                        }
+                        Opcodes.PUTFIELD -> {
+                            // if the resolved field is a static field, putfield throws
+                            // an IncompatibleClassChangeError.
+                            if (resolvedField.isStatic) {
+                                throw IncompatibleClassChangeError("$resolvedField is not a instance field")
+                            }
+
+                            // Otherwise, if the field is final, it must be declared in the
+                            // current class, and the instruction must occur in an instance
+                            // initialization method (<init>) of the current class. Otherwise, an
+                            // IllegalAccessError is thrown.
+                            if (resolvedField.isFinal) {
+                                if (resolvedField.declaringClass != clazzInfo || !method.isConstructor) {
+                                    throw IllegalAccessError("tried to write a final field $resolvedField outside the <init> of current class")
+                                }
+                            }
+                        }
+                        else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
+                    }
                 }
                 is MethodInsnNode -> {
                     // first we resolve the method

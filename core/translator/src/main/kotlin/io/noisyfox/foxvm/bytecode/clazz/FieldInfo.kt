@@ -12,6 +12,7 @@ data class FieldInfo(
     val signature: String?,
     val defaultValue: Any?
 ) : ClassMember {
+
     val isReference: Boolean = descriptor.isReference()
 
     override fun toString(): String {

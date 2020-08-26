@@ -21,6 +21,9 @@ interface ClassMember {
     val isStatic: Boolean
         get() = (access and Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC
 
+    val isFinal: Boolean
+        get() = (access and Opcodes.ACC_FINAL) == Opcodes.ACC_FINAL
+
     /**
      * jvms8 $5.4.3.2 Field Resolution states:
      * > If C declares a field with the name and descriptor specified by the field
