@@ -47,7 +47,7 @@ data class ClassInfo(
             return true
         }
 
-        return thisClass.allSuperClasses().any { it.requireClassInfo() == this }
+        return thisClass.allSuperClasses().any { it.requireClassInfo() == superClass }
     }
 
     /**
