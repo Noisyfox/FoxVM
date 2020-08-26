@@ -797,14 +797,14 @@ class ClassWriter(
                     // Then:
                     // • If field lookup fails, field resolution throws a NoSuchFieldError.
                     if (resolvedField == null) {
-                        throw NoSuchFieldError("Unable to find field ${inst.name} from class ${ownerClass.className} and its super classes")
+                        throw NoSuchFieldError("Unable to find field ${inst.name} from class $ownerClass and its super classes")
                     }
                     // • Otherwise, if field lookup succeeds but the referenced field is not accessible
                     // (§5.4.4) to D, field resolution throws an IllegalAccessError.
-                    // TODO: check accessibility
+                    if (!clazzInfo.canAccess(resolvedField)) {
+                        throw IllegalAccessError("tried to access field $resolvedField from class $clazzInfo")
+                    }
                     // Here we ignore the loading constraint
-
-
                 }
                 is MethodInsnNode -> {
                     // first we resolve the method
@@ -820,11 +820,13 @@ class ClassWriter(
                         // Then:
                         // • If method lookup fails, method resolution throws a NoSuchMethodError.
                         if (resolvedMethod == null) {
-                            throw NoSuchMethodError("Unable to find method ${inst.name} from class ${ownerClass.className} and its super classes")
+                            throw NoSuchMethodError("Unable to find method ${inst.name} from class $ownerClass and its super classes")
                         }
                         // • Otherwise, if method lookup succeeds and the referenced method is not
                         //   accessible (§5.4.4) to D, method resolution throws an IllegalAccessError.
-                        // TODO: check accessibility
+                        if (!clazzInfo.canAccess(resolvedMethod)) {
+                            throw IllegalAccessError("tried to access method $resolvedMethod from class $clazzInfo")
+                        }
                         // Here we ignore the loading constraint
                     }
                 }

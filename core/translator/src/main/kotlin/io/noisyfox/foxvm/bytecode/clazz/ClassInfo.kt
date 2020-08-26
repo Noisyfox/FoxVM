@@ -17,7 +17,11 @@ data class ClassInfo(
 
     val isEnum: Boolean = (thisClass.access and Opcodes.ACC_ENUM) == Opcodes.ACC_ENUM
 
+    val isPublic: Boolean = (thisClass.access and Opcodes.ACC_PUBLIC) == Opcodes.ACC_PUBLIC
+
     val isInterface: Boolean = (thisClass.access and Opcodes.ACC_INTERFACE) == Opcodes.ACC_INTERFACE
+
+    val packageName: String = thisClass.className.split('/').dropLast(1).joinToString(separator = ".")
 
     /** The finalizer declared by this class */
     val declFinalizer: MethodInfo?
@@ -230,8 +234,63 @@ data class ClassInfo(
         }
     }
 
+    /**
+     * jvms8 §5.4.4 Access Control
+     */
+    fun canAccess(clazz: ClassInfo): Boolean {
+        // A class or interface C is accessible to a class or interface D if and only if either of
+        // the following is true:
+
+        // • C is public.
+        if(clazz.isPublic) {
+            return true
+        }
+
+        // • C and D are members of the same run-time package (§5.3).
+        // Here we check the static package only since we don't know the classloader until running the app
+        return clazz.packageName == packageName
+    }
+
+    /**
+     * jvms8 §5.4.4 Access Control
+     */
+    fun canAccess(member: ClassMember): Boolean {
+        // A field or method R is accessible to a class or interface D if and only if any of the
+        // following is true:
+
+        // • R is public.
+        if (member.isPublic) {
+            return true
+        }
+
+        // • R is protected and is declared in a class C, and D is either a subclass of C or
+        // C itself. Furthermore, if R is not static, then the symbolic reference to R must
+        // contain a symbolic reference to a class T, such that T is either a subclass of D, a
+        // superclass of D, or D itself.
+        if (member.isProtected) {
+            if (this instanceOf member.declaringClass) {
+                return true
+            }
+        }
+
+        // • R is either protected or has default access (that is, neither public nor protected
+        // nor private), and is declared by a class in the same run-time package as D.
+        if (member.isProtected || (!member.isPublic && !member.isProtected && !member.isPrivate)) {
+            if (packageName == member.declaringClass.packageName) {
+                return true
+            }
+        }
+
+        // • R is private and is declared in D.
+        if (member.isPrivate && member.declaringClass == this) {
+            return true
+        }
+
+        return false
+    }
+
     override fun toString(): String {
-        return "${ClassInfo::class.simpleName} [${thisClass.className}]"
+        return thisClass.className
     }
 
     private companion object {
