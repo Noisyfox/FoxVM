@@ -881,6 +881,55 @@ class ClassWriter(
                             throw IllegalAccessError("tried to access method $resolvedMethod from class $clazzInfo")
                         }
                         // Here we ignore the loading constraint
+
+                        when (inst.opcode) {
+                            Opcodes.INVOKEVIRTUAL -> {
+                                // if the resolved method is a class
+                                // (static) method, the invokevirtual instruction throws an
+                                // IncompatibleClassChangeError.
+                                if (resolvedMethod.isStatic) {
+                                    throw IncompatibleClassChangeError("$resolvedMethod is not a instance method")
+                                }
+                            }
+                            Opcodes.INVOKESPECIAL -> {
+                                // if the resolved method is an instance initialization
+                                // method, and the class in which it is declared is not the class
+                                // symbolically referenced by the instruction, a NoSuchMethodError
+                                // is thrown.
+                                if (resolvedMethod.isConstructor) {
+                                    if (resolvedMethod.declaringClass != ownerClass.requireClassInfo()) {
+                                        throw NoSuchMethodError("Unable to find method ${inst.name} from class $ownerClass")
+                                    }
+                                }
+
+                                // if the resolved method is a class
+                                // (static) method, the invokespecial instruction throws an
+                                // IncompatibleClassChangeError.
+                                if (resolvedMethod.isStatic) {
+                                    throw IncompatibleClassChangeError("$resolvedMethod is not a instance method")
+                                }
+                            }
+                            Opcodes.INVOKESTATIC -> {
+                                // if the resolved method is an instance
+                                // method, the invokestatic instruction throws an
+                                // IncompatibleClassChangeError.
+                                if (!resolvedMethod.isStatic) {
+                                    throw IncompatibleClassChangeError("$resolvedMethod is not a static method")
+                                }
+                            }
+                            Opcodes.INVOKEINTERFACE -> {
+                                // if the resolved method is static or
+                                // private, the invokeinterface instruction throws an
+                                // IncompatibleClassChangeError.
+                                if (resolvedMethod.isStatic) {
+                                    throw IncompatibleClassChangeError("$resolvedMethod is not a instance method")
+                                }
+                                if (resolvedMethod.isPrivate) {
+                                    throw IncompatibleClassChangeError("$resolvedMethod is a private method")
+                                }
+                            }
+                            else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
+                        }
                     }
                 }
             }
