@@ -755,9 +755,19 @@ static void *heap_alloc_more_space(VM_PARAM_CURRENT_CONTEXT, size_t size, GCGene
 
     if (gen == soh_gen0) {
         heap_alloc_soh(vmCurrentContext, size, &result);
+    } else {
+        // TODO: Fix me
+        heap_alloc_soh(vmCurrentContext, size, &result);
     }
 
     return result;
+}
+
+void *heap_alloc_loh(VM_PARAM_CURRENT_CONTEXT, size_t size) {
+    size = align_size_up(size, SIZE_ALIGNMENT);
+    assert(size >= MIN_OBJECT_SIZE);
+
+    return heap_alloc_more_space(vmCurrentContext, size, loh_generation);
 }
 
 // Large objects go directly to old gen
@@ -817,4 +827,22 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
     }
 
     return NULL;
+}
+
+void *heap_alloc_uncollectable(VM_PARAM_CURRENT_CONTEXT, size_t size) {
+    void *result = mem_aligned_malloc(size, DATA_ALIGNMENT);
+    if(!result) {
+        // Trigger a loh gc and try again
+        gc(vmCurrentContext, loh_generation);
+        result = mem_aligned_malloc(size, DATA_ALIGNMENT);
+    }
+    if(result) {
+        // Zero out memory
+        memset(result, 0, size);
+    }
+    return result;
+}
+
+void heap_free_uncollectable(VM_PARAM_CURRENT_CONTEXT, void* ptr) {
+    mem_aligned_free(ptr);
 }

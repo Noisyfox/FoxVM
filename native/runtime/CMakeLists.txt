@@ -22,6 +22,9 @@ set(SOURCE_FILES_RUNTIME
         memory/vm_tlab.c
         memory/vm_gc.c
         memory/vm_gc_priv.c
+
+        classloader/vm_classloader.c
+        classloader/vm_boot_classloader.c
         )
 
 # Set thread implementation
@@ -43,7 +46,10 @@ endif ()
 
 add_subdirectory(3rd)
 
-include_directories($<TARGET_PROPERTY:opa,INCLUDE_DIRECTORIES>)
+include_directories(
+        $<TARGET_PROPERTY:opa,INCLUDE_DIRECTORIES>
+        3rd/uthash
+)
 
 add_c_library(
         foxvm_runtime

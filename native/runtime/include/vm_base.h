@@ -288,13 +288,25 @@ typedef struct {
     uint16_t fieldIndex; // The index of `JavaClass.staticFields`
 } ResolvedStaticFieldReference;
 
+typedef enum {
+    CLASS_STATE_ALLOCATED = 0,
+    CLASS_STATE_REGISTERED,
+    CLASS_STATE_RESOLVED,
+    CLASS_STATE_INITIALIZING,
+    CLASS_STATE_INITIALIZED,
+    CLASS_STATE_ERROR
+} ClassState;
+
 struct _JavaClass {
     JAVA_CLASS clazz; // Always NULL for class instance
     void *monitor;
 
+    ClassState state;
     JavaClassInfo *info;
 
     JAVA_OBJECT classLoader;
+    // The real instance of a java/lang/Class
+    JAVA_OBJECT classInstance;
 
     // Resolved data
     JAVA_CLASS superClass;

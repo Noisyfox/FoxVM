@@ -4,6 +4,7 @@
 
 #include "vm_main.h"
 #include "vm_memory.h"
+#include "vm_classloader.h"
 #include "vm_array.h"
 
 int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
@@ -37,6 +38,9 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     heap_init(vmCurrentContext, &heapConfig);
     // Init main tlab
     tlab_init(&vmCurrentContext->tlab);
+
+    // Init classloader
+    classloader_init(vmCurrentContext);
 
     // TODO: create java Thread Object for main thread
 

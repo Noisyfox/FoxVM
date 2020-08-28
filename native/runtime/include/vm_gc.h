@@ -26,4 +26,16 @@ int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config);
  */
 void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size);
 
+/**
+ * Force allocating in large object heap.
+ *
+ * @param __vmCurrentThreadContext
+ * @param size
+ * @return  NULL if out of memory, a pointer to a piece of zeroed memory otherwise.
+ */
+void *heap_alloc_loh(VM_PARAM_CURRENT_CONTEXT, size_t size);
+
+void *heap_alloc_uncollectable(VM_PARAM_CURRENT_CONTEXT, size_t size);
+void heap_free_uncollectable(VM_PARAM_CURRENT_CONTEXT, void* ptr);
+
 #endif //FOXVM_VM_GC_H

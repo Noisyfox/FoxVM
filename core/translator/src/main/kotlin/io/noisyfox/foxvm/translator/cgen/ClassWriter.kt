@@ -127,9 +127,11 @@ class ClassWriter(
                     |    JAVA_CLASS clazz;
                     |    void *monitor;
                     |
+                    |    ClassState state;
                     |    JavaClassInfo *info;
                     |
                     |    JAVA_OBJECT classLoader;
+                    |    JAVA_OBJECT classInstance;
                     |
                     |    JAVA_CLASS superClass;
                     |    int interfaceCount;
