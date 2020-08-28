@@ -24,33 +24,6 @@ class Clazz(
         }
     }
 
-    fun allSuperClasses(): List<Clazz> {
-        val info = requireClassInfo()
-        val supers = LinkedHashSet<Clazz>()
-        val superGatherer = object : ClassHandler {
-            override fun handleAnyClass(clazz: Clazz) {
-                supers.add(clazz)
-            }
-        }
-
-        info.superClass?.let {
-            it.visitSuperClasses(superGatherer)
-            supers.add(it)
-        }
-        info.interfaces.forEach {
-            it.visitSuperClasses(superGatherer)
-            supers.add(it)
-        }
-
-        return supers.toList()
-    }
-
-    fun visitSuperClasses(classHandler: ClassHandler) {
-        allSuperClasses().forEach {
-            it.accept(classHandler)
-        }
-    }
-
     override fun toString(): String {
         return "Class [${className}] (from: $filePath)"
     }

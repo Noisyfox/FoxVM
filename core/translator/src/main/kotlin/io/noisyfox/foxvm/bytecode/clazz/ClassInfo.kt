@@ -1,5 +1,6 @@
 package io.noisyfox.foxvm.bytecode.clazz
 
+import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.objectweb.asm.Opcodes
 
 data class ClassInfo(
@@ -42,12 +43,38 @@ data class ClassInfo(
     val finalizer: MethodInfo?
         get() = declFinalizer ?: superClass?.requireClassInfo()?.finalizer
 
+    fun allSuperClasses(): List<Clazz> {
+        val supers = LinkedHashSet<Clazz>()
+        val superGatherer = object : ClassHandler {
+            override fun handleAnyClass(clazz: Clazz) {
+                supers.add(clazz)
+            }
+        }
+
+        superClass?.let {
+            it.requireClassInfo().visitSuperClasses(superGatherer)
+            supers.add(it)
+        }
+        interfaces.forEach {
+            it.requireClassInfo().visitSuperClasses(superGatherer)
+            supers.add(it)
+        }
+
+        return supers.toList()
+    }
+
+    fun visitSuperClasses(classHandler: ClassHandler) {
+        allSuperClasses().forEach {
+            it.accept(classHandler)
+        }
+    }
+
     infix fun instanceOf(superClass: ClassInfo): Boolean {
         if (this == superClass) {
             return true
         }
 
-        return thisClass.allSuperClasses().any { it.requireClassInfo() == superClass }
+        return allSuperClasses().any { it.requireClassInfo() == superClass }
     }
 
     /**
@@ -132,7 +159,7 @@ data class ClassInfo(
 
         // Otherwise, method resolution attempts to locate the referenced method in the
         // superinterfaces of the specified class C:
-        val allSuperInterfaces = thisClass.allSuperClasses().filter { it.requireClassInfo().isInterface }
+        val allSuperInterfaces = allSuperClasses().filter { it.requireClassInfo().isInterface }
         // If the maximally-specific superinterface methods of C for the name and
         // descriptor specified by the method reference include exactly one method that
         // does not have its ACC_ABSTRACT flag set, then this method is chosen and

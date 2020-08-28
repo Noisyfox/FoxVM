@@ -279,7 +279,7 @@ class ClassWriter(
                     |""".trimMargin()
         )
         // Include super classes
-        clazz.visitSuperClasses(object : ClassHandler{
+        info.visitSuperClasses(object : ClassHandler{
             override fun handleAnyClass(clazz: Clazz) {
                 cWriter.write(
                     """
@@ -788,9 +788,16 @@ class ClassWriter(
                 }
                 is FieldInsnNode -> {
                     // first we resolve the field
+                    // To resolve an unresolved symbolic reference from D to a field in a class or interface
+                    // C, the symbolic reference to C given by the field reference must first be resolved
+                    // (§5.4.3.1).
                     val ownerClass = requireNotNull(classPool.getClass(inst.owner)) {
                         "Could not find class ${inst.owner}"
                     }
+                    if (!clazzInfo.canAccess(ownerClass.requireClassInfo())) {
+                        throw IllegalAccessError("tried to access class $ownerClass from class $clazzInfo")
+                    }
+
                     // jvms8 §5.4.3.2 Field Resolution
                     // When resolving a field reference, field resolution first attempts to look up the
                     // referenced field in C and its superclasses
@@ -865,10 +872,17 @@ class ClassWriter(
                     if (inst.owner.startsWith("[") || inst.owner == "java/lang/invoke/SerializedLambda") {
                         // TODO: handle array method
                     } else {
+                        // To resolve an unresolved symbolic reference from D to a method in a class C, the
+                        // symbolic reference to C given by the method reference is first resolved (§5.4.3.1).
                         val ownerClass = requireNotNull(classPool.getClass(inst.owner)) {
                             "Could not find class ${inst.owner}"
                         }
-                        require(ownerClass.requireClassInfo().isInterface == inst.itf)
+                        if (!clazzInfo.canAccess(ownerClass.requireClassInfo())) {
+                            throw IllegalAccessError("tried to access class $ownerClass from class $clazzInfo")
+                        }
+                        if (ownerClass.requireClassInfo().isInterface != inst.itf) {
+                            throw IncompatibleClassChangeError()
+                        }
                         // jvms8 §5.4.3.3 Method Resolution and §5.4.3.4 Interface Method Resolution
                         val resolvedMethod = ownerClass.requireClassInfo().methodLookup(inst.name, inst.desc)
                         // Then:
@@ -881,6 +895,7 @@ class ClassWriter(
                         if (!clazzInfo.canAccess(resolvedMethod)) {
                             throw IllegalAccessError("tried to access method $resolvedMethod from class $clazzInfo")
                         }
+                        // TODO: All the class names mentioned in the descriptor are resolved (§5.4.3.1).
                         // Here we ignore the loading constraint
 
                         when (inst.opcode) {

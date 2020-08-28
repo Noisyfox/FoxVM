@@ -81,18 +81,83 @@ private class PreResolverClassVisitor(
     ) {
         assert(clazz.classInfo == null)
 
+        /**
+         * jvms8 $5.3.5 Deriving a Class from a class File Representation
+         */
         val info = ClassInfo(
             thisClass = clazz,
             cIdentifier = mangleClassName(clazz.className),
             version = version,
             signature = signature,
+            // 3. If C has a direct superclass, the symbolic reference from C to its direct superclass
+            //    is resolved using the algorithm of §5.4.3.1.
             superClass = superName?.let(this::ensureResolved),
+            // 4. If C has any direct superinterfaces, the symbolic references from C to its direct
+            //    superinterfaces are resolved using the algorithm of §5.4.3.1.
             interfaces = interfaces?.map(this::ensureResolved)?.toList() ?: emptyList()
         )
 
+        // Note that if C is an interface it must
+        // have Object as its direct superclass, which must already have been loaded.
+        if (info.isInterface) {
+            requireNotNull(info.superClass).let {
+                if (it.className != Clazz.CLASS_JAVA_LANG_OBJECT) {
+                    throw ClassFormatError("interface $clazz does not have ${Clazz.CLASS_JAVA_LANG_OBJECT} as superclass")
+                }
+            }
+        }
+        // Only Object has no direct superclass.
+        if (clazz.className == Clazz.CLASS_JAVA_LANG_OBJECT) {
+            if (info.superClass != null) {
+                throw ClassFormatError("class $clazz cannot have superclass")
+            }
+        } else {
+            if (info.superClass == null) {
+                throw ClassFormatError("class $clazz must have a superclass")
+            }
+        }
+
         info.superClass?.let { s ->
+            // Continue the superclass resolution
+            // 5.4.3.1 Class and Interface Resolution
+            // 3. Finally, access permissions to C are checked.
+            //    • If C is not accessible (§5.4.4) to D, class or interface resolution throws an
+            //      IllegalAccessError.
+            if (!info.canAccess(s.requireClassInfo())) {
+                throw IllegalAccessError("tried to access class $s from class $info")
+            }
+
+            // • If the class or interface named as the direct superclass of C is in fact an
+            //   interface, loading throws an IncompatibleClassChangeError.
+            if (s.requireClassInfo().isInterface) {
+                throw IncompatibleClassChangeError("superclass of $info: $s is an interface")
+            }
+
             // Merge all instance fields from super class
             info.preResolvedInstanceFields.addAll(s.classInfo!!.preResolvedInstanceFields)
+        }
+
+        info.interfaces.forEach { i ->
+            // Continue the superinterface resolution
+            // 5.4.3.1 Class and Interface Resolution
+            // 3. Finally, access permissions to C are checked.
+            //    • If C is not accessible (§5.4.4) to D, class or interface resolution throws an
+            //      IllegalAccessError.
+            if (!info.canAccess(i.requireClassInfo())) {
+                throw IllegalAccessError("tried to access interface $i from class $info")
+            }
+
+            // • If any of the classes or interfaces named as direct superinterfaces of C is not
+            //   in fact an interface, loading throws an IncompatibleClassChangeError.
+            if (!i.requireClassInfo().isInterface) {
+                throw IncompatibleClassChangeError("superinterfaces of $info: $i is not an interface")
+            }
+        }
+
+        // • Otherwise, if any of the superclasses/superinterfaces of C is C itself, loading throws a
+        //   ClassCircularityError.
+        if (clazz in info.allSuperClasses()) {
+            throw ClassCircularityError("class $clazz has it's own as superclasses/superinterfaces")
         }
 
         clazz.classInfo = info
