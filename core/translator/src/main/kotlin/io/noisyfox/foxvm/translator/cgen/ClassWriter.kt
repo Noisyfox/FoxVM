@@ -128,6 +128,7 @@ class ClassWriter(
                     |    void *monitor;
                     |
                     |    ClassState state;
+                    |    JAVA_LONG initThread;
                     |    JavaClassInfo *info;
                     |
                     |    JAVA_OBJECT classLoader;
@@ -486,6 +487,8 @@ class ClassWriter(
                     |
                     |    .preResolvedStaticFieldRefCount = 0,
                     |    .preResolvedStaticFieldReferences = ${CNull},
+                    |
+                    |    .clinit = ${info.clinit?.cName ?: CNull},
                     |
                     |    .finalizer = ${info.finalizer?.cName ?: CNull},
                     |};

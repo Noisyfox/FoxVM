@@ -96,10 +96,14 @@ JAVA_CLASS cl_bootstrap_get_loaded_class(JavaClassInfo *classInfo) {
 }
 
 JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *classInfo) {
-    monitor_enter(vmCurrentContext, &g_bootstrapClassLock);
+    int ret = monitor_enter(vmCurrentContext, &g_bootstrapClassLock);
+    if (ret != thrd_success) {
+        return (JAVA_CLASS) JAVA_NULL;
+    }
+
     // First see if the class is already loaded
     JAVA_CLASS clazz = cl_bootstrap_get_loaded_class(classInfo);
-    if (clazz != (JAVA_CLASS)JAVA_NULL) {
+    if (clazz != (JAVA_CLASS) JAVA_NULL) {
         monitor_exit(vmCurrentContext, &g_bootstrapClassLock);
         return clazz;
     }
@@ -178,7 +182,8 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
             if (!it || it->state < CLASS_STATE_RESOLVED) {
                 thisClass->state = CLASS_STATE_ERROR;
                 monitor_exit(vmCurrentContext, &g_bootstrapClassLock);
-                fprintf(stderr, "Bootstrap Classloader: unable to load superinterface %s\n", classInfo->interfaces[i]->thisClass);
+                fprintf(stderr, "Bootstrap Classloader: unable to load superinterface %s\n",
+                        classInfo->interfaces[i]->thisClass);
                 // TODO: throw exception
                 return (JAVA_CLASS) JAVA_NULL;
             }

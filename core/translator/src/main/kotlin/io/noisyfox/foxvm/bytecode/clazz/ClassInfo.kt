@@ -39,6 +39,9 @@ data class ClassInfo(
             }
         }
 
+    val clinit: MethodInfo?
+        get() = methods.singleOrNull { it.isClassInitializer }
+
     /** The finalizer declared by this class or inherited from [superClass] */
     val finalizer: MethodInfo?
         get() = declFinalizer ?: superClass?.requireClassInfo()?.finalizer

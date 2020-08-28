@@ -257,6 +257,8 @@ struct _JavaClassInfo {
     uint16_t preResolvedStaticFieldRefCount; // All static field references used by current class
     PreResolvedStaticFieldReference *preResolvedStaticFieldReferences;
 
+    JavaMethodRetVoid clinit;
+
     // Reference to the finalizer method, or NULL if this class does not declare a finalizer.
     // If this class does not declare a finalizer but one of it's superclasses declares one, this
     // reference will point to that method.
@@ -302,6 +304,7 @@ struct _JavaClass {
     void *monitor;
 
     ClassState state;
+    JAVA_LONG initThread;
     JavaClassInfo *info;
 
     JAVA_OBJECT classLoader;
