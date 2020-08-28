@@ -598,7 +598,24 @@ class ClassWriter(
 
         // TODO: resolve staticFieldReferences
 
-        // TODO: set static const field to its initial value
+        // Set static const field to its initial value, except Strings
+        val noneStringStaticFieldsWithDefault = info.preResolvedStaticFields.filter { f ->
+            f.field.defaultValue != null && f.field.defaultValue !is String
+        }
+        if (noneStringStaticFieldsWithDefault.isNotEmpty()) {
+            cWriter.write(
+                """
+                    |    // Init default value for static fields, except Strings
+                    |""".trimMargin()
+            )
+            noneStringStaticFieldsWithDefault.forEach { f ->
+                cWriter.write(
+                    """
+                    |    clazz->${f.cName} = ${(f.field.defaultValue as Number).toCConst()};
+                    |""".trimMargin()
+                )
+            }
+        }
 
         cWriter.write(
             """

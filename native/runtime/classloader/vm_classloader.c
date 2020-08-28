@@ -96,6 +96,8 @@ static JAVA_BOOLEAN classloader_init_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS 
     // Then, initialize each final static field of C with the constant value in
     // its ConstantValue attribute (§4.7.2), in the order the fields appear in the
     // ClassFile structure.
+    // The default value for numeric fields have already set during resolving process,
+    // here we only deal with String fields.
     // TODO
 
     // 7. Init superclasses and superinterfaces
