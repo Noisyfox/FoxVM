@@ -6,6 +6,7 @@ import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
+import io.noisyfox.foxvm.translator.DiffFileWriter
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.FieldInsnNode
@@ -33,17 +34,35 @@ class ClassWriter(
     private val outputDir: File
 ) : ClassHandler {
 
+    var processedClassNumber: Int = 0
+        private set
+
+    var updatedClassNumber: Int = 0
+        private set
+
     override fun handleApplicationClass(clazz: Clazz) {
+        processedClassNumber++
+
         val info = clazz.requireClassInfo()
 
         // Generate header file
-        File(outputDir, "_${info.cIdentifier}.h").bufferedWriter().use { headerWriter ->
-            writeH(headerWriter, clazz, info)
+        val headerUpdated = DiffFileWriter(File(outputDir, "_${info.cIdentifier}.h")).use {
+            it.buffered().use { headerWriter ->
+                writeH(headerWriter, clazz, info)
+            }
+            it.didUpdateFile
         }
 
         // Generate C file
-        CWriter(File(outputDir, "_${info.cIdentifier}.c").bufferedWriter()).use { cWriter ->
-            writeC(cWriter, clazz, info)
+        val cUpdated = DiffFileWriter(File(outputDir, "_${info.cIdentifier}.c")).use {
+            CWriter(it.buffered()).use { cWriter ->
+                writeC(cWriter, clazz, info)
+            }
+            it.didUpdateFile
+        }
+
+        if (headerUpdated || cUpdated) {
+            updatedClassNumber++
         }
     }
 

@@ -2,13 +2,14 @@ package io.noisyfox.foxvm.translator.cgen
 
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.visitor.ClassPoolVisitor
+import io.noisyfox.foxvm.translator.DiffFileWriter
 import java.io.File
 
 class CMakeListsWriter(
     private val isRt: Boolean,
     outputDir: File
 ): ClassPoolVisitor {
-    private val fileWriter = File(outputDir, "CMakeLists.txt").bufferedWriter()
+    private val fileWriter = DiffFileWriter(File(outputDir, "CMakeLists.txt")).buffered()
     override fun visitStart() {
         fileWriter.write(
             """

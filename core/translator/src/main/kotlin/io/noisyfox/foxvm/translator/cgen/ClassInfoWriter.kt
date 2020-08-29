@@ -2,6 +2,7 @@ package io.noisyfox.foxvm.translator.cgen
 
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.visitor.ClassPoolVisitor
+import io.noisyfox.foxvm.translator.DiffFileWriter
 import java.io.File
 
 /**
@@ -11,8 +12,8 @@ class ClassInfoWriter(
     private val isRt: Boolean,
     outputDir: File
 ) : ClassPoolVisitor {
-    private val headerWriter = File(outputDir, headerNameOf(isRt)).bufferedWriter()
-    private val cWriter = File(outputDir, cNameOf(isRt)).bufferedWriter()
+    private val headerWriter = DiffFileWriter(File(outputDir, headerNameOf(isRt))).buffered()
+    private val cWriter = DiffFileWriter(File(outputDir, cNameOf(isRt))).buffered()
 
     override fun visitStart() {
         headerWriter.write(

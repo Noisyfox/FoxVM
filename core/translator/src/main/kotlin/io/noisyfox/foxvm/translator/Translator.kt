@@ -63,7 +63,7 @@ class Translator(
     private fun preResolve() {
         val preResolver = PreResolver(fullClassPool)
         applicationClassPool.accept(preResolver)
-        LOGGER.info("Pre-resolved {} classes.", preResolver.resolvedClasses)
+        LOGGER.info("Pre-resolved {} class(es).", preResolver.resolvedClasses)
     }
 
     /**
@@ -71,7 +71,19 @@ class Translator(
      */
     private fun writeClasses() {
         // Write each classes
-        applicationClassPool.accept(ClassWriter(isRt = isRt, classPool = fullClassPool, outputDir = outputPath))
+        ClassWriter(isRt = isRt, classPool = fullClassPool, outputDir = outputPath).also {
+            applicationClassPool.accept(it)
+
+            if (it.updatedClassNumber == 0) {
+                LOGGER.info("{} class(es) translated, all up-to-date.", it.processedClassNumber)
+            } else {
+                LOGGER.info(
+                    "{} class(es) translated, {} class(es) updated.",
+                    it.processedClassNumber,
+                    it.updatedClassNumber
+                )
+            }
+        }
 
         // Write header contains ref to all classes
         applicationClassPool.accept(ClassInfoWriter(isRt = isRt, outputDir = outputPath))
