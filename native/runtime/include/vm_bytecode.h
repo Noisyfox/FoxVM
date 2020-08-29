@@ -309,7 +309,17 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack);
 #define bc_ldc_double(v) stack_push_double(v)
 
 // invokeXXXX instructions
-#define bc_invoke_special(fp) ((JavaMethodRetVoid)fp)(vmCurrentContext)
+#define bc_invoke_special(fp)                          ((JavaMethodRetVoid)    fp)(vmCurrentContext)
+#define bc_invoke_special_z(fp) do {JAVA_BOOLEAN ret = ((JavaMethodRetBoolean) fp)(vmCurrentContext); stack_push_int(ret);                 }while(0)
+#define bc_invoke_special_c(fp) do {JAVA_CHAR    ret = ((JavaMethodRetChar)    fp)(vmCurrentContext); stack_push_int(ret);                 }while(0)
+#define bc_invoke_special_b(fp) do {JAVA_BYTE    ret = ((JavaMethodRetByte)    fp)(vmCurrentContext); stack_push_int(ret);                 }while(0)
+#define bc_invoke_special_s(fp) do {JAVA_SHORT   ret = ((JavaMethodRetShort)   fp)(vmCurrentContext); stack_push_int(ret);                 }while(0)
+#define bc_invoke_special_i(fp) do {JAVA_INT     ret = ((JavaMethodRetInt)     fp)(vmCurrentContext); stack_push_int(ret);                 }while(0)
+#define bc_invoke_special_f(fp) do {JAVA_FLOAT   ret = ((JavaMethodRetFloat)   fp)(vmCurrentContext); stack_push_float(ret);               }while(0)
+#define bc_invoke_special_j(fp) do {JAVA_LONG    ret = ((JavaMethodRetLong)    fp)(vmCurrentContext); stack_push_long(ret);                }while(0)
+#define bc_invoke_special_d(fp) do {JAVA_DOUBLE  ret = ((JavaMethodRetDouble)  fp)(vmCurrentContext); stack_push_double(ret);              }while(0)
+#define bc_invoke_special_a(fp) do {JAVA_ARRAY   ret = ((JavaMethodRetArray)   fp)(vmCurrentContext); stack_push_object((JAVA_OBJECT)ret); }while(0)
+#define bc_invoke_special_o(fp) do {JAVA_OBJECT  ret = ((JavaMethodRetObject)  fp)(vmCurrentContext); stack_push_object(ret);              }while(0)
 
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)

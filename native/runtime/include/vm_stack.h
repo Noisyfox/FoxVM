@@ -7,6 +7,7 @@
 
 #include "vm_base.h"
 #include <assert.h>
+#include <stdlib.h>
 
 static inline VMTypeCategory slot_type_category(VMStackSlotType type) {
     switch (type) {
@@ -22,6 +23,7 @@ static inline VMTypeCategory slot_type_category(VMStackSlotType type) {
     }
 
     assert(!"Unexpected slot type");
+    exit(-1);
 }
 
 typedef struct {

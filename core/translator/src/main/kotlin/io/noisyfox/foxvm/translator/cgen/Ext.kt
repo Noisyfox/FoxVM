@@ -354,3 +354,19 @@ fun LabelNode.index(info: MethodInfo): Int {
 fun LabelNode.cName(info: MethodInfo): String {
     return "L${index(info)}"
 }
+
+val MethodInfo.invokeSuffix: String
+    get() = when (val sort = this.descriptor.returnType.sort) {
+        Type.VOID -> ""
+        Type.BOOLEAN -> "_z"
+        Type.CHAR -> "_c"
+        Type.BYTE -> "_b"
+        Type.SHORT -> "_s"
+        Type.INT -> "_i"
+        Type.FLOAT -> "_f"
+        Type.LONG -> "_j"
+        Type.DOUBLE -> "_d"
+        Type.ARRAY -> "_a"
+        Type.OBJECT -> "_o"
+        else -> throw IllegalArgumentException("Unknown type ${sort}.")
+    }

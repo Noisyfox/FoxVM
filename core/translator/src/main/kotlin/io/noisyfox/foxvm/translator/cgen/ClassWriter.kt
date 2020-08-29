@@ -1271,7 +1271,7 @@ class ClassWriter(
         cWriter.write(
             """
                     |    // invokespecial ${resolvedMethod.declaringClass.thisClass.className}.${resolvedMethod.name}${resolvedMethod.descriptor}
-                    |    bc_invoke_special(${methodToInvoke.cName});
+                    |    bc_invoke_special${methodToInvoke.invokeSuffix}(${methodToInvoke.cName});
                     |""".trimMargin()
         )
     }
