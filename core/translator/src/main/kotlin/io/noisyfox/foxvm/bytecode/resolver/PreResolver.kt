@@ -134,7 +134,7 @@ private class PreResolverClassVisitor(
             }
 
             // Merge all instance fields from super class
-            info.preResolvedInstanceFields.addAll(s.classInfo!!.preResolvedInstanceFields)
+            info.preResolvedInstanceFields.addAll(s.requireClassInfo().preResolvedInstanceFields)
         }
 
         info.interfaces.forEach { i ->

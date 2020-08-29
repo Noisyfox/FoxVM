@@ -42,7 +42,7 @@ class ClassWriter(
         }
 
         // Generate C file
-        File(outputDir, "_${info.cIdentifier}.c").bufferedWriter().use { cWriter ->
+        CWriter(File(outputDir, "_${info.cIdentifier}.c").bufferedWriter()).use { cWriter ->
             writeC(cWriter, clazz, info)
         }
     }
@@ -262,7 +262,7 @@ class ClassWriter(
         )
     }
 
-    private fun writeC(cWriter: Writer, clazz: Clazz, info: ClassInfo) {
+    private fun writeC(cWriter: CWriter, clazz: Clazz, info: ClassInfo) {
         cWriter.write(
             """
                     |// Generated from class [${clazz.className}] at ${clazz.filePath}
@@ -273,7 +273,6 @@ class ClassWriter(
         // Write includes
         cWriter.write(
             """
-                    |#include "_${info.cIdentifier}.h"
                     |#include "vm_thread.h"
                     |#include "vm_bytecode.h"
                     |
@@ -281,16 +280,11 @@ class ClassWriter(
                     |
                     |""".trimMargin()
         )
-        // Include super classes
-        info.visitSuperClasses(object : ClassHandler{
-            override fun handleAnyClass(clazz: Clazz) {
-                cWriter.write(
-                    """
-                    |#include "_${clazz.requireClassInfo().cIdentifier}.h"
-                    |""".trimMargin()
-                )
-            }
-        })
+        // Include dependencies here
+        cWriter.includeDependenciesHere()
+
+        // Add self as dependency
+        cWriter.addDependency(info)
 
         // Write declarations
         cWriter.write(
@@ -314,7 +308,7 @@ class ClassWriter(
             info.interfaces.forEach {
                 cWriter.write(
                     """
-                    |    &${it.classInfo!!.cName},
+                    |    &${it.requireClassInfo().cName},
                     |""".trimMargin()
                 )
             }
@@ -649,7 +643,7 @@ class ClassWriter(
         }
     }
 
-    private fun writeMethodImpl(cWriter: Writer, clazzInfo: ClassInfo, index: Int, method: MethodInfo) {
+    private fun writeMethodImpl(cWriter: CWriter, clazzInfo: ClassInfo, index: Int, method: MethodInfo) {
         val clazz = clazzInfo.thisClass
         val node = method.methodNode
 
@@ -1000,7 +994,7 @@ class ClassWriter(
     }
 
     private fun writeSwitch(
-        cWriter: Writer,
+        cWriter: CWriter,
         method: MethodInfo,
         keys: List<Int>,
         branches: List<LabelNode>,
@@ -1030,7 +1024,7 @@ class ClassWriter(
         )
     }
 
-    private fun writeNativeMethodBridge(cWriter: Writer, clazzInfo: ClassInfo, index: Int, method: MethodInfo) {
+    private fun writeNativeMethodBridge(cWriter: CWriter, clazzInfo: ClassInfo, index: Int, method: MethodInfo) {
         val clazz = clazzInfo.thisClass
         val node = method.methodNode
 
@@ -1166,7 +1160,7 @@ class ClassWriter(
     }
 
     /** jvms8 §6.5 Instructions - invokespecial */
-    private fun writeInvokeSpecial(cWriter: Writer, currentClass: ClassInfo, ownerClass: ClassInfo, resolvedMethod: MethodInfo) {
+    private fun writeInvokeSpecial(cWriter: CWriter, currentClass: ClassInfo, ownerClass: ClassInfo, resolvedMethod: MethodInfo) {
         // If all of the following are true, let C be the direct superclass of the
         // current class:
         @Suppress("SimplifyBooleanWithConstants")
@@ -1273,6 +1267,7 @@ class ClassWriter(
         // Which cannot be checked until runtime, so we don't worry about it here
 
         // Generate opcode instruction that do the invokespecial
+        cWriter.addDependency(methodToInvoke.declaringClass)
         cWriter.write(
             """
                     |    // invokespecial ${resolvedMethod.declaringClass.thisClass.className}.${resolvedMethod.name}${resolvedMethod.descriptor}
