@@ -123,19 +123,23 @@ public final class Class<T> implements java.io.Serializable,
     private static final int SYNTHETIC = 0x00001000;
 
     private static native void registerNatives();
-    static {
-        registerNatives();
-    }
+    // static {
+    //     registerNatives();
+    // }
+
+    // Assigned by FoxVM classloader, stores the reference to the JAVA_CLASS structure
+    // This field is filtered from reflection access, i.e. getDeclaredField
+    // will throw NoSuchFieldException
+    private final Object fvmNativeType;
 
     /*
      * Private constructor. Only the Java Virtual Machine creates Class objects.
      * This constructor is not used and prevents the default constructor being
      * generated.
      */
-    private Class(ClassLoader loader) {
-        // Initialize final field for classLoader.  The initialization value of non-null
-        // prevents future JIT optimizations from assuming this final field is null.
-        classLoader = loader;
+    private Class(Object nativeType) {
+        // Store the reference to the native representation
+        fvmNativeType = nativeType;
     }
 
     /**
@@ -687,12 +691,12 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     // Package-private to allow ClassLoader access
-    ClassLoader getClassLoader0() { return classLoader; }
+    native ClassLoader getClassLoader0();// { return classLoader; }
 
     // Initialized in JVM not by private constructor
     // This field is filtered from reflection access, i.e. getDeclaredField
     // will throw NoSuchFieldException
-    private final ClassLoader classLoader;
+    // private final ClassLoader classLoader;
 
     /**
      * Returns an array of {@code TypeVariable} objects that represent the

@@ -3,6 +3,7 @@
 //
 
 #include "vm_boot_classloader.h"
+#include "vm_classloader.h"
 #include "vm_thread.h"
 #include "vm_gc.h"
 #include <string.h>
@@ -15,12 +16,36 @@ extern JavaClassInfo *foxvm_class_infos_rt[];
 static JavaObjectBase g_bootstrapClassLockObj = {0};
 static VMStackSlot g_bootstrapClassLock = {0};
 
-static JavaClassInfo *g_classInfo_java_lang_Object = NULL;
-static JavaClassInfo *g_classInfo_java_lang_Class = NULL;
-static JavaClassInfo *g_classInfo_java_lang_String = NULL;
-static JAVA_CLASS g_class_java_lang_Object = NULL;
-static JAVA_CLASS g_class_java_lang_Class = NULL;
-static JAVA_CLASS g_class_java_lang_String = NULL;
+#define cached_class(var)                       \
+static JavaClassInfo *g_classInfo_##var = NULL; \
+static JAVA_CLASS     g_class_##var = NULL
+
+cached_class(java_lang_Object);
+cached_class(java_lang_Class);
+cached_class(java_lang_ClassLoader);
+cached_class(java_lang_String);
+cached_class(java_lang_Boolean);
+cached_class(java_lang_Byte);
+cached_class(java_lang_Character);
+cached_class(java_lang_Short);
+cached_class(java_lang_Integer);
+cached_class(java_lang_Long);
+cached_class(java_lang_Float);
+cached_class(java_lang_Double);
+cached_class(java_lang_Enum);
+cached_class(java_lang_Cloneable);
+cached_class(java_lang_Thread);
+cached_class(java_lang_ThreadGroup);
+cached_class(java_io_Serializable);
+cached_class(java_lang_Runtime);
+
+cached_class(java_lang_ClassNotFoundException);
+cached_class(java_lang_NoClassDefFoundError);
+cached_class(java_lang_Error);
+
+#undef cached_class
+
+static MethodInfo *java_lang_Class_init = NULL;
 
 typedef struct {
     void *key;
@@ -62,28 +87,78 @@ static JavaClassInfo *cl_bootstrap_class_info_lookup(C_CSTR className) {
     }                                                                                                   \
 } while(0)
 
+#define cache_class(var, className) do {            \
+    load_class_info(g_classInfo_##var, className);  \
+    load_class(g_class_##var, g_classInfo_##var);   \
+} while(0)
+
+static void cl_bootstrap_init_class_object(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT classObject, JAVA_CLASS clazz) {
+    stack_frame_start(-1, 2, 0);
+
+    stack_push_object(classObject);
+    stack_push_object((JAVA_OBJECT) clazz);
+
+    vmCurrentContext->callingClass = classObject->clazz;
+    ((JavaMethodRetVoid) java_lang_Class_init->code)(vmCurrentContext);
+
+    stack_frame_end();
+}
+
 JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     g_bootstrapClassLock.data.o = &g_bootstrapClassLockObj;
     g_bootstrapClassLock.type = VM_SLOT_OBJECT;
     if (monitor_create(vmCurrentContext, &g_bootstrapClassLock) != thrd_success) {
         return JAVA_FALSE;
     }
-
     // Find essential class infos
-    load_class_info(g_classInfo_java_lang_Object, "java/lang/Object");
+    // This info is required by class creation, so we need to load it first
     load_class_info(g_classInfo_java_lang_Class, "java/lang/Class");
-    load_class_info(g_classInfo_java_lang_String, "java/lang/String");
 
     // Init essential classes
-    load_class(g_class_java_lang_Object, g_classInfo_java_lang_Object);
+    cache_class(java_lang_Object, "java/lang/Object");
     load_class(g_class_java_lang_Class, g_classInfo_java_lang_Class);
+    // Make sure the class is initilized
+    classloader_get_class(vmCurrentContext, JAVA_NULL, g_classInfo_java_lang_Class);
+    // We here get the init method of the java/lang/Class
+    for (uint32_t i = 0; i < g_classInfo_java_lang_Class->methodCount; i++) {
+        MethodInfo *method = &g_classInfo_java_lang_Class->methods[i];
+        if (strcmp(method->name, "<init>") == 0) {
+            java_lang_Class_init = method;
+            break;
+        }
+    }
+    if (!java_lang_Class_init) {
+        fprintf(stderr, "Bootstrap Classloader: unable to find method java.lang.Class.<init>\n");
+        return JAVA_FALSE;
+    }
     // Fix some fields that depends on the java/lang/Object and java/lang/Class
     LoadedClassEntry *cursor;
     for (cursor = g_loadedClasses; cursor != NULL; cursor = cursor->hh.next) {
         JAVA_CLASS c = cursor->clazz;
         c->classInstance->clazz = g_class_java_lang_Class;
+
+        cl_bootstrap_init_class_object(vmCurrentContext, c->classInstance, c);
     }
-    load_class(g_class_java_lang_String, g_classInfo_java_lang_String);
+    cache_class(java_lang_ClassLoader, "java/lang/ClassLoader");
+    cache_class(java_lang_String, "java/lang/String");
+    cache_class(java_lang_Boolean, "java/lang/Boolean");
+    cache_class(java_lang_Byte, "java/lang/Byte");
+    cache_class(java_lang_Character, "java/lang/Character");
+    cache_class(java_lang_Short, "java/lang/Short");
+    cache_class(java_lang_Integer, "java/lang/Integer");
+    cache_class(java_lang_Long, "java/lang/Long");
+    cache_class(java_lang_Float, "java/lang/Float");
+    cache_class(java_lang_Double, "java/lang/Double");
+    cache_class(java_lang_Enum, "java/lang/Enum");
+    cache_class(java_lang_Cloneable, "java/lang/Cloneable");
+    cache_class(java_lang_Thread, "java/lang/Thread");
+    cache_class(java_lang_ThreadGroup, "java/lang/ThreadGroup");
+    cache_class(java_io_Serializable, "java/io/Serializable");
+    cache_class(java_lang_Runtime, "java/lang/Runtime");
+
+    cache_class(java_lang_ClassNotFoundException, "java/lang/ClassNotFoundException");
+    cache_class(java_lang_NoClassDefFoundError, "java/lang/NoClassDefFoundError");
+    cache_class(java_lang_Error, "java/lang/Error");
 
     return JAVA_TRUE;
 }
@@ -189,6 +264,11 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
             }
             thisClass->interfaces[i] = it;
         }
+    }
+
+    // Init the java/lang/Class instance
+    if (java_lang_Class_init) {
+        cl_bootstrap_init_class_object(vmCurrentContext, classObject, thisClass);
     }
 
     // Mark current class as resolved

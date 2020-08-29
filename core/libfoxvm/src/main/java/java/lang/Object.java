@@ -37,9 +37,9 @@ package java.lang;
 public class Object {
 
     private static native void registerNatives();
-    static {
-        registerNatives();
-    }
+    // static {
+    //     registerNatives();
+    // }
 
     /**
      * Returns the runtime class of this {@code Object}. The returned
