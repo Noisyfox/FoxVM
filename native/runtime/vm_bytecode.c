@@ -331,3 +331,16 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack) {
 
     return value->data.i;
 }
+
+JAVA_VOID bc_check_objref(VMStackFrame *frame) {
+    // objectref is always in the local0
+    assert(frame->locals.maxLocals > 0);
+    VMStackSlot *objSlot = &frame->locals.slots[0];
+    assert(objSlot->type == VM_SLOT_OBJECT);
+
+    JAVA_OBJECT obj = objSlot->data.o;
+    assert(obj != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    frame->thisClass = obj->clazz;
+    assert(frame->thisClass != (JAVA_CLASS) JAVA_NULL);
+}

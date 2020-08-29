@@ -4,7 +4,7 @@
 
 JAVA_VOID test_main(VM_PARAM_CURRENT_CONTEXT) {
     stack_frame_start(0, 10, 1);
-    local_transfer_arguments(vmCurrentContext, 1);
+    bc_prepare_arguments(1);
 
     bc_aconst_null();
     bc_astore(0);

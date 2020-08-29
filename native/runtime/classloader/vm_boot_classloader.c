@@ -9,6 +9,7 @@
 #include <string.h>
 #include "uthash.h"
 #include <stdio.h>
+#include "vm_bytecode.h"
 
 extern JavaClassInfo *foxvm_class_infos_rt[];
 
@@ -98,8 +99,8 @@ static void cl_bootstrap_init_class_object(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT
     stack_push_object(classObject);
     stack_push_object((JAVA_OBJECT) clazz);
 
-    vmCurrentContext->callingClass = classObject->clazz;
-    ((JavaMethodRetVoid) java_lang_Class_init->code)(vmCurrentContext);
+    // Simulate a invoke special
+    bc_invoke_special(java_lang_Class_init->code);
 
     stack_frame_end();
 }

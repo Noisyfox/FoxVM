@@ -80,6 +80,36 @@ data class ClassInfo(
         return allSuperClasses().any { it.requireClassInfo() == superClass }
     }
 
+    infix fun superclassOf(childClass: ClassInfo): Boolean {
+        if (this == childClass) {
+            return false
+        }
+        if (this.isInterface) {
+            return false
+        }
+
+        return childClass instanceOf this
+    }
+
+    infix fun superinterfaceOf(childClass: ClassInfo): Boolean {
+        if (this == childClass) {
+            return false
+        }
+        if (!this.isInterface) {
+            return false
+        }
+
+        return childClass instanceOf this
+    }
+
+    infix fun superOf(childClass: ClassInfo): Boolean {
+        if (this == childClass) {
+            return false
+        }
+
+        return childClass instanceOf this
+    }
+
     /**
      * Look up the field referenced by [inst] in current class.
      *
@@ -207,6 +237,12 @@ data class ClassInfo(
      *   superinterface method of C with the specified name and descriptor that
      *   is declared in a subinterface of I.
      */
+    fun findMaximallySpecificSuperInterfaceMethod(name: String, desc: String): List<MethodInfo> {
+        val allSuperInterfaces = allSuperClasses().filter { it.requireClassInfo().isInterface }
+
+        return findMaximallySpecificSuperInterfaceMethod(allSuperInterfaces, name, desc)
+    }
+
     private fun findMaximallySpecificSuperInterfaceMethod(allSuperInterfaces: List<Clazz>, name: String, desc: String): List<MethodInfo> {
         // First we find all methods that matches the first 3 rules
         val allMethods =
@@ -225,7 +261,7 @@ data class ClassInfo(
             // is declared in a subinterface of I.
             val I = cand.declaringClass
             allMethods.none { other ->
-                other.declaringClass != I && (other.declaringClass instanceOf I)
+                I superinterfaceOf other.declaringClass
             }
         }
     }
@@ -255,7 +291,7 @@ data class ClassInfo(
         return this.superClass?.requireClassInfo()?.methodResolutionInClass(name, desc)
     }
 
-    private fun findDeclMethod(name: String, desc: String): MethodInfo?{
+    fun findDeclMethod(name: String, desc: String): MethodInfo?{
         val decls = methods.filter { it.matches(name, desc) }
         return when (decls.size) {
             0 -> null

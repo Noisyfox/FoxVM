@@ -242,7 +242,7 @@ class ClassWriter(
             nonAbstractMethods.forEach {
                 headerWriter.write(
                     """
-                    |${it.cDeclaration};    // ${clazz.className}.${it.name}:${it.descriptor}
+                    |${it.cDeclaration};    // ${clazz.className}.${it.name}${it.descriptor}
                     |""".trimMargin()
                 )
             }
@@ -660,7 +660,7 @@ class ClassWriter(
         }
         cWriter.write(
             """
-                    |// ${clazz.className}.${method.name}:${method.descriptor}
+                    |// ${clazz.className}.${method.name}${method.descriptor}
                     |${method.cDeclaration} {
                     |    $stackStartStatement;
                     |""".trimMargin()
@@ -676,7 +676,14 @@ class ClassWriter(
         if (argumentCount > 0) {
             cWriter.write(
                 """
-                    |    local_transfer_arguments(vmCurrentContext, ${argumentCount});
+                    |    bc_prepare_arguments(${argumentCount});
+                    |""".trimMargin()
+            )
+        }
+        if(!method.isStatic) {
+            cWriter.write(
+                """
+                    |    bc_check_objectref();
                     |""".trimMargin()
             )
         }
@@ -946,6 +953,8 @@ class ClassWriter(
                                 if (resolvedMethod.isStatic) {
                                     throw IncompatibleClassChangeError("$resolvedMethod is not a instance method")
                                 }
+
+                                writeInvokeSpecial(cWriter, clazzInfo, ownerClass.requireClassInfo(), resolvedMethod)
                             }
                             Opcodes.INVOKESTATIC -> {
                                 // if the resolved method is an instance
@@ -1042,7 +1051,7 @@ class ClassWriter(
         }
         cWriter.write(
             """
-                    |// Native method bridge for ${clazz.className}.${method.name}:${method.descriptor}
+                    |// Native method bridge for ${clazz.className}.${method.name}${method.descriptor}
                     |${method.cDeclaration} {
                     |    $stackStartStatement;
                     |""".trimMargin()
@@ -1052,7 +1061,7 @@ class ClassWriter(
         if (argumentCount > 0) {
             cWriter.write(
                 """
-                    |    local_transfer_arguments(vmCurrentContext, ${argumentCount});
+                    |    bc_prepare_arguments(${argumentCount});
                     |""".trimMargin()
             )
         }
@@ -1152,6 +1161,122 @@ class ClassWriter(
             """
                     |}
                     |
+                    |""".trimMargin()
+        )
+    }
+
+    /** jvms8 §6.5 Instructions - invokespecial */
+    private fun writeInvokeSpecial(cWriter: Writer, currentClass: ClassInfo, ownerClass: ClassInfo, resolvedMethod: MethodInfo) {
+        // If all of the following are true, let C be the direct superclass of the
+        // current class:
+        @Suppress("SimplifyBooleanWithConstants")
+        val classToLookup: ClassInfo = if (
+            // • The resolved method is not an instance initialization method (§2.9).
+            !resolvedMethod.isConstructor
+            // • If the symbolic reference names a class (not an interface), then
+            //   that class is a superclass of the current class.
+            && (!ownerClass.isInterface && ownerClass superclassOf currentClass)
+            // • The ACC_SUPER flag is set for the class file (§4.1).
+            // jvms8 §4.1 The ClassFile Structure
+            // In Java SE 8 and above, the Java
+            // Virtual Machine considers the ACC_SUPER flag to be set in every class file,
+            // regardless of the actual value of the flag in the class file and the version of
+            // the class file.
+            && true
+        ) {
+            currentClass.superClass!!.requireClassInfo()
+        } else {
+            // Otherwise, let C be the class or interface named by the symbolic
+            // reference.
+            ownerClass
+        }
+
+        // The actual method to be invoked is selected by the following
+        // lookup procedure:
+        // 1. If C contains a declaration for an instance method with the
+        //    same name and descriptor as the resolved method, then it is
+        //    the method to be invoked.
+        val methodToInvoke: MethodInfo = (classToLookup.findDeclMethod(resolvedMethod.name, resolvedMethod.descriptor.descriptor)
+            ?.takeIf { !it.isStatic }
+            ?: if (!classToLookup.isInterface) {
+                // 2. Otherwise, if C is a class and has a superclass, a search for
+                //    a declaration of an instance method with the same name
+                //    and descriptor as the resolved method is performed, starting
+                //    with the direct superclass of C and continuing with the direct
+                //    superclass of that class, and so forth, until a match is found or
+                //    no further superclasses exist. If a match is found, then it is the
+                //    method to be invoked.
+                fun ClassInfo.methodLookupInSuperclass(): MethodInfo? {
+                    return superClass?.requireClassInfo()?.let { superClazz ->
+                        superClazz.findDeclMethod(resolvedMethod.name, resolvedMethod.descriptor.descriptor)
+                            ?.takeIf { !it.isStatic }
+                            ?: superClazz.methodLookupInSuperclass()
+                    }
+                }
+                classToLookup.methodLookupInSuperclass()
+            } else {
+                // 3. Otherwise, if C is an interface and the class Object contains a
+                //    declaration of a public instance method with the same name
+                //    and descriptor as the resolved method, then it is the method
+                //    to be invoked.
+                val objectClass = requireNotNull(classPool.getClass(Clazz.CLASS_JAVA_LANG_OBJECT)) {
+                    "cannot find class ${Clazz.CLASS_JAVA_LANG_OBJECT}"
+                }.requireClassInfo()
+                objectClass.findDeclMethod(resolvedMethod.name, resolvedMethod.descriptor.descriptor)
+                    ?.takeIf { it.isPublic && !it.isStatic }
+            })?.also {
+            // if step 1, step 2, or step 3 of the lookup
+            // procedure selects an abstract method, invokespecial throws an
+            // AbstractMethodError.
+            if (it.isAbstract) {
+                throw AbstractMethodError()
+            }
+        } ?: run {
+            // 4. Otherwise, if there is exactly one maximally-specific method
+            //    (§5.4.3.3) in the superinterfaces of C that matches the resolved
+            //    method's name and descriptor and is not abstract, then it is
+            //    the method to be invoked.
+            val maxSpecMethods = classToLookup.findMaximallySpecificSuperInterfaceMethod(
+                resolvedMethod.name,
+                resolvedMethod.descriptor.descriptor
+            )
+                .filter { !it.isAbstract }
+            when (maxSpecMethods.size) {
+                0 -> {
+                    // Otherwise, if step 4 of the lookup procedure determines there
+                    // are zero maximally-specific methods in the superinterfaces of C
+                    // that match the resolved method's name and descriptor and are not
+                    // abstract, invokespecial throws an AbstractMethodError.
+                    throw AbstractMethodError()
+                }
+                1 -> {
+                    maxSpecMethods.single()
+                }
+                else -> {
+                    // Otherwise, if step 4 of the lookup procedure determines
+                    // there are multiple maximally-specific methods in the
+                    // superinterfaces of C that match the resolved method's name
+                    // and descriptor and are not abstract, invokespecial throws an
+                    // IncompatibleClassChangeError
+                    throw IncompatibleClassChangeError()
+                }
+            }
+        }
+
+        // Here we successfully resolved and found the target method to invoke,
+        // with only one rule that has not been checked:
+        // > If the resolved method is protected, and it is a member of a
+        // > superclass of the current class, and the method is not declared in
+        // > the same run-time package (§5.3) as the current class, then the
+        // > class of objectref must be either the current class or a subclass of
+        // > the current class.
+        // Which cannot be checked until runtime, so we don't worry about it here
+
+        // Generate opcode instruction that do the invokespecial
+        cWriter.write(
+            """
+                    |    // invokespecial ${resolvedMethod.declaringClass.thisClass.className}.${resolvedMethod.name}${resolvedMethod.descriptor}
+                    |    bc_invoke_special(${methodToInvoke.cName});
                     |""".trimMargin()
         )
     }

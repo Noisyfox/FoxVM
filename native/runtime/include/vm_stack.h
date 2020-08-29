@@ -446,10 +446,9 @@ static inline void stack_swap(VMOperandStack *stack) {
 /**
  * Transfer arguments from caller's operand stack to current method's local slots
  */
-static inline void local_transfer_arguments(VM_PARAM_CURRENT_CONTEXT, uint16_t argument_count) {
-    VMStackFrame *currentFrame = stack_frame_top(vmCurrentContext);
-    VMOperandStack *stackFrom = &currentFrame->prev->operandStack;
-    VMLocals *localsTo = &currentFrame->locals;
+static inline void local_transfer_arguments(VMStackFrame* frame, uint16_t argument_count) {
+    VMOperandStack *stackFrom = &frame->prev->operandStack;
+    VMLocals *localsTo = &frame->locals;
 
     VMStackSlot *stackSlotFromLimit = stackFrom->top;
     VMStackSlot *stackSlotFrom = stackSlotFromLimit - argument_count;

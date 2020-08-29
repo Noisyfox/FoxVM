@@ -308,7 +308,11 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack);
 #define bc_ldc_float(v)  stack_push_float(v)
 #define bc_ldc_double(v) stack_push_double(v)
 
+// invokeXXXX instructions
+#define bc_invoke_special(fp) ((JavaMethodRetVoid)fp)(vmCurrentContext)
+
 // FoxVM specific instructions
+#define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)
 
 /** Record current source file line number. */
 #define bc_line(line_number) STACK_FRAME.currentLine = (line_number)
@@ -326,5 +330,10 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack);
 #define bc_jni_arg_jlong(local)          ((jlong)local_of(local).data.l)
 #define bc_jni_arg_jdouble(local)        ((jdouble)local_of(local).data.d)
 #define bc_jni_arg_jref(local, ref_type) ((ref_type)local_of(local).data.o)
+
+// Called at the beginning of each instance method to check the validity of the objectref
+// and also populate the STACK_FRAME.thisClass
+JAVA_VOID bc_check_objref(VMStackFrame* frame);
+#define bc_check_objectref()  bc_check_objref(&STACK_FRAME)
 
 #endif //FOXVM_VM_BYTECODE_H
