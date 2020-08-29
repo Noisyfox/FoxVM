@@ -344,3 +344,66 @@ JAVA_VOID bc_check_objref(VMStackFrame *frame) {
     frame->thisClass = obj->clazz;
     assert(frame->thisClass != (JAVA_CLASS) JAVA_NULL);
 }
+
+JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *valueOut, BasicType fieldType) {
+    VMStackSlot *value = stack->top - 1;
+    VMStackSlot *objectRef = stack->top - 2;
+
+    assert(objectRef >= stack->slots);
+
+    assert(objectRef->type == VM_SLOT_OBJECT);
+    assert(objectRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    *objRefOut = objectRef->data.o;
+
+    switch (fieldType) {
+        case VM_TYPE_BOOLEAN:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_BOOLEAN *) valueOut) = value->data.i;
+            break;
+        case VM_TYPE_CHAR:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_CHAR *) valueOut) = value->data.i;
+            break;
+        case VM_TYPE_FLOAT:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_FLOAT *) valueOut) = value->data.f;
+            break;
+        case VM_TYPE_DOUBLE:
+            assert(value->type == VM_SLOT_DOUBLE);
+            *((JAVA_DOUBLE *) valueOut) = value->data.d;
+            break;
+        case VM_TYPE_BYTE:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_BYTE *) valueOut) = value->data.i;
+            break;
+        case VM_TYPE_SHORT:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_SHORT *) valueOut) = value->data.i;
+            break;
+        case VM_TYPE_INT:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_INT *) valueOut) = value->data.i;
+            break;
+        case VM_TYPE_LONG:
+            assert(value->type == VM_SLOT_LONG);
+            *((JAVA_LONG *) valueOut) = value->data.l;
+            break;
+        case VM_TYPE_OBJECT:
+            assert(value->type == VM_SLOT_OBJECT);
+            *((JAVA_OBJECT *) valueOut) = value->data.o;
+            break;
+        case VM_TYPE_ARRAY:
+            assert(value->type == VM_SLOT_OBJECT);
+            *((JAVA_ARRAY *) valueOut) = (JAVA_ARRAY) value->data.o;
+            break;
+        case VM_TYPE_VOID:
+        case VM_TYPE_ILLEGAL:
+            assert(!"Unexpected value type");
+    }
+
+    // Pop
+    stack->top = objectRef;
+    value->type = VM_SLOT_INVALID;
+    objectRef->type = VM_SLOT_INVALID;
+}

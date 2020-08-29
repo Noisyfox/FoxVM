@@ -886,6 +886,17 @@ class ClassWriter(
                                     throw IllegalAccessError("tried to write a final field $resolvedField outside the <init> of current class")
                                 }
                             }
+
+                            // Add the declaring class as dependency
+                            cWriter.addDependency(resolvedField.declaringClass)
+                            // Get the pre-resolved info
+                            val preResolved = resolvedField.declaringClass.preResolvedInstanceFields.single { it.field == resolvedField }
+                            cWriter.write(
+                                """
+                    |    // putfield ${ownerClass.className}.${inst.name}:${inst.desc}
+                    |    bc_putfield${resolvedField.typeSuffix}(${resolvedField.declaringClass.cObjectName}, ${preResolved.cName});
+                    |""".trimMargin()
+                            )
                         }
                         else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                     }
@@ -948,7 +959,7 @@ class ClassWriter(
                                     throw IncompatibleClassChangeError("$resolvedMethod is not a instance method")
                                 }
 
-                                writeInvokeSpecial(cWriter, clazzInfo, ownerClass.requireClassInfo(), resolvedMethod)
+                                writeInvokeSpecial(cWriter, inst, clazzInfo, ownerClass.requireClassInfo(), resolvedMethod)
                             }
                             Opcodes.INVOKESTATIC -> {
                                 // if the resolved method is an instance
@@ -1160,7 +1171,7 @@ class ClassWriter(
     }
 
     /** jvms8 §6.5 Instructions - invokespecial */
-    private fun writeInvokeSpecial(cWriter: CWriter, currentClass: ClassInfo, ownerClass: ClassInfo, resolvedMethod: MethodInfo) {
+    private fun writeInvokeSpecial(cWriter: CWriter, inst: MethodInsnNode, currentClass: ClassInfo, ownerClass: ClassInfo, resolvedMethod: MethodInfo) {
         // If all of the following are true, let C be the direct superclass of the
         // current class:
         @Suppress("SimplifyBooleanWithConstants")
@@ -1270,7 +1281,7 @@ class ClassWriter(
         cWriter.addDependency(methodToInvoke.declaringClass)
         cWriter.write(
             """
-                    |    // invokespecial ${resolvedMethod.declaringClass.thisClass.className}.${resolvedMethod.name}${resolvedMethod.descriptor}
+                    |    // invokespecial ${inst.owner}.${inst.name}${inst.desc}
                     |    bc_invoke_special${methodToInvoke.invokeSuffix}(${methodToInvoke.cName});
                     |""".trimMargin()
         )

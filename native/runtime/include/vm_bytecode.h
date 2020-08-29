@@ -321,6 +321,24 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack);
 #define bc_invoke_special_a(fp) do {JAVA_ARRAY   ret = ((JavaMethodRetArray)   fp)(vmCurrentContext); stack_push_object((JAVA_OBJECT)ret); }while(0)
 #define bc_invoke_special_o(fp) do {JAVA_OBJECT  ret = ((JavaMethodRetObject)  fp)(vmCurrentContext); stack_push_object(ret);              }while(0)
 
+// field instructions
+JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *valueOut, BasicType fieldType);
+#define bc_do_putfield(object_type, field_name, field_type)             \
+    JAVA_OBJECT objectRef;                                              \
+    JAVA_##field_type value;                                            \
+    bc_putfield(OP_STACK, &objectRef, &value, VM_TYPE_##field_type);    \
+    ((object_type*)objectRef)->field_name = value
+#define bc_putfield_z(object_type, field_name) do {bc_do_putfield(object_type, field_name, BOOLEAN);} while(0)
+#define bc_putfield_c(object_type, field_name) do {bc_do_putfield(object_type, field_name, CHAR);   } while(0)
+#define bc_putfield_b(object_type, field_name) do {bc_do_putfield(object_type, field_name, BYTE);   } while(0)
+#define bc_putfield_s(object_type, field_name) do {bc_do_putfield(object_type, field_name, SHORT);  } while(0)
+#define bc_putfield_i(object_type, field_name) do {bc_do_putfield(object_type, field_name, INT);    } while(0)
+#define bc_putfield_f(object_type, field_name) do {bc_do_putfield(object_type, field_name, FLOAT);  } while(0)
+#define bc_putfield_j(object_type, field_name) do {bc_do_putfield(object_type, field_name, LONG);   } while(0)
+#define bc_putfield_d(object_type, field_name) do {bc_do_putfield(object_type, field_name, DOUBLE); } while(0)
+#define bc_putfield_a(object_type, field_name) do {bc_do_putfield(object_type, field_name, ARRAY);  } while(0)
+#define bc_putfield_o(object_type, field_name) do {bc_do_putfield(object_type, field_name, OBJECT); } while(0)
+
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)
 

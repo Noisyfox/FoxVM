@@ -2,6 +2,7 @@ package io.noisyfox.foxvm.translator.cgen
 
 import io.noisyfox.foxvm.bytecode.asCString
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
+import io.noisyfox.foxvm.bytecode.clazz.FieldInfo
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedInstanceFieldInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedStaticFieldInfo
@@ -358,6 +359,22 @@ fun LabelNode.cName(info: MethodInfo): String {
 val MethodInfo.invokeSuffix: String
     get() = when (val sort = this.descriptor.returnType.sort) {
         Type.VOID -> ""
+        Type.BOOLEAN -> "_z"
+        Type.CHAR -> "_c"
+        Type.BYTE -> "_b"
+        Type.SHORT -> "_s"
+        Type.INT -> "_i"
+        Type.FLOAT -> "_f"
+        Type.LONG -> "_j"
+        Type.DOUBLE -> "_d"
+        Type.ARRAY -> "_a"
+        Type.OBJECT -> "_o"
+        else -> throw IllegalArgumentException("Unknown type ${sort}.")
+    }
+
+val FieldInfo.typeSuffix: String
+    get() = when (val sort = this.descriptor.sort) {
+        Type.VOID -> throw IllegalArgumentException("Field type cannot be Void")
         Type.BOOLEAN -> "_z"
         Type.CHAR -> "_c"
         Type.BYTE -> "_b"
