@@ -15,9 +15,6 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
 
     thread_init();
 
-    // Init base type systems
-    array_init();
-
     // Create main thread
     VMThreadContext thread_main = {0};
     VM_PARAM_CURRENT_CONTEXT = &thread_main;
@@ -40,7 +37,12 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     tlab_init(&vmCurrentContext->tlab);
 
     // Init classloader
-    classloader_init(vmCurrentContext);
+    if (!classloader_init(vmCurrentContext)) {
+        return -1;
+    }
+
+    // Init base type systems
+    array_init();
 
     // TODO: create java Thread Object for main thread
 
