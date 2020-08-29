@@ -495,3 +495,21 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassI
     stack->top = value;
     value->type = VM_SLOT_INVALID;
 }
+
+JAVA_VOID bc_getstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassInfo *classInfo,
+                       JAVA_CLASS *classRefOut) {
+    // jvms8 §5.5 Initialization
+    // A class or interface C may be initialized only as a result of:
+    // • The execution of any one of the Java Virtual Machine instructions new,
+    //   getstatic, putstatic, or invokestatic that references C (§new, §getstatic, §putstatic,
+    //   §invokestatic). These instructions reference a class or interface directly or
+    //   indirectly through either a field reference or a method reference.
+    //
+    //   Upon execution of a getstatic, putstatic, or invokestatic instruction, the class or
+    //   interface that declared the resolved field or method is initialized if it has not been
+    //   initialized already.
+
+    JAVA_CLASS clazz = classloader_get_class(vmCurrentContext, frame->thisClass->classLoader, classInfo);
+    assert(clazz != (JAVA_CLASS) JAVA_NULL);
+    *classRefOut = clazz;
+}

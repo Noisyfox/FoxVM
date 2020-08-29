@@ -375,6 +375,23 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassI
 #define bc_putstatic_a(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, ARRAY);  } while(0)
 #define bc_putstatic_o(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, OBJECT); } while(0)
 
+JAVA_VOID bc_getstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassInfo *classInfo,
+                       JAVA_CLASS *classRefOut);
+#define bc_do_getstatic(class_info, class_type, field_name, field_type)     \
+    JAVA_CLASS classRef;                                                    \
+    bc_getstatic(vmCurrentContext, &STACK_FRAME, class_info, &classRef);    \
+    JAVA_##field_type value = ((class_type*)classRef)->field_name
+#define bc_getstatic_z(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, BOOLEAN); stack_push_int(value);                } while(0)
+#define bc_getstatic_c(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, CHAR);    stack_push_int(value);                } while(0)
+#define bc_getstatic_b(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, BYTE);    stack_push_int(value);                } while(0)
+#define bc_getstatic_s(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, SHORT);   stack_push_int(value);                } while(0)
+#define bc_getstatic_i(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, INT);     stack_push_int(value);                } while(0)
+#define bc_getstatic_f(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, FLOAT);   stack_push_float(value);              } while(0)
+#define bc_getstatic_j(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, LONG);    stack_push_long(value);               } while(0)
+#define bc_getstatic_d(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, DOUBLE);  stack_push_double(value);             } while(0)
+#define bc_getstatic_a(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, ARRAY);   stack_push_object((JAVA_OBJECT)value);} while(0)
+#define bc_getstatic_o(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, OBJECT);  stack_push_object(value);             } while(0)
+
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)
 

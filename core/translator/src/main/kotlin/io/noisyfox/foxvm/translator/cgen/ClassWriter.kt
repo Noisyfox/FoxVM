@@ -882,6 +882,14 @@ class ClassWriter(
 
                             // Add the declaring class as dependency
                             cWriter.addDependency(resolvedField.declaringClass)
+                            // Get the pre-resolved info
+                            val preResolved = resolvedField.declaringClass.preResolvedStaticFields.single { it.field == resolvedField }
+                            cWriter.write(
+                                """
+                    |    // getstatic ${ownerClass.className}.${inst.name}:${inst.desc}
+                    |    bc_getstatic${resolvedField.typeSuffix}(&${resolvedField.declaringClass.cName}, ${resolvedField.declaringClass.cClassName}, ${preResolved.cName});
+                    |""".trimMargin()
+                            )
                         }
                         Opcodes.PUTSTATIC -> {
                             // if the resolved field is not a static
