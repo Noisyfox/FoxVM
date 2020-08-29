@@ -137,10 +137,29 @@ static JAVA_BOOLEAN classloader_init_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS 
         class_init_completed(JAVA_TRUE);
         return JAVA_TRUE;
     }
-    // TODO: call clinit
+    // call clinit
+    // Create a fake stack
+    stack_frame_start(-1, 0, 0);
+    // Setup the invoke context
+    vmCurrentContext->callingClass = clazz;
+    // Call the function
+    clinit(vmCurrentContext);
+    // TODO: handle error
+    JAVA_BOOLEAN clinit_success = JAVA_TRUE;
+    // Pop the stack
+    stack_frame_end();
 
-    class_init_completed(JAVA_FALSE);
-    return JAVA_FALSE;
+    if (clinit_success) {
+        // 10. If the execution of the class or interface initialization method completes
+        //     normally, then acquire LC, label the Class object for C as fully initialized, notify
+        //     all waiting threads, release LC, and complete this procedure normally.
+        class_init_completed(JAVA_TRUE);
+        return JAVA_TRUE;
+    } else {
+        // TODO: handle error
+        class_init_completed(JAVA_FALSE);
+        return JAVA_FALSE;
+    }
 }
 
 #undef class_init_completed
