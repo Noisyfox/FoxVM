@@ -899,6 +899,17 @@ class ClassWriter(
                                     throw IllegalAccessError("tried to write a static final field $resolvedField outside the <clinit> of current class")
                                 }
                             }
+
+                            // Add the declaring class as dependency
+                            cWriter.addDependency(resolvedField.declaringClass)
+                            // Get the pre-resolved info
+                            val preResolved = resolvedField.declaringClass.preResolvedStaticFields.single { it.field == resolvedField }
+                            cWriter.write(
+                                """
+                    |    // putstatic ${ownerClass.className}.${inst.name}:${inst.desc}
+                    |    bc_putstatic${resolvedField.typeSuffix}(&${resolvedField.declaringClass.cName}, ${resolvedField.declaringClass.cClassName}, ${preResolved.cName});
+                    |""".trimMargin()
+                            )
                         }
                         Opcodes.GETFIELD -> {
                             // if the resolved field is a static field, getfield throws

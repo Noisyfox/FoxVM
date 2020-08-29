@@ -356,6 +356,25 @@ JAVA_VOID bc_getfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut);
 #define bc_getfield_a(object_type, field_name) do {bc_do_getfield(object_type, field_name, ARRAY);   stack_push_object((JAVA_OBJECT)value);} while(0)
 #define bc_getfield_o(object_type, field_name) do {bc_do_getfield(object_type, field_name, OBJECT);  stack_push_object(value);             } while(0)
 
+JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassInfo *classInfo,
+                       JAVA_CLASS *classRefOut, void *valueOut, BasicType fieldType);
+#define bc_do_putstatic(class_info, class_type, field_name, field_type)                                 \
+    JAVA_CLASS classRef;                                                                                \
+    JAVA_##field_type value;                                                                            \
+    bc_putstatic(vmCurrentContext, &STACK_FRAME, class_info, &classRef, &value, VM_TYPE_##field_type);  \
+    ((class_type*)classRef)->field_name = value
+#define bc_putstatic_z(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, BOOLEAN);} while(0)
+#define bc_putstatic_c(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, CHAR);   } while(0)
+#define bc_putstatic_b(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, BYTE);   } while(0)
+#define bc_putstatic_s(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, SHORT);  } while(0)
+#define bc_putstatic_i(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, INT);    } while(0)
+#define bc_putstatic_f(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, FLOAT);  } while(0)
+#define bc_putstatic_j(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, LONG);   } while(0)
+#define bc_putstatic_d(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, DOUBLE); } while(0)
+// TODO: update card table for cross-gen reference
+#define bc_putstatic_a(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, ARRAY);  } while(0)
+#define bc_putstatic_o(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, OBJECT); } while(0)
+
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)
 

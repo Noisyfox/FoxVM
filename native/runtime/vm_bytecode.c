@@ -4,6 +4,7 @@
 
 #include "vm_bytecode.h"
 #include <math.h>
+#include "vm_classloader.h"
 
 #define JAVA_TYPE_i JAVA_INT
 #define JAVA_TYPE_l JAVA_LONG
@@ -421,4 +422,76 @@ JAVA_VOID bc_getfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut) {
     // Pop
     stack->top = objectRef;
     objectRef->type = VM_SLOT_INVALID;
+}
+
+JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassInfo *classInfo,
+                       JAVA_CLASS *classRefOut, void *valueOut, BasicType fieldType) {
+    // jvms8 §5.5 Initialization
+    // A class or interface C may be initialized only as a result of:
+    // • The execution of any one of the Java Virtual Machine instructions new,
+    //   getstatic, putstatic, or invokestatic that references C (§new, §getstatic, §putstatic,
+    //   §invokestatic). These instructions reference a class or interface directly or
+    //   indirectly through either a field reference or a method reference.
+    //
+    //   Upon execution of a getstatic, putstatic, or invokestatic instruction, the class or
+    //   interface that declared the resolved field or method is initialized if it has not been
+    //   initialized already.
+    JAVA_CLASS clazz = classloader_get_class(vmCurrentContext, frame->thisClass->classLoader, classInfo);
+    assert(clazz != (JAVA_CLASS) JAVA_NULL);
+    *classRefOut = clazz;
+
+    VMOperandStack *stack = &frame->operandStack;
+    VMStackSlot *value = stack->top - 1;
+
+    assert(value >= stack->slots);
+
+    switch (fieldType) {
+        case VM_TYPE_BOOLEAN:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_BOOLEAN *) valueOut) = value->data.i;
+            break;
+        case VM_TYPE_CHAR:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_CHAR *) valueOut) = value->data.i;
+            break;
+        case VM_TYPE_FLOAT:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_FLOAT *) valueOut) = value->data.f;
+            break;
+        case VM_TYPE_DOUBLE:
+            assert(value->type == VM_SLOT_DOUBLE);
+            *((JAVA_DOUBLE *) valueOut) = value->data.d;
+            break;
+        case VM_TYPE_BYTE:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_BYTE *) valueOut) = value->data.i;
+            break;
+        case VM_TYPE_SHORT:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_SHORT *) valueOut) = value->data.i;
+            break;
+        case VM_TYPE_INT:
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_INT *) valueOut) = value->data.i;
+            break;
+        case VM_TYPE_LONG:
+            assert(value->type == VM_SLOT_LONG);
+            *((JAVA_LONG *) valueOut) = value->data.l;
+            break;
+        case VM_TYPE_OBJECT:
+            assert(value->type == VM_SLOT_OBJECT);
+            *((JAVA_OBJECT *) valueOut) = value->data.o;
+            break;
+        case VM_TYPE_ARRAY:
+            assert(value->type == VM_SLOT_OBJECT);
+            *((JAVA_ARRAY *) valueOut) = (JAVA_ARRAY) value->data.o;
+            break;
+        case VM_TYPE_VOID:
+        case VM_TYPE_ILLEGAL:
+            assert(!"Unexpected value type");
+    }
+
+    // Pop
+    stack->top = value;
+    value->type = VM_SLOT_INVALID;
 }
