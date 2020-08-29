@@ -86,6 +86,14 @@ class ClassWriter(
                     |""".trimMargin()
         )
 
+        // Write the reference to class info
+        headerWriter.write(
+            """
+                    |extern JavaClassInfo ${info.cName};
+                    |
+                    |""".trimMargin()
+        )
+
         // Generate static field index enum
         if (info.preResolvedStaticFields.isNotEmpty()) {
             headerWriter.write(
@@ -295,8 +303,6 @@ class ClassWriter(
                     |#include "vm_thread.h"
                     |#include "vm_bytecode.h"
                     |
-                    |#include "${ClassInfoWriter.headerNameOf(isRt)}"
-                    |
                     |""".trimMargin()
         )
         // Include dependencies here
@@ -304,6 +310,11 @@ class ClassWriter(
 
         // Add self as dependency
         cWriter.addDependency(info)
+
+        // Add superclass as dependency
+        info.superClass?.requireClassInfo()?.also {
+            cWriter.addDependency(it)
+        }
 
         // Write declarations
         cWriter.write(
@@ -325,6 +336,8 @@ class ClassWriter(
             )
 
             info.interfaces.forEach {
+                // Add dependency
+                cWriter.addDependency(it.requireClassInfo())
                 cWriter.write(
                     """
                     |    &${it.requireClassInfo().cName},
@@ -447,6 +460,8 @@ class ClassWriter(
                 val dc = if (it.field.declaringClass == info) {
                     CNull
                 } else {
+                    // Add dependency
+                    cWriter.addDependency(it.field.declaringClass)
                     "&${it.field.declaringClass.cName}"
                 }
                 cWriter.write(
@@ -864,6 +879,9 @@ class ClassWriter(
                             if (!resolvedField.isStatic) {
                                 throw IncompatibleClassChangeError("$resolvedField is not a static field")
                             }
+
+                            // Add the declaring class as dependency
+                            cWriter.addDependency(resolvedField.declaringClass)
                         }
                         Opcodes.PUTSTATIC -> {
                             // if the resolved field is not a static
