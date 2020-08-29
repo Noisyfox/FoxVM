@@ -336,8 +336,25 @@ JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *value
 #define bc_putfield_f(object_type, field_name) do {bc_do_putfield(object_type, field_name, FLOAT);  } while(0)
 #define bc_putfield_j(object_type, field_name) do {bc_do_putfield(object_type, field_name, LONG);   } while(0)
 #define bc_putfield_d(object_type, field_name) do {bc_do_putfield(object_type, field_name, DOUBLE); } while(0)
+// TODO: update card table for cross-gen reference
 #define bc_putfield_a(object_type, field_name) do {bc_do_putfield(object_type, field_name, ARRAY);  } while(0)
 #define bc_putfield_o(object_type, field_name) do {bc_do_putfield(object_type, field_name, OBJECT); } while(0)
+
+JAVA_VOID bc_getfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut);
+#define bc_do_getfield(object_type, field_name, field_type)             \
+    JAVA_OBJECT objectRef;                                              \
+    bc_getfield(OP_STACK, &objectRef);                                  \
+    JAVA_##field_type value = ((object_type*)objectRef)->field_name
+#define bc_getfield_z(object_type, field_name) do {bc_do_getfield(object_type, field_name, BOOLEAN); stack_push_int(value);                } while(0)
+#define bc_getfield_c(object_type, field_name) do {bc_do_getfield(object_type, field_name, CHAR);    stack_push_int(value);                } while(0)
+#define bc_getfield_b(object_type, field_name) do {bc_do_getfield(object_type, field_name, BYTE);    stack_push_int(value);                } while(0)
+#define bc_getfield_s(object_type, field_name) do {bc_do_getfield(object_type, field_name, SHORT);   stack_push_int(value);                } while(0)
+#define bc_getfield_i(object_type, field_name) do {bc_do_getfield(object_type, field_name, INT);     stack_push_int(value);                } while(0)
+#define bc_getfield_f(object_type, field_name) do {bc_do_getfield(object_type, field_name, FLOAT);   stack_push_float(value);              } while(0)
+#define bc_getfield_j(object_type, field_name) do {bc_do_getfield(object_type, field_name, LONG);    stack_push_long(value);               } while(0)
+#define bc_getfield_d(object_type, field_name) do {bc_do_getfield(object_type, field_name, DOUBLE);  stack_push_double(value);             } while(0)
+#define bc_getfield_a(object_type, field_name) do {bc_do_getfield(object_type, field_name, ARRAY);   stack_push_object((JAVA_OBJECT)value);} while(0)
+#define bc_getfield_o(object_type, field_name) do {bc_do_getfield(object_type, field_name, OBJECT);  stack_push_object(value);             } while(0)
 
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)

@@ -869,6 +869,17 @@ class ClassWriter(
                             if (resolvedField.isStatic) {
                                 throw IncompatibleClassChangeError("$resolvedField is not a instance field")
                             }
+
+                            // Add the declaring class as dependency
+                            cWriter.addDependency(resolvedField.declaringClass)
+                            // Get the pre-resolved info
+                            val preResolved = resolvedField.declaringClass.preResolvedInstanceFields.single { it.field == resolvedField }
+                            cWriter.write(
+                                """
+                    |    // getfield ${ownerClass.className}.${inst.name}:${inst.desc}
+                    |    bc_getfield${resolvedField.typeSuffix}(${resolvedField.declaringClass.cObjectName}, ${preResolved.cName});
+                    |""".trimMargin()
+                            )
                         }
                         Opcodes.PUTFIELD -> {
                             // if the resolved field is a static field, putfield throws

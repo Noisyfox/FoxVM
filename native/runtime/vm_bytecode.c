@@ -407,3 +407,18 @@ JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *value
     value->type = VM_SLOT_INVALID;
     objectRef->type = VM_SLOT_INVALID;
 }
+
+JAVA_VOID bc_getfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut) {
+    VMStackSlot *objectRef = stack->top - 1;
+
+    assert(objectRef >= stack->slots);
+
+    assert(objectRef->type == VM_SLOT_OBJECT);
+    assert(objectRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    *objRefOut = objectRef->data.o;
+
+    // Pop
+    stack->top = objectRef;
+    objectRef->type = VM_SLOT_INVALID;
+}
