@@ -310,16 +310,34 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack);
 
 // invokeXXXX instructions
 #define bc_invoke_special(fp)                          ((JavaMethodRetVoid)    fp)(vmCurrentContext)
-#define bc_invoke_special_z(fp) do {JAVA_BOOLEAN ret = ((JavaMethodRetBoolean) fp)(vmCurrentContext); stack_push_int(ret);                 }while(0)
-#define bc_invoke_special_c(fp) do {JAVA_CHAR    ret = ((JavaMethodRetChar)    fp)(vmCurrentContext); stack_push_int(ret);                 }while(0)
-#define bc_invoke_special_b(fp) do {JAVA_BYTE    ret = ((JavaMethodRetByte)    fp)(vmCurrentContext); stack_push_int(ret);                 }while(0)
-#define bc_invoke_special_s(fp) do {JAVA_SHORT   ret = ((JavaMethodRetShort)   fp)(vmCurrentContext); stack_push_int(ret);                 }while(0)
-#define bc_invoke_special_i(fp) do {JAVA_INT     ret = ((JavaMethodRetInt)     fp)(vmCurrentContext); stack_push_int(ret);                 }while(0)
-#define bc_invoke_special_f(fp) do {JAVA_FLOAT   ret = ((JavaMethodRetFloat)   fp)(vmCurrentContext); stack_push_float(ret);               }while(0)
-#define bc_invoke_special_j(fp) do {JAVA_LONG    ret = ((JavaMethodRetLong)    fp)(vmCurrentContext); stack_push_long(ret);                }while(0)
-#define bc_invoke_special_d(fp) do {JAVA_DOUBLE  ret = ((JavaMethodRetDouble)  fp)(vmCurrentContext); stack_push_double(ret);              }while(0)
-#define bc_invoke_special_a(fp) do {JAVA_ARRAY   ret = ((JavaMethodRetArray)   fp)(vmCurrentContext); stack_push_object((JAVA_OBJECT)ret); }while(0)
-#define bc_invoke_special_o(fp) do {JAVA_OBJECT  ret = ((JavaMethodRetObject)  fp)(vmCurrentContext); stack_push_object(ret);              }while(0)
+#define bc_invoke_special_z(fp) do {JAVA_BOOLEAN ret = ((JavaMethodRetBoolean) fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
+#define bc_invoke_special_c(fp) do {JAVA_CHAR    ret = ((JavaMethodRetChar)    fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
+#define bc_invoke_special_b(fp) do {JAVA_BYTE    ret = ((JavaMethodRetByte)    fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
+#define bc_invoke_special_s(fp) do {JAVA_SHORT   ret = ((JavaMethodRetShort)   fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
+#define bc_invoke_special_i(fp) do {JAVA_INT     ret = ((JavaMethodRetInt)     fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
+#define bc_invoke_special_f(fp) do {JAVA_FLOAT   ret = ((JavaMethodRetFloat)   fp)(vmCurrentContext); stack_push_float(ret);               } while(0)
+#define bc_invoke_special_j(fp) do {JAVA_LONG    ret = ((JavaMethodRetLong)    fp)(vmCurrentContext); stack_push_long(ret);                } while(0)
+#define bc_invoke_special_d(fp) do {JAVA_DOUBLE  ret = ((JavaMethodRetDouble)  fp)(vmCurrentContext); stack_push_double(ret);              } while(0)
+#define bc_invoke_special_a(fp) do {JAVA_ARRAY   ret = ((JavaMethodRetArray)   fp)(vmCurrentContext); stack_push_object((JAVA_OBJECT)ret); } while(0)
+#define bc_invoke_special_o(fp) do {JAVA_OBJECT  ret = ((JavaMethodRetObject)  fp)(vmCurrentContext); stack_push_object(ret);              } while(0)
+
+JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassInfo *classInfo,
+                           JAVA_CLASS *classRefOut);
+#define bc_invoke_static_prepare(class_info)                                    \
+    JAVA_CLASS classRef;                                                        \
+    bc_resolve_class(vmCurrentContext, &STACK_FRAME, class_info, &classRef);    \
+    vmCurrentContext->callingClass = classRef
+#define bc_invoke_static(class_info, fp)   do {bc_invoke_static_prepare(class_info);                    ((JavaMethodRetVoid)    fp)(vmCurrentContext);                                      } while(0)
+#define bc_invoke_static_z(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_BOOLEAN ret = ((JavaMethodRetBoolean) fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
+#define bc_invoke_static_c(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_CHAR    ret = ((JavaMethodRetChar)    fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
+#define bc_invoke_static_b(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_BYTE    ret = ((JavaMethodRetByte)    fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
+#define bc_invoke_static_s(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_SHORT   ret = ((JavaMethodRetShort)   fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
+#define bc_invoke_static_i(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_INT     ret = ((JavaMethodRetInt)     fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
+#define bc_invoke_static_f(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_FLOAT   ret = ((JavaMethodRetFloat)   fp)(vmCurrentContext); stack_push_float(ret);               } while(0)
+#define bc_invoke_static_j(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_LONG    ret = ((JavaMethodRetLong)    fp)(vmCurrentContext); stack_push_long(ret);                } while(0)
+#define bc_invoke_static_d(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_DOUBLE  ret = ((JavaMethodRetDouble)  fp)(vmCurrentContext); stack_push_double(ret);              } while(0)
+#define bc_invoke_static_a(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_ARRAY   ret = ((JavaMethodRetArray)   fp)(vmCurrentContext); stack_push_object((JAVA_OBJECT)ret); } while(0)
+#define bc_invoke_static_o(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_OBJECT  ret = ((JavaMethodRetObject)  fp)(vmCurrentContext); stack_push_object(ret);              } while(0)
 
 // field instructions
 JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *valueOut, BasicType fieldType);
@@ -375,11 +393,9 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassI
 #define bc_putstatic_a(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, ARRAY);  } while(0)
 #define bc_putstatic_o(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, OBJECT); } while(0)
 
-JAVA_VOID bc_getstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassInfo *classInfo,
-                       JAVA_CLASS *classRefOut);
-#define bc_do_getstatic(class_info, class_type, field_name, field_type)     \
-    JAVA_CLASS classRef;                                                    \
-    bc_getstatic(vmCurrentContext, &STACK_FRAME, class_info, &classRef);    \
+#define bc_do_getstatic(class_info, class_type, field_name, field_type)         \
+    JAVA_CLASS classRef;                                                        \
+    bc_resolve_class(vmCurrentContext, &STACK_FRAME, class_info, &classRef);    \
     JAVA_##field_type value = ((class_type*)classRef)->field_name
 #define bc_getstatic_z(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, BOOLEAN); stack_push_int(value);                } while(0)
 #define bc_getstatic_c(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, CHAR);    stack_push_int(value);                } while(0)

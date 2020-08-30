@@ -886,7 +886,7 @@ class ClassWriter(
                             val preResolved = resolvedField.declaringClass.preResolvedStaticFields.single { it.field == resolvedField }
                             cWriter.write(
                                 """
-                    |    // getstatic ${ownerClass.className}.${inst.name}:${inst.desc}
+                    |    // getstatic ${inst.owner}.${inst.name}:${inst.desc}
                     |    bc_getstatic${resolvedField.typeSuffix}(&${resolvedField.declaringClass.cName}, ${resolvedField.declaringClass.cClassName}, ${preResolved.cName});
                     |""".trimMargin()
                             )
@@ -914,7 +914,7 @@ class ClassWriter(
                             val preResolved = resolvedField.declaringClass.preResolvedStaticFields.single { it.field == resolvedField }
                             cWriter.write(
                                 """
-                    |    // putstatic ${ownerClass.className}.${inst.name}:${inst.desc}
+                    |    // putstatic ${inst.owner}.${inst.name}:${inst.desc}
                     |    bc_putstatic${resolvedField.typeSuffix}(&${resolvedField.declaringClass.cName}, ${resolvedField.declaringClass.cClassName}, ${preResolved.cName});
                     |""".trimMargin()
                             )
@@ -932,7 +932,7 @@ class ClassWriter(
                             val preResolved = resolvedField.declaringClass.preResolvedInstanceFields.single { it.field == resolvedField }
                             cWriter.write(
                                 """
-                    |    // getfield ${ownerClass.className}.${inst.name}:${inst.desc}
+                    |    // getfield ${inst.owner}.${inst.name}:${inst.desc}
                     |    bc_getfield${resolvedField.typeSuffix}(${resolvedField.declaringClass.cObjectName}, ${preResolved.cName});
                     |""".trimMargin()
                             )
@@ -960,7 +960,7 @@ class ClassWriter(
                             val preResolved = resolvedField.declaringClass.preResolvedInstanceFields.single { it.field == resolvedField }
                             cWriter.write(
                                 """
-                    |    // putfield ${ownerClass.className}.${inst.name}:${inst.desc}
+                    |    // putfield ${inst.owner}.${inst.name}:${inst.desc}
                     |    bc_putfield${resolvedField.typeSuffix}(${resolvedField.declaringClass.cObjectName}, ${preResolved.cName});
                     |""".trimMargin()
                             )
@@ -1035,6 +1035,15 @@ class ClassWriter(
                                 if (!resolvedMethod.isStatic) {
                                     throw IncompatibleClassChangeError("$resolvedMethod is not a static method")
                                 }
+
+                                // Add the declaring class as dependency
+                                cWriter.addDependency(resolvedMethod.declaringClass)
+                                cWriter.write(
+                                    """
+                    |    // invokestatic ${inst.owner}.${inst.name}${inst.desc}
+                    |    bc_invoke_static${resolvedMethod.invokeSuffix}(&${resolvedMethod.declaringClass.cName}, ${resolvedMethod.cName});
+                    |""".trimMargin()
+                                )
                             }
                             Opcodes.INVOKEINTERFACE -> {
                                 // if the resolved method is static or
