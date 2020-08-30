@@ -7,14 +7,32 @@
 
 #include "vm_base.h"
 
+//*********************************************************************************************************
+// Classes of array of primary type
+//*********************************************************************************************************
+extern JavaClass* g_class_array_Z;
+extern JavaClass* g_class_array_B;
+extern JavaClass* g_class_array_C;
+extern JavaClass* g_class_array_S;
+extern JavaClass* g_class_array_I;
+extern JavaClass* g_class_array_J;
+extern JavaClass* g_class_array_F;
+extern JavaClass* g_class_array_D;
+
+typedef struct _JavaArrayClass {
+    JavaClass baseClass;
+
+    // We store the class info together with the class so we don't
+    // need to worry about memory memory management.
+    JavaClassInfo classInfo;
+    JAVA_CLASS componentType;
+} JavaArrayClass;
+
 struct _JavaArray {
-    JAVA_CLASS clazz; // The class contains the info of the element type
-    void *monitor;
+    JavaObjectBase baseObject;
 
     JAVA_INT length;
 };
-
-void array_init();
 
 /** Returns the address of the first element. */
 void *array_base(JAVA_ARRAY a, BasicType t);

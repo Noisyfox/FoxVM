@@ -35,7 +35,3 @@ size_t array_max_length(BasicType t) {
 size_t array_size_of_type(BasicType t, size_t length) {
     return align_size_up(array_header_size(t) + type_size(t) * length, SIZE_ALIGNMENT);
 }
-
-void array_init() {
-    // TODO: init classes for array of primary types
-}

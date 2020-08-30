@@ -5,7 +5,6 @@
 #include "vm_main.h"
 #include "vm_memory.h"
 #include "vm_classloader.h"
-#include "vm_array.h"
 
 int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     // Init low level memory system first
@@ -40,9 +39,6 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     if (!classloader_init(vmCurrentContext)) {
         return -1;
     }
-
-    // Init base type systems
-    array_init();
 
     // TODO: create java Thread Object for main thread
 

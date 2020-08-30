@@ -10,12 +10,17 @@
 #include "uthash.h"
 #include <stdio.h>
 #include "vm_bytecode.h"
+#include "vm_array.h"
 
 extern JavaClassInfo *foxvm_class_infos_rt[];
 
 // A fake object for locking
 static JavaObjectBase g_bootstrapClassLockObj = {0};
 static VMStackSlot g_bootstrapClassLock = {0};
+
+// A fake object for array cache locking
+static JavaObjectBase g_bootstrapArrayClassLockObj = {0};
+static VMStackSlot g_bootstrapArrayClassLock = {0};
 
 #define cached_class(var)                       \
 static JavaClassInfo *g_classInfo_##var = NULL; \
@@ -47,22 +52,20 @@ cached_class(java_lang_Error);
 #undef cached_class
 
 static JAVA_VOID resolve_handler_primitive(JAVA_CLASS c) {
-    JavaClass *clazz = (JavaClass *) c;
+    c->interfaceCount = 0;
+    c->interfaces = NULL;
 
-    clazz->interfaceCount = 0;
-    clazz->interfaces = NULL;
+    c->staticFieldCount = 0;
+    c->staticFields = NULL;
+    c->hasStaticReference = JAVA_FALSE;
 
-    clazz->staticFieldCount = 0;
-    clazz->staticFields = NULL;
-    clazz->hasStaticReference = JAVA_FALSE;
-
-    clazz->fieldCount = 0;
-    clazz->fields = NULL;
-    clazz->hasReference = JAVA_FALSE;
+    c->fieldCount = 0;
+    c->fields = NULL;
+    c->hasReference = JAVA_FALSE;
 }
 
 #define def_prim_class(desc)                                                \
-static JavaClassInfo g_classInfo_primitive_##desc = {                       \
+JavaClassInfo g_classInfo_primitive_##desc = {                              \
     .accessFlags = CLASS_ACC_PUBLIC | CLASS_ACC_FINAL | CLASS_ACC_SUPER,    \
     .thisClass = #desc,                                                     \
     .signature = NULL,                                                      \
@@ -102,6 +105,15 @@ def_prim_class(V);
 
 #undef def_prim_class
 
+JavaClass* g_class_array_Z = NULL;
+JavaClass* g_class_array_B = NULL;
+JavaClass* g_class_array_C = NULL;
+JavaClass* g_class_array_S = NULL;
+JavaClass* g_class_array_I = NULL;
+JavaClass* g_class_array_J = NULL;
+JavaClass* g_class_array_F = NULL;
+JavaClass* g_class_array_D = NULL;
+
 static MethodInfo *java_lang_Class_init = NULL;
 
 typedef struct {
@@ -111,6 +123,70 @@ typedef struct {
 } LoadedClassEntry;
 static LoadedClassEntry *g_loadedClasses = NULL;
 
+typedef struct {
+    C_CSTR key;
+    JAVA_CLASS clazz;
+    UT_hash_handle hh;
+} LoadedArrayClassEntry;
+static LoadedArrayClassEntry *g_loadedArrayClasses = NULL;
+
+static JavaClassInfo *g_array_interfaces[2] = {
+        NULL, NULL
+};
+
+static JavaClass *g_array_interfaces_resolved[2] = {
+        NULL, NULL
+};
+
+static JAVA_VOID resolve_handler_array(JAVA_CLASS c) {
+    JavaArrayClass *clazz = (JavaArrayClass *) c;
+
+    c->interfaceCount = 2;
+    c->interfaces = g_array_interfaces_resolved;
+
+    c->staticFieldCount = 0;
+    c->staticFields = NULL;
+    c->hasStaticReference = JAVA_FALSE;
+
+    c->fieldCount = 0;
+    c->fields = NULL;
+    c->hasReference = JAVA_FALSE;
+
+    // Copy the prototype to the classInfo field in [JavaArrayClass]
+    memcpy(&clazz->classInfo, c->info, sizeof(JavaClassInfo));
+
+    // Fix the info ref
+    c->info = &clazz->classInfo;
+}
+
+// The prototype of all array class infos
+static JavaClassInfo g_classInfo_array_prototype = {
+        .accessFlags = CLASS_ACC_PUBLIC | CLASS_ACC_FINAL,
+        .thisClass = NULL,
+        .signature = NULL,
+        .superClass = NULL, // Assigned in [cl_bootstrap_init]
+        .interfaceCount = 2,
+        .interfaces = g_array_interfaces,
+        .fieldCount = 0,
+        .fields = NULL,
+        .methodCount = 0,
+        .methods = 0,
+
+        .resolveHandler = resolve_handler_array,
+        .classSize = sizeof(JavaArrayClass), // This is the most important part
+        .instanceSize = 0, // This is not used for array types, use [array_size_of_type] instead
+
+        .preResolvedStaticFieldCount = 0,
+        .preResolvedStaticFields = NULL,
+        .preResolvedInstanceFieldCount = 0,
+        .preResolvedInstanceFields = NULL,
+        .preResolvedStaticFieldRefCount = 0,
+        .preResolvedStaticFieldReferences = NULL,
+
+        .clinit = NULL,
+        .finalizer = NULL,
+};
+
 /** Find class info by class name */
 static JavaClassInfo *cl_bootstrap_class_info_lookup(C_CSTR className) {
     JavaClassInfo **cursor = foxvm_class_infos_rt;
@@ -118,6 +194,29 @@ static JavaClassInfo *cl_bootstrap_class_info_lookup(C_CSTR className) {
     while (currentInfo != NULL) {
         // Compare the class name
         if (strcmp(className, currentInfo->thisClass) == 0) {
+            return currentInfo;
+        }
+
+        cursor++;
+        currentInfo = *cursor;
+    }
+
+    return NULL;
+}
+
+static JavaClassInfo *cl_bootstrap_class_info_lookup_by_descriptor(C_CSTR desc) {
+    assert(desc[0] == 'L');
+    size_t len = strlen(desc);
+    assert(desc[len - 1] == ';');
+
+    desc++; // Skip the first L
+    len -= 2; // Then also remove the last ;
+
+    JavaClassInfo **cursor = foxvm_class_infos_rt;
+    JavaClassInfo *currentInfo = *cursor;
+    while (currentInfo != NULL) {
+        // Compare the class name
+        if (strncmp(desc, currentInfo->thisClass, len) == 0) {
             return currentInfo;
         }
 
@@ -147,6 +246,14 @@ static JavaClassInfo *cl_bootstrap_class_info_lookup(C_CSTR className) {
 #define cache_class(var, className) do {            \
     load_class_info(g_classInfo_##var, className);  \
     load_class(g_class_##var, g_classInfo_##var);   \
+} while(0)
+
+#define cache_array_class(desc) do {                                                        \
+    g_class_array_##desc = cl_bootstrap_find_class(vmCurrentContext, "["#desc);             \
+    if (!g_class_array_##desc) {                                                            \
+        fprintf(stderr, "Bootstrap Classloader: unable to load array class [%s\n", #desc);  \
+        return JAVA_FALSE;                                                                  \
+    }                                                                                       \
 } while(0)
 
 static void cl_bootstrap_init_class_object(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT classObject, JAVA_CLASS clazz) {
@@ -240,6 +347,11 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     if (monitor_create(vmCurrentContext, &g_bootstrapClassLock) != thrd_success) {
         return JAVA_FALSE;
     }
+    g_bootstrapArrayClassLock.data.o = &g_bootstrapArrayClassLockObj;
+    g_bootstrapArrayClassLock.type = VM_SLOT_OBJECT;
+    if (monitor_create(vmCurrentContext, &g_bootstrapArrayClassLock) != thrd_success) {
+        return JAVA_FALSE;
+    }
     // Find essential class infos
     // This info is required by class creation, so we need to load it first
     load_class_info(g_classInfo_java_lang_Class, "java/lang/Class");
@@ -262,6 +374,21 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     // Classes that required by array types
     cache_class(java_lang_Cloneable, "java/lang/Cloneable");
     cache_class(java_io_Serializable, "java/io/Serializable");
+    g_array_interfaces[0] = g_classInfo_java_lang_Cloneable;
+    g_array_interfaces[1] = g_classInfo_java_io_Serializable;
+    g_array_interfaces_resolved[0] = g_class_java_lang_Cloneable;
+    g_array_interfaces_resolved[1] = g_class_java_io_Serializable;
+    g_classInfo_array_prototype.superClass = g_classInfo_java_lang_Object;
+
+    // Then we create the array classes for primitive types
+    cache_array_class(Z);
+    cache_array_class(B);
+    cache_array_class(C);
+    cache_array_class(S);
+    cache_array_class(I);
+    cache_array_class(J);
+    cache_array_class(F);
+    cache_array_class(D);
 
     // Make sure the class is initilized
     if (classloader_get_class(vmCurrentContext, JAVA_NULL, g_classInfo_java_lang_Class) == (JAVA_CLASS) JAVA_NULL) {
@@ -416,9 +543,128 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
     return thisClass;
 }
 
+static JAVA_CLASS cl_bootstrap_find_class_by_descriptor(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc) {
+    switch (desc[0]) {
+        case 'Z': return g_class_primitive_Z;
+        case 'B': return g_class_primitive_B;
+        case 'C': return g_class_primitive_C;
+        case 'S': return g_class_primitive_S;
+        case 'I': return g_class_primitive_I;
+        case 'J': return g_class_primitive_J;
+        case 'F': return g_class_primitive_F;
+        case 'D': return g_class_primitive_D;
+        case 'V': return g_class_primitive_V;
+        case '[': return cl_bootstrap_find_class(vmCurrentContext, desc);
+    }
+    // Find the class info by the descriptor
+    JavaClassInfo *info = cl_bootstrap_class_info_lookup_by_descriptor(desc);
+    if (info) {
+        return cl_bootstrap_find_class_by_info(vmCurrentContext, info);
+    }
+
+    return (JAVA_CLASS) JAVA_NULL;
+}
+
+static JAVA_CLASS cl_bootstrap_find_array_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc) {
+    assert(desc[0] == '[');
+
+    int ret = monitor_enter(vmCurrentContext, &g_bootstrapArrayClassLock);
+    if (ret != thrd_success) {
+        return (JAVA_CLASS) JAVA_NULL;
+    }
+
+    // Find class in dynamic created array cache
+    LoadedArrayClassEntry *entry;
+    HASH_FIND_STR(g_loadedArrayClasses, desc, entry);
+    if (entry) {
+        JAVA_CLASS c = entry->clazz;
+        monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
+        return c;
+    }
+
+    // Need to create one
+    printf("Bootstrap Classloader: creating array class %s\n", desc);
+    JAVA_CLASS componentType = cl_bootstrap_find_class_by_descriptor(vmCurrentContext, &desc[1]);
+    if (componentType == g_class_primitive_V) {
+        componentType = (JAVA_CLASS) JAVA_NULL;
+    }
+    if (componentType == (JAVA_CLASS) JAVA_NULL) {
+        monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
+        fprintf(stderr, "Bootstrap Classloader: unable to create array %s: component type %s not found\n",
+                desc, &desc[1]);
+        // TODO: throw exception
+        return NULL;
+    }
+
+    entry = heap_alloc_uncollectable(vmCurrentContext, sizeof(LoadedArrayClassEntry));
+    if (!entry) {
+        monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
+        fprintf(stderr, "Bootstrap Classloader: unable to alloc LoadedArrayClassEntry for array class %s\n", desc);
+        // TODO: throw OOM exception
+        return (JAVA_CLASS) JAVA_NULL;
+    }
+    // Make a copy of the class desc string
+    C_CSTR desc_dup = strdup(desc);
+    if (!desc_dup) {
+        monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
+        fprintf(stderr, "Bootstrap Classloader: unable to duplicate class descriptor %s\n", desc);
+        heap_free_uncollectable(vmCurrentContext, entry);
+        // TODO: throw OOM exception
+        return (JAVA_CLASS) JAVA_NULL;
+    }
+
+    // Create a new JavaArrayClass for this class, using the prototype info
+    JAVA_CLASS thisClass;
+    JAVA_OBJECT classObject;
+    if (cl_bootstrap_create_class(vmCurrentContext, &g_classInfo_array_prototype, &thisClass, &classObject) !=
+        JAVA_TRUE) {
+        monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
+        free((void *) desc_dup);
+        heap_free_uncollectable(vmCurrentContext, entry);
+        // TODO: throw OOM exception
+        return (JAVA_CLASS) JAVA_NULL;
+    }
+    thisClass->isPrimitive = JAVA_FALSE;
+
+    JavaArrayClass *arrayClass = (JavaArrayClass *) thisClass;
+    arrayClass->componentType = componentType;
+
+    // We then register the class
+    entry->key = desc_dup; // <- here we keep the reference to the duplicated string, so it won't leak
+    entry->clazz = thisClass;
+    HASH_ADD_STR(g_loadedArrayClasses, key, entry);
+    thisClass->state = CLASS_STATE_REGISTERED;
+
+    // Then we pre-init the class
+    VMStackSlot thisSlot;
+    thisSlot.data.o = (JAVA_OBJECT) thisClass;
+    thisSlot.type = VM_SLOT_OBJECT;
+    if (monitor_create(vmCurrentContext, &thisSlot) != thrd_success) {
+        thisClass->state = CLASS_STATE_ERROR;
+        monitor_exit(vmCurrentContext, &g_bootstrapClassLock);
+        fprintf(stderr, "Bootstrap Classloader: unable to create monitor for array class %s\n", desc);
+        // TODO: throw exception
+        return (JAVA_CLASS) JAVA_NULL;
+    }
+    g_classInfo_array_prototype.resolveHandler(thisClass);
+    // The we assign the class name
+    thisClass->info->thisClass = desc_dup;
+
+    // Init the java/lang/Class instance
+    if (java_lang_Class_init) {
+        cl_bootstrap_init_class_object(vmCurrentContext, classObject, thisClass);
+    }
+
+    // Mark current class as resolved
+    thisClass->state = CLASS_STATE_RESOLVED;
+
+    monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
+    return thisClass;
+}
+
 JAVA_CLASS cl_bootstrap_find_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR className) {
     if (className[0] == '[') {
-
+        return cl_bootstrap_find_array_class(vmCurrentContext, className);
     }
 
     // Find class info by class name

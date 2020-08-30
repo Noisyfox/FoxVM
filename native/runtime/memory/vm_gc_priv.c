@@ -23,9 +23,12 @@ void heap_fill_with_object(void *start, size_t size) {
         size_t element_count = element_size / type_size(VM_TYPE_INT);
         assert(size == array_size_of_type(VM_TYPE_INT, element_count));
 
+        // Set class
+        assert(g_class_array_I != NULL);
+        array->baseObject.clazz = g_class_array_I;
+        array->baseObject.monitor = NULL;
         // Set the array properties
         array->length = size;
-        // TODO: set class
     } else if (size > 0) {
         assert(size == g_fillerSizeMin);
         // Fill the memory with a plain object
