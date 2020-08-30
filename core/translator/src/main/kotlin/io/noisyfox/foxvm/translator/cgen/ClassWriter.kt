@@ -157,6 +157,7 @@ class ClassWriter(
                     |    ClassState state;
                     |    JAVA_LONG initThread;
                     |    JavaClassInfo *info;
+                    |    JAVA_BOOLEAN isPrimitive;
                     |
                     |    JAVA_OBJECT classLoader;
                     |    JAVA_OBJECT classInstance;

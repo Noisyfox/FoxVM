@@ -306,6 +306,7 @@ struct _JavaClass {
     ClassState state;
     JAVA_LONG initThread;
     JavaClassInfo *info;
+    JAVA_BOOLEAN isPrimitive;
 
     JAVA_OBJECT classLoader;
     // The real instance of a java/lang/Class
