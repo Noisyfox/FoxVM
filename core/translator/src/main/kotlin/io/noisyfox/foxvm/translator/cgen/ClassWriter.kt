@@ -1057,7 +1057,24 @@ class ClassWriter(
                 is TypeInsnNode -> {
                     when (inst.opcode) {
                         Opcodes.NEW -> {
-                            // TODO
+                            val resolvedClass = requireNotNull(classPool.getClass(inst.desc)) {
+                                "Could not find class ${inst.desc}"
+                            }.requireClassInfo()
+
+                            // if the symbolic reference to the class, array, or interface
+                            // type resolves to an interface or is an abstract class, new throws
+                            // an InstantiationError.
+                            if (resolvedClass.isAbstract) {
+                                throw InstantiationError("Cannot instantiate abstract class ${inst.desc}")
+                            }
+
+                            cWriter.addDependency(resolvedClass)
+                            cWriter.write(
+                                """
+                    |    // new ${inst.desc}
+                    |    bc_new(&${resolvedClass.cName});
+                    |""".trimMargin()
+                            )
                         }
                         Opcodes.ANEWARRAY -> {
                             val componentType = Type.getObjectType(inst.desc)

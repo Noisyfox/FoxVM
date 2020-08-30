@@ -20,6 +20,8 @@ data class ClassInfo(
 
     val isPublic: Boolean = (thisClass.access and Opcodes.ACC_PUBLIC) == Opcodes.ACC_PUBLIC
 
+    val isAbstract: Boolean = (thisClass.access and Opcodes.ACC_ABSTRACT) == Opcodes.ACC_ABSTRACT
+
     val isInterface: Boolean = (thisClass.access and Opcodes.ACC_INTERFACE) == Opcodes.ACC_INTERFACE
 
     val packageName: String = thisClass.className.split('/').dropLast(1).joinToString(separator = ".")

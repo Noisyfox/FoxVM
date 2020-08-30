@@ -308,6 +308,10 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack);
 #define bc_ldc_float(v)  stack_push_float(v)
 #define bc_ldc_double(v) stack_push_double(v)
 
+// new instruction
+JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *info);
+#define bc_new(class_info) do {JAVA_OBJECT obj = bc_create_instance(vmCurrentContext, class_info); stack_push_object(obj);} while(0)
+
 // invokeXXXX instructions
 #define bc_invoke_special(fp)                          ((JavaMethodRetVoid)    fp)(vmCurrentContext)
 #define bc_invoke_special_z(fp) do {JAVA_BOOLEAN ret = ((JavaMethodRetBoolean) fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)

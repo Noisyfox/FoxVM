@@ -677,3 +677,20 @@ JAVA_VOID bc_array_store(VMOperandStack *stack, BasicType fieldType) {
     index->type = VM_SLOT_INVALID;
     arrayRef->type = VM_SLOT_INVALID;
 }
+
+JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *info) {
+    JAVA_CLASS clazz;
+    bc_resolve_class(vmCurrentContext, stack_frame_top(vmCurrentContext), info, &clazz);
+
+    assert(!clazz->isPrimitive);
+
+    JAVA_OBJECT obj = heap_alloc(vmCurrentContext, clazz->info->instanceSize);
+    if (!obj) {
+        fprintf(stderr, "Unable to create instance of class %s \n", info->thisClass);
+        // TODO: throw OOM exception
+        return JAVA_NULL;
+    }
+    obj->clazz = clazz;
+
+    return obj;
+}
