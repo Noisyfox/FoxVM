@@ -151,31 +151,7 @@ class ClassWriter(
             """
                     |// Class definition
                     |typedef struct _${info.cClassName} {
-                    |    JAVA_CLASS clazz;
-                    |    void *monitor;
-                    |
-                    |    ClassState state;
-                    |    JAVA_LONG initThread;
-                    |    JavaClassInfo *info;
-                    |    JAVA_BOOLEAN isPrimitive;
-                    |
-                    |    JAVA_OBJECT classLoader;
-                    |    JAVA_OBJECT classInstance;
-                    |
-                    |    JAVA_CLASS superClass;
-                    |    int interfaceCount;
-                    |    JAVA_CLASS *interfaces;
-                    |
-                    |    uint16_t staticFieldCount;
-                    |    ResolvedStaticField *staticFields;
-                    |    JAVA_BOOLEAN hasStaticReference;
-                    |
-                    |    uint32_t fieldCount;
-                    |    ResolvedInstanceField *fields;
-                    |    JAVA_BOOLEAN hasReference;
-                    |
-                    |    uint32_t staticFieldRefCount;
-                    |    ResolvedStaticFieldReference *staticFieldReferences;
+                    |    JavaClass baseClass;
                     |
                     |    // Start of resolved data storage
                     |""".trimMargin()
@@ -234,8 +210,7 @@ class ClassWriter(
             """
                     |// Object definition
                     |typedef struct _${info.cObjectName} {
-                    |    JAVA_CLASS clazz;
-                    |    void *monitor;
+                    |    JavaObjectBase baseObject;
                     |
                     |    // Start of instance field storage
                     |""".trimMargin()
@@ -538,16 +513,16 @@ class ClassWriter(
         if (info.interfaces.isNotEmpty()) {
             cWriter.write(
                 """
-                    |    clazz->interfaceCount = ${info.interfaces.size};
-                    |    clazz->interfaces = clazz->$CNAME_BACKING_INTERFACES;
+                    |    c->interfaceCount = ${info.interfaces.size};
+                    |    c->interfaces = clazz->$CNAME_BACKING_INTERFACES;
                     |
                     |""".trimMargin()
             )
         } else {
             cWriter.write(
                 """
-                    |    clazz->interfaceCount = 0;
-                    |    clazz->interfaces = $CNull;
+                    |    c->interfaceCount = 0;
+                    |    c->interfaces = $CNull;
                     |
                     |""".trimMargin()
             )
@@ -557,8 +532,8 @@ class ClassWriter(
         if (info.preResolvedStaticFields.isNotEmpty()) {
             cWriter.write(
                 """
-                    |    clazz->staticFieldCount = ${info.preResolvedStaticFields.size};
-                    |    clazz->staticFields = clazz->$CNAME_BACKING_STATIC_FIELDS;
+                    |    c->staticFieldCount = ${info.preResolvedStaticFields.size};
+                    |    c->staticFields = clazz->$CNAME_BACKING_STATIC_FIELDS;
                     |""".trimMargin()
             )
             // Resolve offset
@@ -566,24 +541,24 @@ class ClassWriter(
             info.preResolvedStaticFields.forEachIndexed { i, field ->
                 cWriter.write(
                     """
-                    |    clazz->staticFields[$i].info = &${info.cNameStaticFields}[$i];
-                    |    clazz->staticFields[$i].offset = offsetof(${info.cClassName}, ${field.cName});
+                    |    c->staticFields[$i].info = &${info.cNameStaticFields}[$i];
+                    |    c->staticFields[$i].offset = offsetof(${info.cClassName}, ${field.cName});
                     |""".trimMargin()
                 )
                 hasRef = hasRef || field.isReference
             }
             cWriter.write(
                 """
-                    |    clazz->hasStaticReference = ${hasRef.translate()};
+                    |    c->hasStaticReference = ${hasRef.translate()};
                     |
                     |""".trimMargin()
             )
         } else {
             cWriter.write(
                 """
-                    |    clazz->staticFieldCount = 0;
-                    |    clazz->staticFields = $CNull;
-                    |    clazz->hasStaticReference = ${false.translate()};
+                    |    c->staticFieldCount = 0;
+                    |    c->staticFields = $CNull;
+                    |    c->hasStaticReference = ${false.translate()};
                     |
                     |""".trimMargin()
             )
@@ -593,8 +568,8 @@ class ClassWriter(
         if (info.preResolvedInstanceFields.isNotEmpty()) {
             cWriter.write(
                 """
-                    |    clazz->fieldCount = ${info.preResolvedInstanceFields.size};
-                    |    clazz->fields = clazz->$CNAME_BACKING_INSTANCE_FIELDS;
+                    |    c->fieldCount = ${info.preResolvedInstanceFields.size};
+                    |    c->fields = clazz->$CNAME_BACKING_INSTANCE_FIELDS;
                     |""".trimMargin()
             )
             // Resolve offset
@@ -602,24 +577,24 @@ class ClassWriter(
             info.preResolvedInstanceFields.forEachIndexed { i, field ->
                 cWriter.write(
                     """
-                    |    clazz->fields[$i].info = &${info.cNameInstanceFields}[$i];
-                    |    clazz->fields[$i].offset = offsetof(${info.cObjectName}, ${field.cName});
+                    |    c->fields[$i].info = &${info.cNameInstanceFields}[$i];
+                    |    c->fields[$i].offset = offsetof(${info.cObjectName}, ${field.cName});
                     |""".trimMargin()
                 )
                 hasRef = hasRef || field.isReference
             }
             cWriter.write(
                 """
-                    |    clazz->hasReference = ${hasRef.translate()};
+                    |    c->hasReference = ${hasRef.translate()};
                     |
                     |""".trimMargin()
             )
         } else {
             cWriter.write(
                 """
-                    |    clazz->fieldCount = 0;
-                    |    clazz->fields = $CNull;
-                    |    clazz->hasReference = ${false.translate()};
+                    |    c->fieldCount = 0;
+                    |    c->fields = $CNull;
+                    |    c->hasReference = ${false.translate()};
                     |
                     |""".trimMargin()
             )
