@@ -5,6 +5,9 @@
 #include "vm_bytecode.h"
 #include <math.h>
 #include "vm_classloader.h"
+#include "vm_array.h"
+#include "vm_gc.h"
+#include <stdio.h>
 
 #define JAVA_TYPE_i JAVA_INT
 #define JAVA_TYPE_l JAVA_LONG
@@ -500,4 +503,39 @@ JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaCl
     JAVA_CLASS clazz = classloader_get_class(vmCurrentContext, frame->thisClass->classLoader, classInfo);
     assert(clazz != (JAVA_CLASS) JAVA_NULL);
     *classRefOut = clazz;
+}
+
+JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR desc) {
+    assert(desc[0] == TYPE_DESC_ARRAY);
+
+    JAVA_CLASS clazz = classloader_get_class_by_name(vmCurrentContext, frame->thisClass->classLoader, desc);
+    assert(clazz != (JAVA_CLASS) JAVA_NULL);
+
+    VMOperandStack *stack = &frame->operandStack;
+    VMStackSlot *value = stack->top - 1;
+
+    assert(value >= stack->slots);
+    assert(value->type == VM_SLOT_INT);
+
+    // Pop
+    stack->top = value;
+    value->type = VM_SLOT_INVALID;
+
+    JAVA_INT count = value->data.i;
+    assert(count >= 0); // TODO: throw NegativeArraySizeException.
+
+    BasicType elementType = array_type_of(desc);
+    size_t objectSize = array_size_of_type(elementType, count);
+
+    JAVA_ARRAY array = heap_alloc(vmCurrentContext, objectSize);
+    if (!array) {
+        fprintf(stderr, "Unable to alloc array %s with count %d\n", desc, count);
+        // TODO: throw OOM exception
+        return (JAVA_ARRAY) JAVA_NULL;
+    }
+
+    array->baseObject.clazz = clazz;
+    array->length = count;
+
+    return array;
 }

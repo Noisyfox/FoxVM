@@ -6,6 +6,7 @@
 #include "vm_boot_classloader.h"
 #include "vm_thread.h"
 #include <stdio.h>
+#include "vm_array.h"
 
 JAVA_BOOLEAN classloader_init(VM_PARAM_CURRENT_CONTEXT) {
     if (!cl_bootstrap_init(vmCurrentContext)) {
@@ -120,6 +121,22 @@ static JAVA_BOOLEAN classloader_init_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS 
         if (superInited != JAVA_TRUE) {
             fprintf(stderr, "Failed to init superinterface %s for class %s\n",
                     it->info->thisClass, clazz->info->thisClass);
+            // If the initialization of S completes abruptly because of a thrown exception, then
+            // acquire LC, label the Class object for C as erroneous, notify all waiting threads,
+            // release LC, and complete abruptly, throwing the same exception that resulted
+            // from initializing SC.
+            class_init_completed(JAVA_FALSE);
+            return JAVA_FALSE;
+        }
+    }
+
+    // If this class is array, then we also init the component type
+    if (clazz->info->thisClass[0] == '[') {
+        JavaArrayClass *arrayClass = (JavaArrayClass *) clazz;
+        JAVA_BOOLEAN componentInited = classloader_init_class(vmCurrentContext, arrayClass->componentType);
+        if (componentInited != JAVA_TRUE) {
+            fprintf(stderr, "Failed to init component class %s for array %s\n",
+                    arrayClass->componentType->info->thisClass, clazz->info->thisClass);
             // If the initialization of S completes abruptly because of a thrown exception, then
             // acquire LC, label the Class object for C as erroneous, notify all waiting threads,
             // release LC, and complete abruptly, throwing the same exception that resulted

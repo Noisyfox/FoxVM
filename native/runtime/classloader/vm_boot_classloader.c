@@ -205,7 +205,7 @@ static JavaClassInfo *cl_bootstrap_class_info_lookup(C_CSTR className) {
 }
 
 static JavaClassInfo *cl_bootstrap_class_info_lookup_by_descriptor(C_CSTR desc) {
-    assert(desc[0] == 'L');
+    assert(desc[0] == TYPE_DESC_REFERENCE);
     size_t len = strlen(desc);
     assert(desc[len - 1] == ';');
 
@@ -408,12 +408,23 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
         return JAVA_FALSE;
     }
     // Fix some fields that depends on the java/lang/Object and java/lang/Class
-    LoadedClassEntry *cursor;
-    for (cursor = g_loadedClasses; cursor != NULL; cursor = cursor->hh.next) {
-        JAVA_CLASS c = cursor->clazz;
-        c->classInstance->clazz = g_class_java_lang_Class;
+    {
+        LoadedClassEntry *cursor;
+        for (cursor = g_loadedClasses; cursor != NULL; cursor = cursor->hh.next) {
+            JAVA_CLASS c = cursor->clazz;
+            c->classInstance->clazz = g_class_java_lang_Class;
 
-        cl_bootstrap_init_class_object(vmCurrentContext, c->classInstance, c);
+            cl_bootstrap_init_class_object(vmCurrentContext, c->classInstance, c);
+        }
+    }
+    {
+        LoadedArrayClassEntry *cursor;
+        for (cursor = g_loadedArrayClasses; cursor != NULL; cursor = cursor->hh.next) {
+            JAVA_CLASS c = cursor->clazz;
+            c->classInstance->clazz = g_class_java_lang_Class;
+
+            cl_bootstrap_init_class_object(vmCurrentContext, c->classInstance, c);
+        }
     }
     cache_class(java_lang_ClassLoader, "java/lang/ClassLoader");
     cache_class(java_lang_String, "java/lang/String");
@@ -545,16 +556,16 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
 
 static JAVA_CLASS cl_bootstrap_find_class_by_descriptor(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc) {
     switch (desc[0]) {
-        case 'Z': return g_class_primitive_Z;
-        case 'B': return g_class_primitive_B;
-        case 'C': return g_class_primitive_C;
-        case 'S': return g_class_primitive_S;
-        case 'I': return g_class_primitive_I;
-        case 'J': return g_class_primitive_J;
-        case 'F': return g_class_primitive_F;
-        case 'D': return g_class_primitive_D;
-        case 'V': return g_class_primitive_V;
-        case '[': return cl_bootstrap_find_class(vmCurrentContext, desc);
+        case TYPE_DESC_BOOLEAN: return g_class_primitive_Z;
+        case TYPE_DESC_BYTE:    return g_class_primitive_B;
+        case TYPE_DESC_CHAR:    return g_class_primitive_C;
+        case TYPE_DESC_SHORT:   return g_class_primitive_S;
+        case TYPE_DESC_INT:     return g_class_primitive_I;
+        case TYPE_DESC_LONG:    return g_class_primitive_J;
+        case TYPE_DESC_FLOAT:   return g_class_primitive_F;
+        case TYPE_DESC_DOUBLE:  return g_class_primitive_D;
+        case TYPE_DESC_VOID:    return g_class_primitive_V;
+        case TYPE_DESC_ARRAY:   return cl_bootstrap_find_class(vmCurrentContext, desc);
     }
     // Find the class info by the descriptor
     JavaClassInfo *info = cl_bootstrap_class_info_lookup_by_descriptor(desc);
@@ -566,7 +577,7 @@ static JAVA_CLASS cl_bootstrap_find_class_by_descriptor(VM_PARAM_CURRENT_CONTEXT
 }
 
 static JAVA_CLASS cl_bootstrap_find_array_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc) {
-    assert(desc[0] == '[');
+    assert(desc[0] == TYPE_DESC_ARRAY);
 
     int ret = monitor_enter(vmCurrentContext, &g_bootstrapArrayClassLock);
     if (ret != thrd_success) {
@@ -663,7 +674,7 @@ static JAVA_CLASS cl_bootstrap_find_array_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR
 }
 
 JAVA_CLASS cl_bootstrap_find_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR className) {
-    if (className[0] == '[') {
+    if (className[0] == TYPE_DESC_ARRAY) {
         return cl_bootstrap_find_array_class(vmCurrentContext, className);
     }
 

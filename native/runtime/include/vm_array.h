@@ -6,6 +6,7 @@
 #define FOXVM_VM_ARRAYS_H
 
 #include "vm_base.h"
+#include <assert.h>
 
 //*********************************************************************************************************
 // Classes of array of primary type
@@ -51,6 +52,14 @@ static inline size_t array_min_size_of_type(BasicType t) {
 /** Return the maximum size in byte of an array of BasicType. */
 static inline size_t array_max_size_of_type(BasicType t) {
     return array_size_of_type(t, array_max_length(t));
+}
+
+static inline BasicType array_type_of(C_CSTR desc) {
+    assert(desc[0] == TYPE_DESC_ARRAY);
+    BasicType t = type_from_descriptor(desc[1]);
+    assert(t != VM_TYPE_ILLEGAL);
+
+    return t;
 }
 
 #endif //FOXVM_VM_ARRAYS_H

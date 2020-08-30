@@ -20,6 +20,7 @@ import org.objectweb.asm.tree.LineNumberNode
 import org.objectweb.asm.tree.LookupSwitchInsnNode
 import org.objectweb.asm.tree.MethodInsnNode
 import org.objectweb.asm.tree.TableSwitchInsnNode
+import org.objectweb.asm.tree.TypeInsnNode
 import org.objectweb.asm.tree.VarInsnNode
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -739,7 +740,18 @@ class ClassWriter(
                 is IntInsnNode -> {
                     when (inst.opcode) {
                         Opcodes.NEWARRAY -> {
-                            // TODO
+                            when (inst.operand) {
+                                in byteCodesNewArrayType -> {
+                                    val typeDesc = byteCodesNewArrayType[inst.operand]
+                                    cWriter.write(
+                                        """
+                    |    // newarray ${inst.operand}
+                    |    bc_newarray("$typeDesc");
+                    |""".trimMargin()
+                                    )
+                                }
+                                else -> throw IllegalArgumentException("Unexpected newarray type ${inst.operand}")
+                            }
                         }
                         in byteCodesIntInst -> {
                             val functionName = byteCodesIntInst[inst.opcode]
@@ -1002,7 +1014,13 @@ class ClassWriter(
                                     throw IncompatibleClassChangeError("$resolvedMethod is not a instance method")
                                 }
 
-                                writeInvokeSpecial(cWriter, inst, clazzInfo, ownerClass.requireClassInfo(), resolvedMethod)
+                                writeInvokeSpecial(
+                                    cWriter,
+                                    inst,
+                                    clazzInfo,
+                                    ownerClass.requireClassInfo(),
+                                    resolvedMethod
+                                )
                             }
                             Opcodes.INVOKESTATIC -> {
                                 // if the resolved method is an instance
@@ -1034,6 +1052,34 @@ class ClassWriter(
                             }
                             else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                         }
+                    }
+                }
+                is TypeInsnNode -> {
+                    when (inst.opcode) {
+                        Opcodes.NEW -> {
+                            // TODO
+                        }
+                        Opcodes.ANEWARRAY -> {
+                            val componentType = Type.getObjectType(inst.desc)
+                            val arrayDesc = when(componentType.sort) {
+                                Type.OBJECT -> "[L${inst.desc};"
+                                Type.ARRAY -> "[${inst.desc}"
+                                else -> throw IllegalArgumentException("Unsupported type ${componentType.sort} for anewarray.")
+                            }
+                            cWriter.write(
+                                """
+                    |    // anewarray ${inst.desc}
+                    |    bc_newarray("$arrayDesc");
+                    |""".trimMargin()
+                            )
+                        }
+                        Opcodes.CHECKCAST -> {
+                            // TODO
+                        }
+                        Opcodes.INSTANCEOF -> {
+                            // TODO
+                        }
+                        else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                     }
                 }
             }
@@ -1496,6 +1542,17 @@ class ClassWriter(
             Opcodes.IFNONNULL   to "bc_ifnonnull",
             Opcodes.GOTO        to "bc_goto"
             // JSR not supported!
+        )
+
+        private val byteCodesNewArrayType = mapOf(
+            Opcodes.T_BOOLEAN   to "[Z",
+            Opcodes.T_CHAR      to "[C",
+            Opcodes.T_FLOAT     to "[F",
+            Opcodes.T_DOUBLE    to "[D",
+            Opcodes.T_BYTE      to "[B",
+            Opcodes.T_SHORT     to "[S",
+            Opcodes.T_INT       to "[I",
+            Opcodes.T_LONG      to "[J"
         )
     }
 }

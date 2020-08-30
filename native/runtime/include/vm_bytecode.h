@@ -408,6 +408,10 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassI
 #define bc_getstatic_a(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, ARRAY);   stack_push_object((JAVA_OBJECT)value);} while(0)
 #define bc_getstatic_o(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, OBJECT);  stack_push_object(value);             } while(0)
 
+// array related instructions
+JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR desc);
+#define bc_newarray(desc) do {JAVA_ARRAY array = bc_new_array(vmCurrentContext, &STACK_FRAME, desc); stack_push_object((JAVA_OBJECT)array);} while(0)
+
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)
 
