@@ -539,3 +539,58 @@ JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR de
 
     return array;
 }
+
+JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldType) {
+    VMStackSlot *index = stack->top - 1;
+    VMStackSlot *arrayRef = stack->top - 2;
+
+    assert(arrayRef >= stack->slots);
+
+    assert(arrayRef->type == VM_SLOT_OBJECT);
+    assert(arrayRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+    assert(index->type == VM_SLOT_INT);
+    JAVA_INT i = index->data.i;
+    assert(i >= 0); // TODO: throw ArrayIndexOutOfBoundsException instead
+    JAVA_ARRAY array = (JAVA_ARRAY) arrayRef->data.o;
+    assert(i < array->length); // TODO: throw ArrayIndexOutOfBoundsException instead
+
+    void* element = array_element_at(array, fieldType, i);
+
+    // Copy the value
+    switch (fieldType) {
+        case VM_TYPE_CHAR:
+            *((JAVA_CHAR *) valueOut) = *((JAVA_CHAR *) element);
+            break;
+        case VM_TYPE_FLOAT:
+            *((JAVA_FLOAT *) valueOut) = *((JAVA_FLOAT *) element);
+            break;
+        case VM_TYPE_DOUBLE:
+            *((JAVA_DOUBLE *) valueOut) = *((JAVA_DOUBLE *) element);
+            break;
+        case VM_TYPE_BYTE:
+            *((JAVA_BYTE *) valueOut) = *((JAVA_BYTE *) element);
+            break;
+        case VM_TYPE_SHORT:
+            *((JAVA_SHORT *) valueOut) = *((JAVA_SHORT *) element);
+            break;
+        case VM_TYPE_INT:
+            *((JAVA_INT *) valueOut) = *((JAVA_INT *) element);
+            break;
+        case VM_TYPE_LONG:
+            *((JAVA_LONG *) valueOut) = *((JAVA_LONG *) element);
+            break;
+        case VM_TYPE_OBJECT:
+            *((JAVA_OBJECT *) valueOut) = *((JAVA_OBJECT *) element);
+            break;
+        case VM_TYPE_BOOLEAN:
+        case VM_TYPE_ARRAY:
+        case VM_TYPE_VOID:
+        case VM_TYPE_ILLEGAL:
+            assert(!"Unexpected value type");
+    }
+
+    // Pop
+    stack->top = arrayRef;
+    index->type = VM_SLOT_INVALID;
+    arrayRef->type = VM_SLOT_INVALID;
+}

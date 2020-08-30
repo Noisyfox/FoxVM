@@ -38,6 +38,9 @@ struct _JavaArray {
 /** Returns the address of the first element. */
 void *array_base(JAVA_ARRAY a, BasicType t);
 
+/** Returns the address of the element at index. */
+void *array_element_at(JAVA_ARRAY a, BasicType t, size_t index);
+
 /** Return the maximum length of an array of BasicType. */
 size_t array_max_length(BasicType t);
 

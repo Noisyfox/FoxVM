@@ -19,6 +19,10 @@ void *array_base(JAVA_ARRAY a, BasicType t) {
     return ptr_inc(a, array_header_size(t));
 }
 
+void *array_element_at(JAVA_ARRAY a, BasicType t, size_t index) {
+    return ptr_inc(array_base(a, t), type_size(t) * index);
+}
+
 size_t array_max_length(BasicType t) {
     size_t header_size = array_header_size(t);
     // Available size of element space in bytes

@@ -316,7 +316,7 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack);
 #define bc_invoke_special_s(fp) do {JAVA_SHORT   ret = ((JavaMethodRetShort)   fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
 #define bc_invoke_special_i(fp) do {JAVA_INT     ret = ((JavaMethodRetInt)     fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
 #define bc_invoke_special_f(fp) do {JAVA_FLOAT   ret = ((JavaMethodRetFloat)   fp)(vmCurrentContext); stack_push_float(ret);               } while(0)
-#define bc_invoke_special_j(fp) do {JAVA_LONG    ret = ((JavaMethodRetLong)    fp)(vmCurrentContext); stack_push_long(ret);                } while(0)
+#define bc_invoke_special_l(fp) do {JAVA_LONG    ret = ((JavaMethodRetLong)    fp)(vmCurrentContext); stack_push_long(ret);                } while(0)
 #define bc_invoke_special_d(fp) do {JAVA_DOUBLE  ret = ((JavaMethodRetDouble)  fp)(vmCurrentContext); stack_push_double(ret);              } while(0)
 #define bc_invoke_special_a(fp) do {JAVA_ARRAY   ret = ((JavaMethodRetArray)   fp)(vmCurrentContext); stack_push_object((JAVA_OBJECT)ret); } while(0)
 #define bc_invoke_special_o(fp) do {JAVA_OBJECT  ret = ((JavaMethodRetObject)  fp)(vmCurrentContext); stack_push_object(ret);              } while(0)
@@ -334,7 +334,7 @@ JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaCl
 #define bc_invoke_static_s(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_SHORT   ret = ((JavaMethodRetShort)   fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
 #define bc_invoke_static_i(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_INT     ret = ((JavaMethodRetInt)     fp)(vmCurrentContext); stack_push_int(ret);                 } while(0)
 #define bc_invoke_static_f(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_FLOAT   ret = ((JavaMethodRetFloat)   fp)(vmCurrentContext); stack_push_float(ret);               } while(0)
-#define bc_invoke_static_j(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_LONG    ret = ((JavaMethodRetLong)    fp)(vmCurrentContext); stack_push_long(ret);                } while(0)
+#define bc_invoke_static_l(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_LONG    ret = ((JavaMethodRetLong)    fp)(vmCurrentContext); stack_push_long(ret);                } while(0)
 #define bc_invoke_static_d(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_DOUBLE  ret = ((JavaMethodRetDouble)  fp)(vmCurrentContext); stack_push_double(ret);              } while(0)
 #define bc_invoke_static_a(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_ARRAY   ret = ((JavaMethodRetArray)   fp)(vmCurrentContext); stack_push_object((JAVA_OBJECT)ret); } while(0)
 #define bc_invoke_static_o(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_OBJECT  ret = ((JavaMethodRetObject)  fp)(vmCurrentContext); stack_push_object(ret);              } while(0)
@@ -352,7 +352,7 @@ JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *value
 #define bc_putfield_s(object_type, field_name) do {bc_do_putfield(object_type, field_name, SHORT);  } while(0)
 #define bc_putfield_i(object_type, field_name) do {bc_do_putfield(object_type, field_name, INT);    } while(0)
 #define bc_putfield_f(object_type, field_name) do {bc_do_putfield(object_type, field_name, FLOAT);  } while(0)
-#define bc_putfield_j(object_type, field_name) do {bc_do_putfield(object_type, field_name, LONG);   } while(0)
+#define bc_putfield_l(object_type, field_name) do {bc_do_putfield(object_type, field_name, LONG);   } while(0)
 #define bc_putfield_d(object_type, field_name) do {bc_do_putfield(object_type, field_name, DOUBLE); } while(0)
 // TODO: update card table for cross-gen reference
 #define bc_putfield_a(object_type, field_name) do {bc_do_putfield(object_type, field_name, ARRAY);  } while(0)
@@ -369,7 +369,7 @@ JAVA_VOID bc_getfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut);
 #define bc_getfield_s(object_type, field_name) do {bc_do_getfield(object_type, field_name, SHORT);   stack_push_int(value);                } while(0)
 #define bc_getfield_i(object_type, field_name) do {bc_do_getfield(object_type, field_name, INT);     stack_push_int(value);                } while(0)
 #define bc_getfield_f(object_type, field_name) do {bc_do_getfield(object_type, field_name, FLOAT);   stack_push_float(value);              } while(0)
-#define bc_getfield_j(object_type, field_name) do {bc_do_getfield(object_type, field_name, LONG);    stack_push_long(value);               } while(0)
+#define bc_getfield_l(object_type, field_name) do {bc_do_getfield(object_type, field_name, LONG);    stack_push_long(value);               } while(0)
 #define bc_getfield_d(object_type, field_name) do {bc_do_getfield(object_type, field_name, DOUBLE);  stack_push_double(value);             } while(0)
 #define bc_getfield_a(object_type, field_name) do {bc_do_getfield(object_type, field_name, ARRAY);   stack_push_object((JAVA_OBJECT)value);} while(0)
 #define bc_getfield_o(object_type, field_name) do {bc_do_getfield(object_type, field_name, OBJECT);  stack_push_object(value);             } while(0)
@@ -387,7 +387,7 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassI
 #define bc_putstatic_s(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, SHORT);  } while(0)
 #define bc_putstatic_i(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, INT);    } while(0)
 #define bc_putstatic_f(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, FLOAT);  } while(0)
-#define bc_putstatic_j(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, LONG);   } while(0)
+#define bc_putstatic_l(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, LONG);   } while(0)
 #define bc_putstatic_d(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, DOUBLE); } while(0)
 // TODO: update card table for cross-gen reference
 #define bc_putstatic_a(class_info, class_type, field_name) do {bc_do_putstatic(class_info, class_type, field_name, ARRAY);  } while(0)
@@ -403,7 +403,7 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassI
 #define bc_getstatic_s(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, SHORT);   stack_push_int(value);                } while(0)
 #define bc_getstatic_i(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, INT);     stack_push_int(value);                } while(0)
 #define bc_getstatic_f(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, FLOAT);   stack_push_float(value);              } while(0)
-#define bc_getstatic_j(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, LONG);    stack_push_long(value);               } while(0)
+#define bc_getstatic_l(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, LONG);    stack_push_long(value);               } while(0)
 #define bc_getstatic_d(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, DOUBLE);  stack_push_double(value);             } while(0)
 #define bc_getstatic_a(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, ARRAY);   stack_push_object((JAVA_OBJECT)value);} while(0)
 #define bc_getstatic_o(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, OBJECT);  stack_push_object(value);             } while(0)
@@ -411,6 +411,19 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassI
 // array related instructions
 JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR desc);
 #define bc_newarray(desc) do {JAVA_ARRAY array = bc_new_array(vmCurrentContext, &STACK_FRAME, desc); stack_push_object((JAVA_OBJECT)array);} while(0)
+
+JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldType);
+#define bc_do_array_load(field_type)                        \
+    JAVA_##field_type value;                                \
+    bc_array_load(OP_STACK, &value, VM_TYPE_##field_type)
+#define bc_caload() do {bc_do_array_load(CHAR);   stack_push_int(value);   } while(0)
+#define bc_baload() do {bc_do_array_load(BYTE);   stack_push_int(value);   } while(0)
+#define bc_saload() do {bc_do_array_load(SHORT);  stack_push_int(value);   } while(0)
+#define bc_iaload() do {bc_do_array_load(INT);    stack_push_int(value);   } while(0)
+#define bc_faload() do {bc_do_array_load(FLOAT);  stack_push_float(value); } while(0)
+#define bc_laload() do {bc_do_array_load(LONG);   stack_push_long(value);  } while(0)
+#define bc_daload() do {bc_do_array_load(DOUBLE); stack_push_double(value);} while(0)
+#define bc_aaload() do {bc_do_array_load(OBJECT); stack_push_object(value);} while(0)
 
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)

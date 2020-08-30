@@ -1516,11 +1516,20 @@ class ClassWriter(
             Opcodes.I2C to "bc_i2c",
             Opcodes.I2S to "bc_i2s",
 
-            Opcodes.LCMP to "bc_lcmp",
+            Opcodes.LCMP  to "bc_lcmp",
             Opcodes.FCMPL to "bc_fcmpl",
             Opcodes.FCMPG to "bc_fcmpg",
             Opcodes.DCMPL to "bc_dcmpl",
-            Opcodes.DCMPG to "bc_dcmpg"
+            Opcodes.DCMPG to "bc_dcmpg",
+
+            Opcodes.CALOAD to "bc_caload",
+            Opcodes.BALOAD to "bc_baload",
+            Opcodes.SALOAD to "bc_saload",
+            Opcodes.IALOAD to "bc_iaload",
+            Opcodes.FALOAD to "bc_faload",
+            Opcodes.LALOAD to "bc_laload",
+            Opcodes.DALOAD to "bc_daload",
+            Opcodes.AALOAD to "bc_aaload"
         )
 
         private val byteCodesJumpInst = mapOf(
