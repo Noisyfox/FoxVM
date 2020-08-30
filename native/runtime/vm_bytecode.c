@@ -555,31 +555,40 @@ JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldTy
     assert(i < array->length); // TODO: throw ArrayIndexOutOfBoundsException instead
 
     void* element = array_element_at(array, fieldType, i);
+    BasicType arrayType = array_type_of(array->baseObject.clazz->info->thisClass);
 
-    // Copy the value
+    // Read the value
     switch (fieldType) {
         case VM_TYPE_CHAR:
+            assert(arrayType == VM_TYPE_CHAR);
             *((JAVA_CHAR *) valueOut) = *((JAVA_CHAR *) element);
             break;
         case VM_TYPE_FLOAT:
+            assert(arrayType == VM_TYPE_FLOAT);
             *((JAVA_FLOAT *) valueOut) = *((JAVA_FLOAT *) element);
             break;
         case VM_TYPE_DOUBLE:
+            assert(arrayType == VM_TYPE_DOUBLE);
             *((JAVA_DOUBLE *) valueOut) = *((JAVA_DOUBLE *) element);
             break;
         case VM_TYPE_BYTE:
+            assert(arrayType == VM_TYPE_CHAR || arrayType == VM_TYPE_BOOLEAN);
             *((JAVA_BYTE *) valueOut) = *((JAVA_BYTE *) element);
             break;
         case VM_TYPE_SHORT:
+            assert(arrayType == VM_TYPE_SHORT);
             *((JAVA_SHORT *) valueOut) = *((JAVA_SHORT *) element);
             break;
         case VM_TYPE_INT:
+            assert(arrayType == VM_TYPE_INT);
             *((JAVA_INT *) valueOut) = *((JAVA_INT *) element);
             break;
         case VM_TYPE_LONG:
+            assert(arrayType == VM_TYPE_LONG);
             *((JAVA_LONG *) valueOut) = *((JAVA_LONG *) element);
             break;
         case VM_TYPE_OBJECT:
+            assert(arrayType == VM_TYPE_OBJECT || arrayType == VM_TYPE_ARRAY);
             *((JAVA_OBJECT *) valueOut) = *((JAVA_OBJECT *) element);
             break;
         case VM_TYPE_BOOLEAN:
@@ -591,6 +600,80 @@ JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldTy
 
     // Pop
     stack->top = arrayRef;
+    index->type = VM_SLOT_INVALID;
+    arrayRef->type = VM_SLOT_INVALID;
+}
+
+JAVA_VOID bc_array_store(VMOperandStack *stack, BasicType fieldType) {
+    VMStackSlot *value = stack->top - 1;
+    VMStackSlot *index = stack->top - 2;
+    VMStackSlot *arrayRef = stack->top - 3;
+
+    assert(arrayRef >= stack->slots);
+
+    assert(arrayRef->type == VM_SLOT_OBJECT);
+    assert(arrayRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+    assert(index->type == VM_SLOT_INT);
+    JAVA_INT i = index->data.i;
+    assert(i >= 0); // TODO: throw ArrayIndexOutOfBoundsException instead
+    JAVA_ARRAY array = (JAVA_ARRAY) arrayRef->data.o;
+    assert(i < array->length); // TODO: throw ArrayIndexOutOfBoundsException instead
+
+    void* element = array_element_at(array, fieldType, i);
+    BasicType arrayType = array_type_of(array->baseObject.clazz->info->thisClass);
+
+    // Store the value
+    switch (fieldType) {
+        case VM_TYPE_CHAR:
+            assert(arrayType == VM_TYPE_CHAR);
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_CHAR *) element) = value->data.i;
+            break;
+        case VM_TYPE_FLOAT:
+            assert(arrayType == VM_TYPE_FLOAT);
+            assert(value->type == VM_SLOT_FLOAT);
+            *((JAVA_FLOAT *) element) = value->data.f;
+            break;
+        case VM_TYPE_DOUBLE:
+            assert(arrayType == VM_TYPE_DOUBLE);
+            assert(value->type == VM_SLOT_DOUBLE);
+            *((JAVA_DOUBLE *) element) = value->data.d;
+            break;
+        case VM_TYPE_BYTE:
+            assert(arrayType == VM_TYPE_CHAR || arrayType == VM_TYPE_BOOLEAN);
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_BYTE *) element) = value->data.i;
+            break;
+        case VM_TYPE_SHORT:
+            assert(arrayType == VM_TYPE_SHORT);
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_SHORT *) element) = value->data.i;
+            break;
+        case VM_TYPE_INT:
+            assert(arrayType == VM_TYPE_INT);
+            assert(value->type == VM_SLOT_INT);
+            *((JAVA_INT *) element) = value->data.i;
+            break;
+        case VM_TYPE_LONG:
+            assert(arrayType == VM_TYPE_LONG);
+            assert(value->type == VM_SLOT_LONG);
+            *((JAVA_LONG *) element) = value->data.l;
+            break;
+        case VM_TYPE_OBJECT:
+            assert(arrayType == VM_TYPE_OBJECT || arrayType == VM_TYPE_ARRAY);
+            assert(value->type == VM_SLOT_OBJECT);
+            *((JAVA_OBJECT *) element) = value->data.o;
+            break;
+        case VM_TYPE_BOOLEAN:
+        case VM_TYPE_ARRAY:
+        case VM_TYPE_VOID:
+        case VM_TYPE_ILLEGAL:
+            assert(!"Unexpected value type");
+    }
+
+    // Pop
+    stack->top = arrayRef;
+    value->type = VM_SLOT_INVALID;
     index->type = VM_SLOT_INVALID;
     arrayRef->type = VM_SLOT_INVALID;
 }

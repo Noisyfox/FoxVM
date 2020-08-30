@@ -1529,7 +1529,16 @@ class ClassWriter(
             Opcodes.FALOAD to "bc_faload",
             Opcodes.LALOAD to "bc_laload",
             Opcodes.DALOAD to "bc_daload",
-            Opcodes.AALOAD to "bc_aaload"
+            Opcodes.AALOAD to "bc_aaload",
+
+            Opcodes.CASTORE to "bc_castore",
+            Opcodes.BASTORE to "bc_bastore",
+            Opcodes.SASTORE to "bc_sastore",
+            Opcodes.IASTORE to "bc_iastore",
+            Opcodes.FASTORE to "bc_fastore",
+            Opcodes.LASTORE to "bc_lastore",
+            Opcodes.DASTORE to "bc_dastore",
+            Opcodes.AASTORE to "bc_aastore"
         )
 
         private val byteCodesJumpInst = mapOf(
