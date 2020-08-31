@@ -337,8 +337,16 @@ static JAVA_CLASS cl_bootstrap_createPrimitiveClass(VM_PARAM_CURRENT_CONTEXT, Ja
     HASH_ADD_PTR(g_loadedClasses, key, entry);
     thisClass->state = CLASS_STATE_REGISTERED;
 
-    // Primitive class does not need monitor
-
+    // Then we pre-init the class
+    VMStackSlot thisSlot;
+    thisSlot.data.o = (JAVA_OBJECT) thisClass;
+    thisSlot.type = VM_SLOT_OBJECT;
+    if (monitor_create(vmCurrentContext, &thisSlot) != thrd_success) {
+        thisClass->state = CLASS_STATE_ERROR;
+        fprintf(stderr, "Bootstrap Classloader: unable to create monitor for class %s\n", classInfo->thisClass);
+        // TODO: throw exception
+        return (JAVA_CLASS) JAVA_NULL;
+    }
     classInfo->resolveHandler(thisClass);
     thisClass->superClass = NULL;
 
@@ -433,7 +441,7 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     cache_array_class(F);
     cache_array_class(D);
 
-    // Make sure the class is initilized
+    // Make sure the class is initialized
     if (classloader_get_class(vmCurrentContext, JAVA_NULL, g_classInfo_java_lang_Class) == (JAVA_CLASS) JAVA_NULL) {
         fprintf(stderr, "Bootstrap Classloader: unable to initialize class java.lang.Class\n");
         return JAVA_FALSE;
@@ -451,24 +459,34 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
         return JAVA_FALSE;
     }
     // Fix some fields that depends on the java/lang/Object and java/lang/Class
+    #define fix_class(c) do {                                                   \
+        c->classInstance->clazz = g_class_java_lang_Class;                      \
+        cl_bootstrap_init_class_object(vmCurrentContext, c->classInstance, c);  \
+    } while(0)
     {
         LoadedClassEntry *cursor;
         for (cursor = g_loadedClasses; cursor != NULL; cursor = cursor->hh.next) {
             JAVA_CLASS c = cursor->clazz;
-            c->classInstance->clazz = g_class_java_lang_Class;
-
-            cl_bootstrap_init_class_object(vmCurrentContext, c->classInstance, c);
+            fix_class(c);
         }
     }
     {
         LoadedArrayClassEntry *cursor;
         for (cursor = g_loadedArrayClasses; cursor != NULL; cursor = cursor->hh.next) {
             JAVA_CLASS c = cursor->clazz;
-            c->classInstance->clazz = g_class_java_lang_Class;
-
-            cl_bootstrap_init_class_object(vmCurrentContext, c->classInstance, c);
+            fix_class(c);
         }
     }
+    fix_class(g_class_primitive_Z);
+    fix_class(g_class_primitive_B);
+    fix_class(g_class_primitive_C);
+    fix_class(g_class_primitive_S);
+    fix_class(g_class_primitive_I);
+    fix_class(g_class_primitive_J);
+    fix_class(g_class_primitive_F);
+    fix_class(g_class_primitive_D);
+    #undef fix_class
+
     cache_class(java_lang_ClassLoader, "java/lang/ClassLoader");
     cache_class(java_lang_String, "java/lang/String");
     cache_class(java_lang_Boolean, "java/lang/Boolean");
