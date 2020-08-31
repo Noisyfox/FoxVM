@@ -739,3 +739,24 @@ JAVA_VOID bc_monitor_exit(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack) {
         assert(!"Failed to exit monitor");
     }
 }
+
+/**
+ * Get the function ptr at the given index in the vtable of the objectref in stack.
+  *
+  * @param argument_count argument count, including the implicitly passed `objectref`
+  */
+void *bc_vtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, uint16_t vtable_index) {
+    assert(argument_count >= 1);
+
+    VMStackSlot *objectRef = stack->top - argument_count;
+    assert(objectRef >= stack->slots);
+    assert(objectRef->type == VM_SLOT_OBJECT);
+
+    JAVA_OBJECT object = objectRef->data.o;
+    assert(object != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    JavaClassInfo *info = object->clazz->info;
+    assert(vtable_index < info->vtableCount);
+
+    return info->vtable[vtable_index].code;
+}

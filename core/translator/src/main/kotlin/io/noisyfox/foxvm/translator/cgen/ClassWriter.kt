@@ -1038,15 +1038,15 @@ class ClassWriter(
                         // symbolic reference to C given by the method reference is first resolved (§5.4.3.1).
                         val ownerClass = requireNotNull(classPool.getClass(inst.owner)) {
                             "Could not find class ${inst.owner}"
-                        }
-                        if (!clazzInfo.canAccess(ownerClass.requireClassInfo())) {
+                        }.requireClassInfo()
+                        if (!clazzInfo.canAccess(ownerClass)) {
                             throw IllegalAccessError("tried to access class $ownerClass from class $clazzInfo")
                         }
-                        if (ownerClass.requireClassInfo().isInterface != inst.itf) {
+                        if (ownerClass.isInterface != inst.itf) {
                             throw IncompatibleClassChangeError()
                         }
                         // jvms8 §5.4.3.3 Method Resolution and §5.4.3.4 Interface Method Resolution
-                        val resolvedMethod = ownerClass.requireClassInfo().methodLookup(inst.name, inst.desc)
+                        val resolvedMethod = ownerClass.methodLookup(inst.name, inst.desc)
                         // Then:
                         // • If method lookup fails, method resolution throws a NoSuchMethodError.
                         if (resolvedMethod == null) {
@@ -1068,6 +1068,24 @@ class ClassWriter(
                                 if (resolvedMethod.isStatic) {
                                     throw IncompatibleClassChangeError("$resolvedMethod is not a instance method")
                                 }
+
+                                // Find the method from the owner class's vtable
+                                val vtableIndex = ownerClass.vtable.indexOfFirst { it == resolvedMethod || it overrides resolvedMethod }
+                                if (vtableIndex == -1) {
+                                    throw IncompatibleClassChangeError("$resolvedMethod not presented in the vtable of class $ownerClass")
+                                }
+                                val lookupMethod = ownerClass.vtable[vtableIndex]
+                                if (lookupMethod != resolvedMethod) {
+                                    LOGGER.debug("invokespecial ${inst.owner}.${inst.name}${inst.desc} resolved to $resolvedMethod, but dispatched to $lookupMethod")
+                                }
+
+                                val targetMethodArgumentCount = lookupMethod.descriptor.argumentTypes.size + 1 // implicitly passed this
+                                cWriter.write(
+                                    """
+                    |    // invokevirtual ${inst.owner}.${inst.name}${inst.desc}
+                    |    bc_invoke_virtual${lookupMethod.invokeSuffix}($targetMethodArgumentCount, $vtableIndex);
+                    |""".trimMargin()
+                                )
                             }
                             Opcodes.INVOKESPECIAL -> {
                                 // if the resolved method is an instance initialization
@@ -1075,7 +1093,7 @@ class ClassWriter(
                                 // symbolically referenced by the instruction, a NoSuchMethodError
                                 // is thrown.
                                 if (resolvedMethod.isConstructor) {
-                                    if (resolvedMethod.declaringClass != ownerClass.requireClassInfo()) {
+                                    if (resolvedMethod.declaringClass != ownerClass) {
                                         throw NoSuchMethodError("Unable to find method ${inst.name} from class $ownerClass")
                                     }
                                 }
@@ -1091,7 +1109,7 @@ class ClassWriter(
                                     cWriter,
                                     inst,
                                     clazzInfo,
-                                    ownerClass.requireClassInfo(),
+                                    ownerClass,
                                     resolvedMethod
                                 )
                             }

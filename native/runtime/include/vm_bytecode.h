@@ -343,6 +343,19 @@ JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaCl
 #define bc_invoke_static_a(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_ARRAY   ret = ((JavaMethodRetArray)   fp)(vmCurrentContext); stack_push_object((JAVA_OBJECT)ret); } while(0)
 #define bc_invoke_static_o(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_OBJECT  ret = ((JavaMethodRetObject)  fp)(vmCurrentContext); stack_push_object(ret);              } while(0)
 
+void *bc_vtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, uint16_t vtable_index);
+#define bc_invoke_virtual(argument_count, vtable_index)   bc_invoke_special(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+#define bc_invoke_virtual_z(argument_count, vtable_index) bc_invoke_special_z(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+#define bc_invoke_virtual_c(argument_count, vtable_index) bc_invoke_special_c(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+#define bc_invoke_virtual_b(argument_count, vtable_index) bc_invoke_special_b(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+#define bc_invoke_virtual_s(argument_count, vtable_index) bc_invoke_special_s(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+#define bc_invoke_virtual_i(argument_count, vtable_index) bc_invoke_special_i(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+#define bc_invoke_virtual_f(argument_count, vtable_index) bc_invoke_special_f(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+#define bc_invoke_virtual_l(argument_count, vtable_index) bc_invoke_special_l(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+#define bc_invoke_virtual_d(argument_count, vtable_index) bc_invoke_special_d(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+#define bc_invoke_virtual_a(argument_count, vtable_index) bc_invoke_special_a(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+#define bc_invoke_virtual_o(argument_count, vtable_index) bc_invoke_special_o(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+
 // field instructions
 JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *valueOut, BasicType fieldType);
 #define bc_do_putfield(object_type, field_name, field_type)             \
