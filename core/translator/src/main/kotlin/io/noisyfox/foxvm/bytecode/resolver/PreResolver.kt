@@ -325,6 +325,21 @@ private class PreResolverClassVisitor(
                 }
             }
 
+            // Make sure the vtable of a non-abstract class contains non-abstract method only
+            // > • If step 1 or step 2 of the lookup procedure selects an abstract
+            // >   method, invokevirtual throws an AbstractMethodError.
+            // > • Otherwise, if step 3 of the lookup procedure determines there
+            // >   are zero maximally-specific methods in the superinterfaces of C
+            // >   that match the resolved method's name and descriptor and are
+            // >   not abstract, invokevirtual throws an AbstractMethodError.
+            if (!info.isAbstract) {
+                info.vtable.forEach {
+                    if (it.isAbstract) {
+                        throw AbstractMethodError("vtable of a non-abstract class $info contains abstract method $it")
+                    }
+                }
+            }
+
             // Then we check if there are duplicated items in the vtable
             val tmpList: MutableList<MethodInfo> = mutableListOf()
             info.vtable.forEach { curr ->
