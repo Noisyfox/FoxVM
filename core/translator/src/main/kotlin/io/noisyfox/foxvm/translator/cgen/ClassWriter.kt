@@ -970,7 +970,7 @@ class ClassWriter(
                 }
                 is MethodInsnNode -> {
                     // first we resolve the method
-                    if (inst.owner.startsWith("[") || inst.owner == "java/lang/invoke/SerializedLambda") {
+                    if (inst.owner.startsWith("[")) {
                         // TODO: handle array method
                     } else {
                         // To resolve an unresolved symbolic reference from D to a method in a class C, the
