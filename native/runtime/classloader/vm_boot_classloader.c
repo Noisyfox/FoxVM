@@ -150,6 +150,11 @@ static MethodInfo g_array_methods[] = {
         }
 };
 
+// vtable of the array classes. It has the same length as the vtable of java/lang/Object,
+// all methods inherent from it, except the clone() method.
+#define VTABLE_COUNT_java_lang_object 11
+static VTableItem g_array_vtable[VTABLE_COUNT_java_lang_object] = {0};
+
 static JAVA_VOID resolve_handler_array(JAVA_CLASS c) {
     JavaArrayClass *clazz = (JavaArrayClass *) c;
 
@@ -194,6 +199,9 @@ static JavaClassInfo g_classInfo_array_prototype = {
         .preResolvedInstanceFields = NULL,
         .preResolvedStaticFieldRefCount = 0,
         .preResolvedStaticFieldReferences = NULL,
+
+        .vtableCount = VTABLE_COUNT_java_lang_object,
+        .vtable = g_array_vtable,
 
         .clinit = NULL,
         .finalizer = NULL,
@@ -391,6 +399,28 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     g_array_interfaces_resolved[0] = g_class_java_lang_Cloneable;
     g_array_interfaces_resolved[1] = g_class_java_io_Serializable;
     g_classInfo_array_prototype.superClass = g_classInfo_java_lang_Object;
+    // Init vtable for array class
+    assert(VTABLE_COUNT_java_lang_object == g_classInfo_java_lang_Object->vtableCount);
+    memcpy(g_array_vtable, g_classInfo_java_lang_Object->vtable, sizeof(g_array_vtable));
+    JAVA_BOOLEAN arrayCloneUpdated = JAVA_FALSE;
+    for (int i = 0; i < VTABLE_COUNT_java_lang_object; i++) {
+        VTableItem *item = &g_array_vtable[i];
+        assert(item->declaringClass == NULL);
+        // Get the name of the method
+        MethodInfo *method = &g_classInfo_java_lang_Object->methods[item->methodIndex];
+        C_CSTR methodName = method->name;
+        if (strcmp("clone", methodName) == 0) {
+            assert(arrayCloneUpdated == JAVA_FALSE);
+            // Update the clone method
+            // make sure to match [g_array_methods]
+            item->methodIndex = 0;
+            arrayCloneUpdated = JAVA_TRUE;
+        } else {
+            // Not [clone], so we update the declaringClass instead
+            item->declaringClass = g_classInfo_java_lang_Object;
+        }
+    }
+    assert(arrayCloneUpdated == JAVA_TRUE);
 
     // Then we create the array classes for primitive types
     cache_array_class(Z);
