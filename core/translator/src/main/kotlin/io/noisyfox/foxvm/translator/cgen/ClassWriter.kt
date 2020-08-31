@@ -882,6 +882,27 @@ class ClassWriter(
                     |""".trimMargin()
                             )
                         }
+                        is Type -> {
+                            when(v.sort) {
+                                Type.OBJECT->{
+                                    cWriter.write(
+                                        """
+                    |    // ldc $v
+                    |    bc_ldc_class("${v.internalName}");
+                    |""".trimMargin()
+                                    )
+                                }
+                                Type.ARRAY -> {
+                                    cWriter.write(
+                                        """
+                    |    // ldc $v
+                    |    bc_ldc_class("$v");
+                    |""".trimMargin()
+                                    )
+                                }
+                                else -> throw IllegalArgumentException("Unexpected type ${v.sort} for ldc.")
+                            }
+                        }
                         else -> {
                             // TODO
                         }

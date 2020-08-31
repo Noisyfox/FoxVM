@@ -760,3 +760,14 @@ void *bc_vtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, uint16_t 
 
     return info->vtable[vtable_index].code;
 }
+
+JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR class_name) {
+    // ldc won't cause the resolved class to be initialized
+    JAVA_CLASS clazz = classloader_get_class_by_name(vmCurrentContext, frame->thisClass->classLoader, class_name);
+    assert(clazz != (JAVA_CLASS) JAVA_NULL);
+
+    JAVA_OBJECT obj = clazz->classInstance;
+    assert(obj != JAVA_NULL);
+
+    return obj;
+}
