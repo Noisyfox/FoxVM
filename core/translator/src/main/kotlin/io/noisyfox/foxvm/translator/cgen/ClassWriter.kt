@@ -479,11 +479,17 @@ class ClassWriter(
                     cWriter.addDependency(it.declaringClass)
                     "&${it.declaringClass.cName}"
                 }
+                val codeRef = if (it.isAbstract) {
+                    CNull
+                } else {
+                    it.cName
+                }
                 cWriter.write(
                     """
                     |    { // $it
                     |        .declaringClass = $dc,
                     |        .methodIndex = ${it.declaringClass.methods.indexOf(it)},
+                    |        .code = $codeRef,
                     |    },
                     |""".trimMargin()
                 )

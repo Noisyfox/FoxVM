@@ -414,6 +414,7 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
             // Update the clone method
             // make sure to match [g_array_methods]
             item->methodIndex = 0;
+            item->code = g_array_5Mclone_R9Pjava_lang6CObject;
             arrayCloneUpdated = JAVA_TRUE;
         } else {
             // Not [clone], so we update the declaringClass instead

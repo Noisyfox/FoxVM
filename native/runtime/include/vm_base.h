@@ -208,6 +208,8 @@ typedef struct {
 typedef struct {
     JavaClassInfo *declaringClass;  // The class that declares this method, NULL means this class
     uint16_t methodIndex; // The index of `JavaClassInfo.methods`
+
+    void *code; // Pointer to the function
 } VTableItem;
 
 /** A reference to a static field that used by this class */
