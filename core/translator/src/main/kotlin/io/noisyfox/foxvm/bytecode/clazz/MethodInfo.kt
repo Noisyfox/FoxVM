@@ -42,6 +42,67 @@ data class MethodInfo(
     /** Static, private and constructor methods are not virtual */
     val isVirtual: Boolean = !isPrivate && !isStatic && !isConstructor
 
+    /** jvms8 §5.4.5 Overriding */
+    infix fun overrides(other: MethodInfo): Boolean {
+        if (this.isStatic) {
+            // Static method cannot override anything
+            return false
+        }
+        if (other.isStatic) {
+            // Static method cannot be overridden
+            return false
+        }
+
+        // An instance method mC declared in class C overrides another instance method mA
+        // declared in class A iff either mC is the same as mA,
+        if (this == other) {
+            return true
+        }
+
+        // or all of the following are true:
+
+        // • C is a subclass of A.
+        if (!(declaringClass instanceOf other.declaringClass)) {
+            return false
+        }
+
+        // • mC has the same name and descriptor as mA.
+        if (!other.matches(name, descriptor.descriptor)) {
+            return false
+        }
+
+        // • mC is not marked ACC_PRIVATE.
+        if (isPrivate) {
+            return false
+        }
+
+        // • One of the following is true:
+        // – mA is marked ACC_PUBLIC; or is marked ACC_PROTECTED; or is marked neither
+        //   ACC_PUBLIC nor ACC_PROTECTED nor ACC_PRIVATE and A belongs to the same
+        //   run-time package as C.
+        if (other.isPublic
+            || other.isProtected
+            || (!other.isPublic && !other.isProtected && !other.isPrivate && declaringClass.packageName == other.declaringClass.packageName)
+        ) {
+            return true
+        }
+        // – mC overrides a method m' (m' distinct from mC and mA) such that m' overrides mA.
+        return declaringClass.allSuperClasses().map { // We here gather all instance methods from all superclasses
+            it.requireClassInfo()
+        }.filter {
+            // The intermediate class where m' is declared must be a subclass of A
+            other.declaringClass superclassOf it
+        }.flatMap {
+            it.methods
+        }.filter {
+            // That can ever be overridden, and distinct from this method
+            it.isVirtual && it != this
+        }.any {
+            // That matches the rule
+            this overrides it && it overrides other
+        }
+    }
+
     override fun toString(): String {
         return "${declaringClass.thisClass.className}.${name}${descriptor}"
     }

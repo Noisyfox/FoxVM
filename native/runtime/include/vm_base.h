@@ -205,6 +205,11 @@ typedef struct {
     void *code; // Pointer to the function
 } MethodInfo;
 
+typedef struct {
+    JavaClassInfo *declaringClass;  // The class that declares this method, NULL means this class
+    uint16_t methodIndex; // The index of `JavaClassInfo.methods`
+} VTableItem;
+
 /** A reference to a static field that used by this class */
 typedef struct {
     JavaClassInfo *declaringClass; // The class that declares this field, NULL means this class
@@ -256,6 +261,9 @@ struct _JavaClassInfo {
 
     uint16_t preResolvedStaticFieldRefCount; // All static field references used by current class
     PreResolvedStaticFieldReference *preResolvedStaticFieldReferences;
+
+    uint16_t vtableCount;
+    VTableItem *vtable;
 
     JavaMethodRetVoid clinit;
 

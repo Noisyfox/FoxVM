@@ -462,6 +462,41 @@ class ClassWriter(
 
         // TODO: Write pre-resolved static field reference
 
+        // Write vtable
+        if (info.vtable.isNotEmpty()) {
+            cWriter.write(
+                """
+                    |// VTable of this class
+                    |static VTableItem ${info.cNameVTable}[] = {
+                    |""".trimMargin()
+            )
+
+            info.vtable.forEach {
+                val dc = if (it.declaringClass == info) {
+                    CNull
+                } else {
+                    // Add dependency
+                    cWriter.addDependency(it.declaringClass)
+                    "&${it.declaringClass.cName}"
+                }
+                cWriter.write(
+                    """
+                    |    { // $it
+                    |        .declaringClass = $dc,
+                    |        .methodIndex = ${it.declaringClass.methods.indexOf(it)},
+                    |    },
+                    |""".trimMargin()
+                )
+            }
+
+            cWriter.write(
+                """
+                    |};
+                    |
+                    |""".trimMargin()
+            )
+        }
+
         // Write class info
         cWriter.write(
             """
@@ -492,6 +527,9 @@ class ClassWriter(
                     |
                     |    .preResolvedStaticFieldRefCount = 0,
                     |    .preResolvedStaticFieldReferences = ${CNull},
+                    |
+                    |    .vtableCount = ${info.vtable.size},
+                    |    .vtable = ${info.cNameVTable},
                     |
                     |    .clinit = ${info.clinit?.cName ?: CNull},
                     |

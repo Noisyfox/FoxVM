@@ -3,6 +3,9 @@ package io.noisyfox.foxvm.bytecode.clazz
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.objectweb.asm.Opcodes
 
+/**
+ * @property vtable a list of [MethodInfo] point to the method implementation of virtual methods
+ */
 data class ClassInfo(
     val thisClass: Clazz,
     val cIdentifier: String,
@@ -13,7 +16,8 @@ data class ClassInfo(
     val fields: MutableList<FieldInfo> = mutableListOf(),
     val methods: MutableList<MethodInfo> = mutableListOf(),
     val preResolvedStaticFields: MutableList<PreResolvedStaticFieldInfo> = mutableListOf(),
-    val preResolvedInstanceFields: MutableList<PreResolvedInstanceFieldInfo> = mutableListOf()
+    val preResolvedInstanceFields: MutableList<PreResolvedInstanceFieldInfo> = mutableListOf(),
+    val vtable: MutableList<MethodInfo> = mutableListOf()
 ) {
 
     val isEnum: Boolean = (thisClass.access and Opcodes.ACC_ENUM) == Opcodes.ACC_ENUM

@@ -273,6 +273,17 @@ val ClassInfo.cNameInstanceFields: String
     }
 
 /**
+ * The C reference name to the given [ClassInfo.vtable],
+ * or [CNull] if this class does not have any virtual method
+ */
+val ClassInfo.cNameVTable: String
+    get() = if (vtable.isEmpty()) {
+        CNull
+    } else {
+        "vtable${cIdentifier}"
+    }
+
+/**
  * The C function name of the class resolve handler.
  */
 val ClassInfo.cNameResolveHandler: String

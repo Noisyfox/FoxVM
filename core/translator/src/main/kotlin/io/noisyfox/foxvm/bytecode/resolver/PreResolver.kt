@@ -243,6 +243,105 @@ private class PreResolverClassVisitor(
         instanceFields.sortWith(compareBy(FieldLayout) { info.fields[it.fieldIndex].descriptor })
 
         info.preResolvedInstanceFields.addAll(instanceFields)
+
+        // Resolve vtable
+        if (!info.isInterface) {
+            // First we copy the vtable from super class:
+            // > 2. Otherwise, if C has a superclass, a search for a declaration
+            // >    of an instance method that overrides the resolved method
+            // >    is performed, starting with the direct superclass of C and
+            // >    continuing with the direct superclass of that class, and so forth,
+            // >    until an overriding method is found or no further superclasses
+            // >    exist. If an overriding method is found, it is the method to be
+            // >    invoked.
+            info.superClass?.requireClassInfo()?.vtable?.let {
+                info.vtable.addAll(it)
+            }
+
+            // Then we see if this class overrides any methods from super vtable:
+            // > 1. If C contains a declaration for an instance method m that
+            // >    overrides (§5.4.5) the resolved method, then m is the method
+            // >    to be invoked.
+            info.methods.filter { it.isVirtual }.forEach { childMethod ->
+                val overriddenMethodIndex =
+                    info.vtable.indexOfFirst { parentMethod -> childMethod overrides parentMethod }
+                if (overriddenMethodIndex == -1) {
+                    // This is a new method, add to the end of the vtable
+                    info.vtable.add(childMethod)
+                } else {
+                    // Replace the vtable item at this position
+                    info.vtable[overriddenMethodIndex] = childMethod
+                    // Make sure there is no more method that is overridden
+                    if (info.vtable.indexOfFirst { parentMethod -> childMethod != parentMethod && childMethod overrides parentMethod } != -1) {
+                        throw IncompatibleClassChangeError("Method $childMethod overrides multiple methods from superclasses")
+                    }
+                }
+            }
+
+            // > 3. Otherwise, if there is exactly one maximally-specific method
+            // >    (§5.4.3.3) in the superinterfaces of C that matches the resolved
+            // >    method's name and descriptor and is not abstract, then it is
+            // >    the method to be invoked.
+            info.allSuperClasses().map {
+                it.requireClassInfo()
+            }.filter {
+                it.isInterface
+            }.flatMap {
+                it.methods
+            }.forEach { interfaceMethod ->
+                val implementedMethodIndex = info.vtable.indexOfFirst { it.matches(interfaceMethod.name, interfaceMethod.descriptor.descriptor) }
+                if(implementedMethodIndex == -1) {
+                    // • Otherwise, if step 3 of the lookup procedure determines
+                    //   there are multiple maximally-specific methods in the
+                    //   superinterfaces of C that match the resolved method's name
+                    //   and descriptor and are not abstract, invokevirtual throws an
+                    //   IncompatibleClassChangeError
+                    val maxSpecMethods = info.findMaximallySpecificSuperInterfaceMethod(interfaceMethod.name, interfaceMethod.descriptor.descriptor)
+                        .filter { !it.isAbstract }
+                    when(maxSpecMethods.size) {
+                        0, 1-> {
+                            // This is a new method, add to the end of the vtable
+                            info.vtable.add(interfaceMethod)
+                        }
+                        else -> throw IncompatibleClassChangeError()
+                    }
+                } else {
+                    val existingMethod = info.vtable[implementedMethodIndex]
+                    if(existingMethod.declaringClass.isInterface) {
+                        // The existing method is defined by a interface, so we apply the maximally-specific method lookup again
+                        val maxSpecMethods = info.findMaximallySpecificSuperInterfaceMethod(interfaceMethod.name, interfaceMethod.descriptor.descriptor)
+                            .filter { !it.isAbstract }
+                        when(maxSpecMethods.size) {
+                            0-> {
+                                // Leave the original value as is
+                            }
+                            1-> {
+                                // Replace the item with the newly found maximally-specific method
+                                info.vtable[implementedMethodIndex] = maxSpecMethods.single()
+                            }
+                            else -> throw IncompatibleClassChangeError()
+                        }
+                    }
+                }
+            }
+
+            // Then we check if there are duplicated items in the vtable
+            val tmpList: MutableList<MethodInfo> = mutableListOf()
+            info.vtable.forEach { curr ->
+                if (tmpList.any { it overrides curr || curr overrides it }) {
+                    throw RuntimeException("Duplicated items found in vtable for class $info: ${info.vtable}")
+                }
+                tmpList.add(curr)
+            }
+            // Finally we check if items in current vtable overrides the item at the same place in parent class vtable
+            info.superClass?.requireClassInfo()?.let { superInfo ->
+                info.vtable.zip(superInfo.vtable).forEach { (childMethod, superMethod) ->
+                    if (childMethod != superMethod && !(childMethod overrides superMethod)) {
+                        throw RuntimeException("Item in $info vtable does not override item at the same place in parent vtable")
+                    }
+                }
+            }
+        }
     }
 
     companion object {
