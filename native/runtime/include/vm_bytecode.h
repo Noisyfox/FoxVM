@@ -416,6 +416,9 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassI
 JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR desc);
 #define bc_newarray(desc) do {JAVA_ARRAY array = bc_new_array(vmCurrentContext, &STACK_FRAME, desc); stack_push_object((JAVA_OBJECT)array);} while(0)
 
+JAVA_INT bc_array_length(VMOperandStack *stack);
+#define bc_arraylength() do {JAVA_INT len = bc_array_length(OP_STACK); stack_push_int(len);} while(0)
+
 JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldType);
 #define bc_do_array_load(field_type)                        \
     JAVA_##field_type value;                                \

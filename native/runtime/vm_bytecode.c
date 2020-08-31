@@ -540,6 +540,27 @@ JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR de
     return array;
 }
 
+JAVA_INT bc_array_length(VMOperandStack *stack) {
+    VMStackSlot *arrayRef = stack->top - 1;
+
+    assert(arrayRef >= stack->slots);
+
+    assert(arrayRef->type == VM_SLOT_OBJECT);
+    assert(arrayRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    JAVA_ARRAY array = (JAVA_ARRAY) arrayRef->data.o;
+
+    assert(array->baseObject.clazz->info->thisClass[0] == TYPE_DESC_ARRAY);
+
+    JAVA_INT length = array->length;
+
+    // Pop
+    stack->top = arrayRef;
+    arrayRef->type = VM_SLOT_INVALID;
+
+    return length;
+}
+
 JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldType) {
     VMStackSlot *index = stack->top - 1;
     VMStackSlot *arrayRef = stack->top - 2;

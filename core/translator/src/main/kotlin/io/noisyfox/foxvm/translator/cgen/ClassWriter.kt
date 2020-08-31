@@ -1539,6 +1539,8 @@ class ClassWriter(
             Opcodes.DCMPL to "bc_dcmpl",
             Opcodes.DCMPG to "bc_dcmpg",
 
+            Opcodes.ARRAYLENGTH to "bc_arraylength",
+
             Opcodes.CALOAD to "bc_caload",
             Opcodes.BALOAD to "bc_baload",
             Opcodes.SALOAD to "bc_saload",
