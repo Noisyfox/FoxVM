@@ -2,8 +2,10 @@
 // Created by noisyfox on 2018/10/20.
 //
 
+#include "vm_thread.h"
 #include "vm_array.h"
 #include "vm_memory.h"
+#include "vm_bytecode.h"
 
 // Check whether an element of am array with the given type must be
 // aligned 0 mod 8.
@@ -38,4 +40,19 @@ size_t array_max_length(BasicType t) {
 
 size_t array_size_of_type(BasicType t, size_t length) {
     return align_size_up(array_header_size(t) + type_size(t) * length, SIZE_ALIGNMENT);
+}
+
+/**
+ * Impl of array.clone() method
+ */
+JAVA_OBJECT g_array_5Mclone_R9Pjava_lang6CObject(VM_PARAM_CURRENT_CONTEXT) {
+    stack_frame_start(0, 0, 1);
+    bc_prepare_arguments(1);
+    bc_check_objectref();
+
+    // TODO
+    assert(!"Not implemented");
+
+    stack_frame_end();
+    return JAVA_NULL;
 }

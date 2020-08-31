@@ -971,7 +971,24 @@ class ClassWriter(
                 is MethodInsnNode -> {
                     // first we resolve the method
                     if (inst.owner.startsWith("[")) {
-                        // TODO: handle array method
+                        if (inst.opcode != Opcodes.INVOKEVIRTUAL) {
+                            throw IncompatibleClassChangeError("Method of array type can only be called by invokevirtual (actual: ${inst.opcode})")
+                        }
+                        if (inst.name != "clone" || inst.desc != "()Ljava/lang/Object;") {
+                            LOGGER.error("Array method call: {}.{}{}", inst.owner, inst.name, inst.desc)
+                            throw IncompatibleClassChangeError("Cannot invoke ${inst.owner}.${inst.name}${inst.desc}. Only clone()Ljava/lang/Object; can be called on a array class")
+                        }
+
+                        // Include array header
+                        cWriter.addDependency("vm_array.h")
+                        // Use invokespecial here, for simplicity and speed. Should be able to replace to invokevirtual later,
+                        // but makes no difference since this method cannot be overridden.
+                        cWriter.write(
+                            """
+                    |    // invokespecial ${inst.owner}.${inst.name}${inst.desc}
+                    |    bc_invoke_special_o(g_array_5Mclone_R9Pjava_lang6CObject);
+                    |""".trimMargin()
+                        )
                     } else {
                         // To resolve an unresolved symbolic reference from D to a method in a class C, the
                         // symbolic reference to C given by the method reference is first resolved (§5.4.3.1).
@@ -1365,8 +1382,7 @@ class ClassWriter(
             val maxSpecMethods = classToLookup.findMaximallySpecificSuperInterfaceMethod(
                 resolvedMethod.name,
                 resolvedMethod.descriptor.descriptor
-            )
-                .filter { !it.isAbstract }
+            ).filter { !it.isAbstract }
             when (maxSpecMethods.size) {
                 0 -> {
                     // Otherwise, if step 4 of the lookup procedure determines there

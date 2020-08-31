@@ -8,16 +8,17 @@ class CWriter(
 ) : AutoCloseable {
 
     private var isFinished = false
-    private val dependencies: LinkedHashMap<String, ClassInfo> = LinkedHashMap()
+    private val includeHeaders: LinkedHashSet<String> = LinkedHashSet()
     private var contentAfterDependency: StringBuilder? = null
 
     fun addDependency(clazz: ClassInfo): CWriter {
+        return addDependency("_${clazz.cIdentifier}.h")
+    }
+
+    fun addDependency(header: String): CWriter {
         require(!isFinished)
 
-        val name = clazz.thisClass.className
-        if (name !in dependencies) {
-            dependencies[name] = clazz
-        }
+        includeHeaders.add(header)
 
         return this
     }
@@ -47,10 +48,10 @@ class CWriter(
             return
         }
         isFinished = true
-        dependencies.forEach { (_, clazz) ->
+        includeHeaders.forEach { header ->
             writer.write(
                 """
-                    |#include "_${clazz.cIdentifier}.h"
+                    |#include "$header"
                     |""".trimMargin()
             )
         }

@@ -20,6 +20,8 @@ extern JavaClass* g_class_array_J;
 extern JavaClass* g_class_array_F;
 extern JavaClass* g_class_array_D;
 
+JAVA_OBJECT g_array_5Mclone_R9Pjava_lang6CObject(VM_PARAM_CURRENT_CONTEXT);
+
 typedef struct _JavaArrayClass {
     JavaClass baseClass;
 

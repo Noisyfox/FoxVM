@@ -130,12 +130,24 @@ typedef struct {
 } LoadedArrayClassEntry;
 static LoadedArrayClassEntry *g_loadedArrayClasses = NULL;
 
+// Interfaces that implemented by all arrays:
+// java/lang/Cloneable and java/io/Serializable
 static JavaClassInfo *g_array_interfaces[2] = {
         NULL, NULL
 };
-
 static JavaClass *g_array_interfaces_resolved[2] = {
         NULL, NULL
+};
+
+// Methods of arrays
+static MethodInfo g_array_methods[] = {
+        {
+                .accessFlags = METHOD_ACC_PUBLIC | METHOD_ACC_FINAL,
+                .name = "clone",
+                .descriptor = "()Ljava/lang/Object;",
+                .signature = NULL,
+                .code = g_array_5Mclone_R9Pjava_lang6CObject,
+        }
 };
 
 static JAVA_VOID resolve_handler_array(JAVA_CLASS c) {
@@ -169,8 +181,8 @@ static JavaClassInfo g_classInfo_array_prototype = {
         .interfaces = g_array_interfaces,
         .fieldCount = 0,
         .fields = NULL,
-        .methodCount = 0,
-        .methods = 0,
+        .methodCount = 1,
+        .methods = g_array_methods,
 
         .resolveHandler = resolve_handler_array,
         .classSize = sizeof(JavaArrayClass), // This is the most important part
