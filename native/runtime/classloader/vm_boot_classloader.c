@@ -442,7 +442,7 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     cache_array_class(D);
 
     // Make sure the class is initialized
-    if (classloader_get_class(vmCurrentContext, JAVA_NULL, g_classInfo_java_lang_Class) == (JAVA_CLASS) JAVA_NULL) {
+    if (classloader_get_class_init(vmCurrentContext, JAVA_NULL, g_classInfo_java_lang_Class) == (JAVA_CLASS) JAVA_NULL) {
         fprintf(stderr, "Bootstrap Classloader: unable to initialize class java.lang.Class\n");
         return JAVA_FALSE;
     }

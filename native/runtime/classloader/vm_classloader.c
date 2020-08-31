@@ -187,11 +187,6 @@ JAVA_CLASS classloader_get_class(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT classload
         // Use bootstrap cl
         c = cl_bootstrap_find_class_by_info(vmCurrentContext, classInfo);
     }
-    if(c) {
-        if (!classloader_init_class(vmCurrentContext, c)) {
-            return (JAVA_CLASS) JAVA_NULL;
-        }
-    }
 
     return c;
 }
@@ -202,7 +197,24 @@ JAVA_CLASS classloader_get_class_by_name(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT c
         // Use bootstrap cl
         c = cl_bootstrap_find_class(vmCurrentContext, className);
     }
-    if(c) {
+
+    return c;
+}
+
+JAVA_CLASS classloader_get_class_init(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT classloader, JavaClassInfo *classInfo) {
+    JAVA_CLASS c = classloader_get_class(vmCurrentContext, classloader, classInfo);
+    if (c) {
+        if (!classloader_init_class(vmCurrentContext, c)) {
+            return (JAVA_CLASS) JAVA_NULL;
+        }
+    }
+
+    return c;
+}
+
+JAVA_CLASS classloader_get_class_by_name_init(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT classloader, C_CSTR className) {
+    JAVA_CLASS c = classloader_get_class_by_name(vmCurrentContext, classloader, className);
+    if (c) {
         if (!classloader_init_class(vmCurrentContext, c)) {
             return (JAVA_CLASS) JAVA_NULL;
         }

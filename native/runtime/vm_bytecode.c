@@ -475,7 +475,7 @@ JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaCl
     //   interface that declared the resolved field or method is initialized if it has not been
     //   initialized already.
 
-    JAVA_CLASS clazz = classloader_get_class(vmCurrentContext, frame->thisClass->classLoader, classInfo);
+    JAVA_CLASS clazz = classloader_get_class_init(vmCurrentContext, frame->thisClass->classLoader, classInfo);
     assert(clazz != (JAVA_CLASS) JAVA_NULL);
     *classRefOut = clazz;
 }
@@ -483,7 +483,7 @@ JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaCl
 JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR desc) {
     assert(desc[0] == TYPE_DESC_ARRAY);
 
-    JAVA_CLASS clazz = classloader_get_class_by_name(vmCurrentContext, frame->thisClass->classLoader, desc);
+    JAVA_CLASS clazz = classloader_get_class_by_name_init(vmCurrentContext, frame->thisClass->classLoader, desc);
     assert(clazz != (JAVA_CLASS) JAVA_NULL);
 
     VMOperandStack *stack = &frame->operandStack;
