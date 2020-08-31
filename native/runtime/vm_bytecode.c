@@ -7,6 +7,7 @@
 #include "vm_classloader.h"
 #include "vm_array.h"
 #include "vm_gc.h"
+#include "vm_thread.h"
 #include <stdio.h>
 
 #define JAVA_TYPE_i JAVA_INT
@@ -714,4 +715,53 @@ JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *info) {
     obj->clazz = clazz;
 
     return obj;
+}
+
+JAVA_VOID bc_monitor_enter(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack) {
+    VMStackSlot *objectRef = stack->top - 1;
+
+    assert(objectRef >= stack->slots);
+
+    assert(objectRef->type == VM_SLOT_OBJECT);
+    assert(objectRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    int ret = monitor_enter(vmCurrentContext, objectRef);
+
+    // Pop
+    stack->top = objectRef;
+    objectRef->type = VM_SLOT_INVALID;
+
+    if (ret != thrd_success) {
+        fprintf(stderr, "Failed to enter monitor: %d\n", ret);
+        assert(!"Failed to enter monitor");
+    }
+}
+
+JAVA_VOID bc_monitor_exit(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack) {
+    VMStackSlot *objectRef = stack->top - 1;
+
+    assert(objectRef >= stack->slots);
+
+    assert(objectRef->type == VM_SLOT_OBJECT);
+    assert(objectRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    int ret = monitor_exit(vmCurrentContext, objectRef);
+
+    // Pop
+    stack->top = objectRef;
+    objectRef->type = VM_SLOT_INVALID;
+
+    if (ret != thrd_success) {
+        fprintf(stderr, "Failed to exit monitor: %d\n", ret);
+        switch (ret) {
+            case thrd_lock:
+                // if the thread that executes monitorexit is not the owner
+                // of the monitor associated with the instance referenced by objectref,
+                // monitorexit throws an IllegalMonitorStateException.
+                // TODO: throw IllegalMonitorStateException instead
+                fprintf(stderr, "Try to exit a monitor that is not owned by current thread\n");
+                break;
+        }
+        assert(!"Failed to exit monitor");
+    }
 }

@@ -442,6 +442,12 @@ JAVA_VOID bc_array_store(VMOperandStack *stack, BasicType fieldType);
 #define bc_dastore() bc_array_store(OP_STACK, VM_TYPE_DOUBLE)
 #define bc_aastore() bc_array_store(OP_STACK, VM_TYPE_OBJECT)
 
+// Monitor instructions
+JAVA_VOID bc_monitor_enter(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack);
+#define bc_monitorenter() bc_monitor_enter(vmCurrentContext, OP_STACK)
+JAVA_VOID bc_monitor_exit(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack);
+#define bc_monitorexit() bc_monitor_exit(vmCurrentContext, OP_STACK)
+
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)
 

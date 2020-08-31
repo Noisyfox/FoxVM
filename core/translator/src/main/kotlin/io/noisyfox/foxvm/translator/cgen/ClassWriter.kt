@@ -1557,7 +1557,10 @@ class ClassWriter(
             Opcodes.FASTORE to "bc_fastore",
             Opcodes.LASTORE to "bc_lastore",
             Opcodes.DASTORE to "bc_dastore",
-            Opcodes.AASTORE to "bc_aastore"
+            Opcodes.AASTORE to "bc_aastore",
+
+            Opcodes.MONITORENTER to "bc_monitorenter",
+            Opcodes.MONITOREXIT  to "bc_monitorexit"
         )
 
         private val byteCodesJumpInst = mapOf(
