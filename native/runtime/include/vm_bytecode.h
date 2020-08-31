@@ -362,10 +362,9 @@ JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *value
 #define bc_putfield_a(object_type, field_name) do {bc_do_putfield(object_type, field_name, ARRAY);  } while(0)
 #define bc_putfield_o(object_type, field_name) do {bc_do_putfield(object_type, field_name, OBJECT); } while(0)
 
-JAVA_VOID bc_getfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut);
+JAVA_OBJECT bc_getfield(VMOperandStack *stack);
 #define bc_do_getfield(object_type, field_name, field_type)             \
-    JAVA_OBJECT objectRef;                                              \
-    bc_getfield(OP_STACK, &objectRef);                                  \
+    JAVA_OBJECT objectRef = bc_getfield(OP_STACK);                      \
     JAVA_##field_type value = ((object_type*)objectRef)->field_name
 #define bc_getfield_z(object_type, field_name) do {bc_do_getfield(object_type, field_name, BOOLEAN); stack_push_int(value);                } while(0)
 #define bc_getfield_c(object_type, field_name) do {bc_do_getfield(object_type, field_name, CHAR);    stack_push_int(value);                } while(0)
@@ -447,6 +446,26 @@ JAVA_VOID bc_monitor_enter(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack);
 #define bc_monitorenter() bc_monitor_enter(vmCurrentContext, OP_STACK)
 JAVA_VOID bc_monitor_exit(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack);
 #define bc_monitorexit() bc_monitor_exit(vmCurrentContext, OP_STACK)
+
+// Return instructions
+JAVA_VOID bc_read_stack_top(VMOperandStack *stack, void *valueOut, BasicType requiredType);
+#define bc_return() stack_frame_end(); return
+#define bc_do_return(field_type) do {                           \
+    JAVA_##field_type value;                                    \
+    bc_read_stack_top(OP_STACK, &value, VM_TYPE_##field_type);  \
+    stack_frame_end();                                          \
+    return value;                                               \
+} while(0)
+#define bc_zreturn() bc_do_return(BOOLEAN)
+#define bc_creturn() bc_do_return(CHAR)
+#define bc_breturn() bc_do_return(BYTE)
+#define bc_sreturn() bc_do_return(SHORT)
+#define bc_ireturn() bc_do_return(INT)
+#define bc_freturn() bc_do_return(FLOAT)
+#define bc_lreturn() bc_do_return(LONG)
+#define bc_dreturn() bc_do_return(DOUBLE)
+#define bc_areturn() bc_do_return(ARRAY)
+#define bc_oreturn() bc_do_return(OBJECT)
 
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)

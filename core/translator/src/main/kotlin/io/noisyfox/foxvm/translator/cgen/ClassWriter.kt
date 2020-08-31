@@ -774,6 +774,18 @@ class ClassWriter(
                     |""".trimMargin()
                             )
                         }
+                        in byteCodesReturn -> {
+                            val (bytecodesMnemonic, allowedReturnInsn) = byteCodesReturn.getValue(inst.opcode)
+                            val returnType = method.descriptor.returnType
+                            val functionName = allowedReturnInsn[returnType.sort]
+                                ?: throw VerifyError("$bytecodesMnemonic cannot be used in method with return type $returnType")
+                            cWriter.write(
+                                """
+                    |    // $bytecodesMnemonic
+                    |    ${functionName}();
+                    |""".trimMargin()
+                            )
+                        }
 //                        else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                     }
                 }
@@ -1104,21 +1116,9 @@ class ClassWriter(
 
         cWriter.write(
             """
-                    |    stack_frame_end();
-                    |""".trimMargin()
-        )
-
-        if(method.descriptor.returnType.sort != Type.VOID) {
-            // TODO: throw exception if control flow reaches here
-            cWriter.write(
-                """
-                    |    return 0;
-                    |""".trimMargin()
-            )
-        }
-
-        cWriter.write(
-            """
+                    |
+                    |    assert(!"Unexpected reach of the end of the method");
+                    |    exit(-2);
                     |}
                     |
                     |""".trimMargin()
@@ -1593,6 +1593,34 @@ class ClassWriter(
             Opcodes.T_SHORT     to "[S",
             Opcodes.T_INT       to "[I",
             Opcodes.T_LONG      to "[J"
+        )
+
+        // jvms8 §4.9.2 Structural Constraints
+        private val byteCodesReturn = mapOf(
+            // – All instance initialization methods, class or interface initialization methods,
+            //   and methods declared to return void must use only the return instruction.
+            Opcodes.RETURN  to Pair("return", mapOf(Type.VOID to "bc_return")),
+            // – If the method returns a boolean, byte, char, short, or int, only the ireturn
+            //   instruction may be used.
+            Opcodes.IRETURN to Pair("ireturn", mapOf(
+                Type.BOOLEAN to "bc_zreturn",
+                Type.CHAR    to "bc_creturn",
+                Type.BYTE    to "bc_breturn",
+                Type.SHORT   to "bc_sreturn",
+                Type.INT     to "bc_ireturn"
+            )),
+            // – If the method returns a float, long, or double, only an freturn, lreturn, or
+            //   dreturn instruction, respectively, may be used.
+            Opcodes.FRETURN to Pair("freturn", mapOf(Type.FLOAT  to "bc_freturn")),
+            Opcodes.LRETURN to Pair("lreturn", mapOf(Type.LONG   to "bc_lreturn")),
+            Opcodes.DRETURN to Pair("dreturn", mapOf(Type.DOUBLE to "bc_dreturn")),
+            // – If the method returns a reference type, only an areturn instruction may be
+            //   used, and the type of the returned value must be assignment compatible with
+            //   the return descriptor of the method (JLS §5.2, §4.3.3).
+            Opcodes.ARETURN to Pair("areturn", mapOf(
+                Type.ARRAY  to "bc_areturn",
+                Type.OBJECT to "bc_oreturn"
+            ))
         )
     }
 }
