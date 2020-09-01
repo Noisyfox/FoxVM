@@ -85,8 +85,6 @@ JavaClassInfo g_classInfo_primitive_##desc = {                              \
     .preResolvedStaticFields = NULL,                                        \
     .preResolvedInstanceFieldCount = 0,                                     \
     .preResolvedInstanceFields = NULL,                                      \
-    .preResolvedStaticFieldRefCount = 0,                                    \
-    .preResolvedStaticFieldReferences = NULL,                               \
                                                                             \
     .clinit = NULL,                                                         \
     .finalizer = NULL,                                                      \
@@ -197,8 +195,6 @@ static JavaClassInfo g_classInfo_array_prototype = {
         .preResolvedStaticFields = NULL,
         .preResolvedInstanceFieldCount = 0,
         .preResolvedInstanceFields = NULL,
-        .preResolvedStaticFieldRefCount = 0,
-        .preResolvedStaticFieldReferences = NULL,
 
         .vtableCount = VTABLE_COUNT_java_lang_object,
         .vtable = g_array_vtable,

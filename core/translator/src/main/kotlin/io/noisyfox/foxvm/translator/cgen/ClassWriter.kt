@@ -532,9 +532,6 @@ class ClassWriter(
                     |    .preResolvedInstanceFieldCount = ${info.preResolvedInstanceFields.size},
                     |    .preResolvedInstanceFields = ${info.cNameInstanceFields},
                     |
-                    |    .preResolvedStaticFieldRefCount = 0,
-                    |    .preResolvedStaticFieldReferences = ${CNull},
-                    |
                     |    .vtableCount = ${info.vtable.size},
                     |    .vtable = ${info.cNameVTable},
                     |

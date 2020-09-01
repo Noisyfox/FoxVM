@@ -212,12 +212,6 @@ typedef struct {
     void *code; // Pointer to the function
 } VTableItem;
 
-/** A reference to a static field that used by this class */
-typedef struct {
-    JavaClassInfo *declaringClass; // The class that declares this field, NULL means this class
-    uint16_t fieldIndex; // The index of `JavaClassInfo.preResolvedStaticFields`
-} PreResolvedStaticFieldReference;
-
 typedef enum {
     CLASS_ACC_PUBLIC = 0x0001,
     CLASS_ACC_FINAL = 0x0010,
@@ -261,9 +255,6 @@ struct _JavaClassInfo {
     uint16_t preResolvedInstanceFieldCount; // Include ALL instance fields from super classes
     PreResolvedInstanceFieldInfo *preResolvedInstanceFields;
 
-    uint16_t preResolvedStaticFieldRefCount; // All static field references used by current class
-    PreResolvedStaticFieldReference *preResolvedStaticFieldReferences;
-
     uint16_t vtableCount;
     VTableItem *vtable;
 
@@ -293,12 +284,6 @@ typedef struct {
     // GC scanning information
     size_t offset; // Offset to where the field data is stored
 } ResolvedInstanceField;
-
-/** The reference to a static field, resolved from a symbolic reference. */
-typedef struct {
-    JAVA_CLASS clazz;
-    uint16_t fieldIndex; // The index of `JavaClass.staticFields`
-} ResolvedStaticFieldReference;
 
 typedef enum {
     CLASS_STATE_ERROR = -1,
@@ -335,9 +320,6 @@ struct _JavaClass {
     uint32_t fieldCount; // Number of resolved instance fields, includes ALL fields from super classes and interfaces
     ResolvedInstanceField *fields;
     JAVA_BOOLEAN hasReference;
-
-    uint32_t staticFieldRefCount; // Number of static field references used by this class
-    ResolvedStaticFieldReference *staticFieldReferences;
 };
 
 // Object prototype
