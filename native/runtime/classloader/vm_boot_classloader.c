@@ -22,9 +22,9 @@ static VMStackSlot g_bootstrapClassLock = {0};
 static JavaObjectBase g_bootstrapArrayClassLockObj = {0};
 static VMStackSlot g_bootstrapArrayClassLock = {0};
 
-#define cached_class(var)                       \
-static JavaClassInfo *g_classInfo_##var = NULL; \
-static JAVA_CLASS     g_class_##var = NULL
+#define cached_class(var)                \
+JavaClassInfo *g_classInfo_##var = NULL; \
+JAVA_CLASS     g_class_##var = NULL
 
 cached_class(java_lang_Object);
 cached_class(java_lang_Class);

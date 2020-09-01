@@ -32,6 +32,7 @@ import java.io.Writer
 class ClassWriter(
     private val isRt: Boolean,
     private val classPool: ClassPool,
+    private val constantPool: StringConstantPool,
     private val outputDir: File
 ) : ClassHandler {
 
@@ -879,6 +880,21 @@ class ClassWriter(
                             cWriter.write(
                                 """
                     |    bc_ldc_double(${v.toCConst()});
+                    |""".trimMargin()
+                            )
+                        }
+                        is String -> {
+                            // Add the string to constant pool
+                            val constantPoolIndex = constantPool.addConstant(v)
+                            val commentV = if(v.length > 20) {
+                                v.take(20) + "..."
+                            } else {
+                                v
+                            }
+                            cWriter.write(
+                                """
+                    |    // ldc "${commentV.asCString()}" (java.lang.String)
+                    |    bc_ldc_string($constantPoolIndex);
                     |""".trimMargin()
                             )
                         }

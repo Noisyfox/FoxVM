@@ -49,7 +49,7 @@ static JAVA_BOOLEAN classloader_init_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS 
         return JAVA_FALSE;
     }
 
-    if (clazz->state == CLASS_STATE_INITIALIZING) {
+    while (clazz->state == CLASS_STATE_INITIALIZING) {
         if (clazz->initThread != vmCurrentContext->threadId) {
             // 2. If the Class object for C indicates that initialization is in progress for C by some
             //    other thread, then release LC and block the current thread until informed that the

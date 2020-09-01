@@ -15,6 +15,7 @@ set(SOURCE_FILES_RUNTIME
         vm_exception.c
         vm_stack.c
         vm_bytecode.c
+        vm_string.c
 
         thread/vm_thread.c
 

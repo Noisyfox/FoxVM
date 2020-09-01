@@ -9,6 +9,7 @@
 #include "vm_gc.h"
 #include "vm_thread.h"
 #include <stdio.h>
+#include "vm_string.h"
 
 #define JAVA_TYPE_a JAVA_ARRAY
 #define JAVA_TYPE_o JAVA_OBJECT
@@ -770,4 +771,8 @@ JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CS
     assert(obj != JAVA_NULL);
 
     return obj;
+}
+
+JAVA_OBJECT bc_ldc_string_const(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_index) {
+    return string_get_constant(vmCurrentContext, constant_index);
 }

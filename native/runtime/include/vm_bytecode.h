@@ -309,6 +309,8 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack);
 #define bc_ldc_double(v) stack_push_double(v)
 JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR class_name);
 #define bc_ldc_class(class_name) do {JAVA_OBJECT obj = bc_ldc_class_obj(vmCurrentContext, &STACK_FRAME, class_name); stack_push_object(obj);} while(0)
+JAVA_OBJECT bc_ldc_string_const(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_index);
+#define bc_ldc_string(constant_index) do { JAVA_OBJECT str = bc_ldc_string_const(vmCurrentContext, constant_index); stack_push_object(str);} while(0)
 
 // new instruction
 JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *info);

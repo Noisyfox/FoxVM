@@ -21,6 +21,7 @@ class CMakeListsWriter(
                     |
                     |set(${sourceNameOf(isRt)}
                     |    ${ClassInfoWriter.cNameOf(isRt)}
+                    |    ${ConstantPoolWriter.cNameOf(isRt)}
                     |""".trimMargin()
         )
     }

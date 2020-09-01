@@ -9,6 +9,8 @@ import io.noisyfox.foxvm.bytecode.visitor.ClassPresenceFilter
 import io.noisyfox.foxvm.translator.cgen.CMakeListsWriter
 import io.noisyfox.foxvm.translator.cgen.ClassInfoWriter
 import io.noisyfox.foxvm.translator.cgen.ClassWriter
+import io.noisyfox.foxvm.translator.cgen.ConstantPoolWriter
+import io.noisyfox.foxvm.translator.cgen.StringConstantPool
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.IOException
@@ -23,6 +25,7 @@ class Translator(
     private val runtimeClassPool: ClassPool = SimpleClassPool()
     private val applicationClassPool: ClassPool = SimpleClassPool()
     private val fullClassPool: ClassPool = CombinedClassPool(runtimeClassPool, applicationClassPool)
+    private val constantPool: StringConstantPool = StringConstantPool()
 
     fun execute() {
         loadClasses()
@@ -35,6 +38,8 @@ class Translator(
         }
 
         writeClasses()
+
+        writeConstantPool()
 
         // Write cmakelists
         applicationClassPool.accept(CMakeListsWriter(isRt = isRt, outputDir = outputPath))
@@ -71,7 +76,7 @@ class Translator(
      */
     private fun writeClasses() {
         // Write each classes
-        ClassWriter(isRt = isRt, classPool = fullClassPool, outputDir = outputPath).also {
+        ClassWriter(isRt = isRt, classPool = fullClassPool, constantPool = constantPool, outputDir = outputPath).also {
             applicationClassPool.accept(it)
 
             if (it.updatedClassNumber == 0) {
@@ -85,8 +90,12 @@ class Translator(
             }
         }
 
-        // Write header contains ref to all classes
+        // Write files contain ref to all classes
         applicationClassPool.accept(ClassInfoWriter(isRt = isRt, outputDir = outputPath))
+    }
+
+    private fun writeConstantPool() {
+        ConstantPoolWriter(isRt = isRt, constantPool = constantPool, outputDir = outputPath).write()
     }
 
     companion object {
