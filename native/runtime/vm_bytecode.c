@@ -354,7 +354,7 @@ JAVA_VOID bc_check_objref(VMStackFrame *frame) {
     JAVA_OBJECT obj = objSlot->data.o;
     assert(obj != JAVA_NULL); // TODO: throw NullPointerException instead
 
-    frame->thisClass = obj->clazz;
+    frame->thisClass = obj_get_class(obj);
     assert(frame->thisClass != (JAVA_CLASS) JAVA_NULL);
 }
 
@@ -526,7 +526,7 @@ JAVA_INT bc_array_length(VMOperandStack *stack) {
 
     JAVA_ARRAY array = (JAVA_ARRAY) arrayRef->data.o;
 
-    assert(array->baseObject.clazz->info->thisClass[0] == TYPE_DESC_ARRAY);
+    assert(obj_get_class(&array->baseObject)->info->thisClass[0] == TYPE_DESC_ARRAY);
 
     JAVA_INT length = array->length;
 
@@ -552,7 +552,7 @@ JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldTy
     assert(i < array->length); // TODO: throw ArrayIndexOutOfBoundsException instead
 
     void* element = array_element_at(array, fieldType, i);
-    BasicType arrayType = array_type_of(array->baseObject.clazz->info->thisClass);
+    BasicType arrayType = array_type_of(obj_get_class(&array->baseObject)->info->thisClass);
 
     // Read the value
     switch (fieldType) {
@@ -617,7 +617,7 @@ JAVA_VOID bc_array_store(VMOperandStack *stack, BasicType fieldType) {
     assert(i < array->length); // TODO: throw ArrayIndexOutOfBoundsException instead
 
     void* element = array_element_at(array, fieldType, i);
-    BasicType arrayType = array_type_of(array->baseObject.clazz->info->thisClass);
+    BasicType arrayType = array_type_of(obj_get_class(&array->baseObject)->info->thisClass);
 
     // Store the value
     switch (fieldType) {
@@ -756,7 +756,7 @@ void *bc_vtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, uint16_t 
     JAVA_OBJECT object = objectRef->data.o;
     assert(object != JAVA_NULL); // TODO: throw NullPointerException instead
 
-    JavaClassInfo *info = object->clazz->info;
+    JavaClassInfo *info = obj_get_class(object)->info;
     assert(vtable_index < info->vtableCount);
 
     return info->vtable[vtable_index].code;
