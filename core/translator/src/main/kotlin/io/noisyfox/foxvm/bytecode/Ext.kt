@@ -43,7 +43,7 @@ fun String.asCIdentifier(): String {
 }
 
 /**
- * Convert the given string to a C string that is encoded in UTF-8.
+ * Convert the given string to a C string that is encoded in modified UTF-8 (§4.4.7).
  */
 fun String.asCString(): String {
     val sb = StringBuilder(length)
@@ -51,6 +51,10 @@ fun String.asCString(): String {
     var lastIsHexEscape = false
     this.forEach { c ->
         when (c) {
+            // • Code points in the range '\u0001' to '\u007F' are represented by a single byte:
+            //   0 bits 6-0
+            //   The 7 bits of data in the byte give the value of the code point represented.
+
             // Common escapes
             '\b' -> sb.append("\\b")
             '\n' -> sb.append("\\n")
@@ -77,7 +81,34 @@ fun String.asCString(): String {
                 }
                 lastIsHexEscape = true
 
-                val bytes = c.toString().toByteArray()
+                val charValue = c.toInt()
+                val bytes = if (charValue >= 0x0001 && charValue <= 0x007F) {
+                    byteArrayOf(charValue.toByte())
+                } else if (charValue <= 0x07FF) {
+                    // • The null code point ('\u0000') and code points in the range '\u0080' to '\u07FF'
+                    //   are represented by a pair of bytes x and y :
+                    //   x: 1 1 0 bits 10-6
+                    //   y: 1 0 bits 5-0
+                    byteArrayOf(
+                        (0xC0 or ((c.toInt() shr 6) and 0x1F)).toByte(),
+                        (0x80 or ((c.toInt() and 0x3F))).toByte()
+                    )
+                } else {
+                    // • Code points in the range '\u0800' to '\uFFFF' are represented by 3 bytes x, y,
+                    //   and z :
+                    //   x: 1 1 1 0 bits 15-12
+                    //   y: 1 0 bits 11-6
+                    //   z: 1 0 bits 5-0
+                    byteArrayOf(
+                        (0xE0 or ((c.toInt() shr 12) and 0xF)).toByte(),
+                        (0x80 or ((c.toInt() shr 6) and 0x3F)).toByte(),
+                        (0x80 or ((c.toInt() and 0x3F))).toByte()
+                    )
+                }
+
+                // Make sure there are no `NULL`s in the encoded string
+                assert(bytes.none { it == 0.toByte() })
+
                 sb.append("\\x" + bytes.joinToString("\\x") { "%02x".format(it) })
             }
         }
