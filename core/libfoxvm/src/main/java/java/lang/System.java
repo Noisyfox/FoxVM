@@ -55,9 +55,9 @@ public final class System {
      * described in the initializeSystemClass method.
      */
     private static native void registerNatives();
-    static {
-        registerNatives();
-    }
+    // static {
+    //     registerNatives();
+    // }
 
     /** Don't let anyone instantiate this class */
     private System() {
