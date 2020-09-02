@@ -338,9 +338,17 @@ val PreResolvedInstanceFieldInfo.cStorageType: String
     }
 
 /**
- * The C function name of the method.
+ * The C method info structure name of the method.
  */
 val MethodInfo.cName: String
+    get() {
+        return "methodInfo_${declaringClass.cIdentifier}_${this.cIdentifier}${this.descriptor.toCMethodSignature()}"
+    }
+
+/**
+ * The C function name of the method.
+ */
+val MethodInfo.cFunctionName: String
     get() {
         return "method_${declaringClass.cIdentifier}_${this.cIdentifier}${this.descriptor.toCMethodSignature()}"
     }
@@ -348,9 +356,9 @@ val MethodInfo.cName: String
 /**
  * The C function declaration of the method.
  */
-val MethodInfo.cDeclaration: String
+val MethodInfo.cFunctionDeclaration: String
     get() {
-        return "${this.descriptor.returnType.toCBaseTypeName()} ${this.cName}(VM_PARAM_CURRENT_CONTEXT)"
+        return "${this.descriptor.returnType.toCBaseTypeName()} ${this.cFunctionName}(VM_PARAM_CURRENT_CONTEXT)"
     }
 
 /**

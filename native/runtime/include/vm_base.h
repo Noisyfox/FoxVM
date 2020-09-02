@@ -206,6 +206,12 @@ typedef struct {
 } MethodInfo;
 
 typedef struct {
+    MethodInfo method;
+
+    void *nativePtr; // Pointer to the jni function
+} MethodInfoNative;
+
+typedef struct {
     JavaClassInfo *declaringClass;  // The class that declares this method, NULL means this class
     uint16_t methodIndex; // The index of `JavaClassInfo.methods`
 
@@ -240,7 +246,7 @@ struct _JavaClassInfo {
 
     // Methods of this class, methods from super class / interfaces not included.
     uint16_t methodCount; // Number of methods of this class
-    MethodInfo *methods;
+    MethodInfo **methods;
 
     //*****************************************************************************************************
     // Info resolved by .class to c translator

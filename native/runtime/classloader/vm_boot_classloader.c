@@ -138,14 +138,15 @@ static JavaClass *g_array_interfaces_resolved[2] = {
 };
 
 // Methods of arrays
-static MethodInfo g_array_methods[] = {
-        {
-                .accessFlags = METHOD_ACC_PUBLIC | METHOD_ACC_FINAL,
-                .name = "clone",
-                .descriptor = "()Ljava/lang/Object;",
-                .signature = NULL,
-                .code = g_array_5Mclone_R9Pjava_lang6CObject,
-        }
+static MethodInfo g_array_methodInfo_5Mclone_R9Pjava_lang6CObject = {
+        .accessFlags = METHOD_ACC_PUBLIC | METHOD_ACC_FINAL,
+        .name = "clone",
+        .descriptor = "()Ljava/lang/Object;",
+        .signature = NULL,
+        .code = g_array_5Mclone_R9Pjava_lang6CObject,
+};
+static MethodInfo* g_array_methods[] = {
+        &g_array_methodInfo_5Mclone_R9Pjava_lang6CObject
 };
 
 // vtable of the array classes. It has the same length as the vtable of java/lang/Object,
@@ -411,7 +412,7 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
         VTableItem *item = &g_array_vtable[i];
         assert(item->declaringClass == NULL);
         // Get the name of the method
-        MethodInfo *method = &g_classInfo_java_lang_Object->methods[item->methodIndex];
+        MethodInfo *method = g_classInfo_java_lang_Object->methods[item->methodIndex];
         C_CSTR methodName = method->name;
         if (strcmp("clone", methodName) == 0) {
             assert(arrayCloneUpdated == JAVA_FALSE);
@@ -444,7 +445,7 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     }
     // We here get the init method of the java/lang/Class
     for (uint32_t i = 0; i < g_classInfo_java_lang_Class->methodCount; i++) {
-        MethodInfo *method = &g_classInfo_java_lang_Class->methods[i];
+        MethodInfo *method = g_classInfo_java_lang_Class->methods[i];
         if (strcmp(method->name, "<init>") == 0) {
             java_lang_Class_init = method;
             break;

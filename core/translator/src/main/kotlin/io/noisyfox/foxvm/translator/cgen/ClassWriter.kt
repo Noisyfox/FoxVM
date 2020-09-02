@@ -247,7 +247,7 @@ class ClassWriter(
             nonAbstractMethods.forEach {
                 headerWriter.write(
                     """
-                    |${it.cDeclaration};    // ${clazz.className}.${it.name}${it.descriptor}
+                    |${it.cFunctionDeclaration};    // ${clazz.className}.${it.name}${it.descriptor}
                     |""".trimMargin()
                 )
             }
@@ -366,7 +366,6 @@ class ClassWriter(
             cWriter.write(
                 """
                     |// Methods of this class
-                    |static MethodInfo ${info.cNameMethods}[] = {
                     |""".trimMargin()
             )
 
@@ -374,17 +373,49 @@ class ClassWriter(
                 val codeRef = if (it.isAbstract) {
                     CNull
                 } else {
-                    it.cName
+                    it.cFunctionName
                 }
-                cWriter.write(
-                    """
-                    |    {
+                if(it.isNative) {
+                    cWriter.write(
+                        """
+                    |static MethodInfoNative ${it.cName} = {
+                    |        .method = {
+                    |                .accessFlags = ${AccFlag.translateMethodAcc(it.access)},
+                    |                .name = "${it.name.asCString()}",
+                    |                .descriptor = "${it.descriptor.toString().asCString()}",
+                    |                .signature = ${it.signature.toCString()},
+                    |                .code = $codeRef,
+                    |        },
+                    |        .nativePtr = $CNull,
+                    |};
+                    |""".trimMargin()
+                    )
+                } else {
+                    cWriter.write(
+                        """
+                    |static MethodInfo ${it.cName} = {
                     |        .accessFlags = ${AccFlag.translateMethodAcc(it.access)},
                     |        .name = "${it.name.asCString()}",
                     |        .descriptor = "${it.descriptor.toString().asCString()}",
                     |        .signature = ${it.signature.toCString()},
                     |        .code = $codeRef,
-                    |    },
+                    |};
+                    |""".trimMargin()
+                    )
+                }
+            }
+
+            cWriter.write(
+                """
+                    |
+                    |static MethodInfo* ${info.cNameMethods}[] = {
+                    |""".trimMargin()
+            )
+
+            info.methods.forEach {
+                cWriter.write(
+                    """
+                    |    (MethodInfo*)&${it.cName},
                     |""".trimMargin()
                 )
             }
@@ -483,7 +514,7 @@ class ClassWriter(
                 val codeRef = if (it.isAbstract) {
                     CNull
                 } else {
-                    it.cName
+                    it.cFunctionName
                 }
                 cWriter.write(
                     """
@@ -535,9 +566,9 @@ class ClassWriter(
                     |    .vtableCount = ${info.vtable.size},
                     |    .vtable = ${info.cNameVTable},
                     |
-                    |    .clinit = ${info.clinit?.cName ?: CNull},
+                    |    .clinit = ${info.clinit?.cFunctionName ?: CNull},
                     |
-                    |    .finalizer = ${info.finalizer?.cName ?: CNull},
+                    |    .finalizer = ${info.finalizer?.cFunctionName ?: CNull},
                     |};
                     |
                     |""".trimMargin()
@@ -708,7 +739,7 @@ class ClassWriter(
         cWriter.write(
             """
                     |// ${clazz.className}.${method.name}${method.descriptor}
-                    |${method.cDeclaration} {
+                    |${method.cFunctionDeclaration} {
                     |    $stackStartStatement;
                     |""".trimMargin()
         )
@@ -1160,7 +1191,7 @@ class ClassWriter(
                                 cWriter.write(
                                     """
                     |    // invokestatic ${inst.owner}.${inst.name}${inst.desc}
-                    |    bc_invoke_static${resolvedMethod.invokeSuffix}(&${resolvedMethod.declaringClass.cName}, ${resolvedMethod.cName});
+                    |    bc_invoke_static${resolvedMethod.invokeSuffix}(&${resolvedMethod.declaringClass.cName}, ${resolvedMethod.cFunctionName});
                     |""".trimMargin()
                                 )
                             }
@@ -1291,7 +1322,7 @@ class ClassWriter(
         cWriter.write(
             """
                     |// Native method bridge for ${clazz.className}.${method.name}${method.descriptor}
-                    |${method.cDeclaration} {
+                    |${method.cFunctionDeclaration} {
                     |    $stackStartStatement;
                     |""".trimMargin()
         )
@@ -1301,6 +1332,13 @@ class ClassWriter(
             cWriter.write(
                 """
                     |    bc_prepare_arguments(${argumentCount});
+                    |""".trimMargin()
+            )
+        }
+        if(!method.isStatic) {
+            cWriter.write(
+                """
+                    |    bc_check_objectref();
                     |""".trimMargin()
             )
         }
@@ -1515,7 +1553,7 @@ class ClassWriter(
         cWriter.write(
             """
                     |    // invokespecial ${inst.owner}.${inst.name}${inst.desc}
-                    |    bc_invoke_special${methodToInvoke.invokeSuffix}(${methodToInvoke.cName});
+                    |    bc_invoke_special${methodToInvoke.invokeSuffix}(${methodToInvoke.cFunctionName});
                     |""".trimMargin()
         )
     }
