@@ -11,6 +11,13 @@
 #include <stdint.h>
 #include <stddef.h>
 
+// static_assert for C: https://stackoverflow.com/a/3385694
+#define STATIC_ASSERT(COND, MSG) typedef char static_assertion_##MSG[(!!(COND))*2-1]
+// token pasting madness:
+#define _STATIC_ASSERT3(X, L) STATIC_ASSERT(X,at_line_##L)
+#define _STATIC_ASSERT2(X, L) _STATIC_ASSERT3(X,L)
+#define static_assert(cond) _STATIC_ASSERT2(cond,__LINE__)
+
 // Java primary type def
 typedef void        JAVA_VOID;
 typedef int8_t      JAVA_BOOLEAN;
@@ -208,6 +215,8 @@ typedef struct {
 typedef struct {
     MethodInfo method;
 
+    C_CSTR shortName;
+    C_CSTR longName;
     void *nativePtr; // Pointer to the jni function
 } MethodInfoNative;
 

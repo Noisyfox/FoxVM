@@ -5,6 +5,8 @@ import io.noisyfox.foxvm.bytecode.asCString
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
+import io.noisyfox.foxvm.bytecode.jniLongName
+import io.noisyfox.foxvm.bytecode.jniShortName
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import io.noisyfox.foxvm.translator.DiffFileWriter
 import org.objectweb.asm.Opcodes
@@ -386,6 +388,8 @@ class ClassWriter(
                     |                .signature = ${it.signature.toCString()},
                     |                .code = $codeRef,
                     |        },
+                    |        .shortName = "${it.jniShortName}",
+                    |        .longName  = "${it.jniLongName}",
                     |        .nativePtr = $CNull,
                     |};
                     |""".trimMargin()

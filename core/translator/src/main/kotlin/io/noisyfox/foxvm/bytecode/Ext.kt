@@ -1,5 +1,6 @@
 package io.noisyfox.foxvm.bytecode
 
+import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import org.objectweb.asm.Type
 
 fun Type.isReference() = when (this.sort) {
@@ -32,15 +33,7 @@ private fun Char.asCIdentifier(): String = when (this) {
 /**
  * Convert the given string to a C compatible identifier
  */
-fun String.asCIdentifier(): String {
-    val sb = StringBuilder(length)
-
-    this.forEach {
-        sb.append(it.asCIdentifier())
-    }
-
-    return sb.toString().intern()
-}
+fun String.asCIdentifier(): String = asSequence().joinToString(separator = "") { it.asCIdentifier() }.intern()
 
 /**
  * Convert the given string to a C string that is encoded in modified UTF-8 (§4.4.7).
@@ -116,3 +109,56 @@ fun String.asCString(): String {
 
     return sb.toString().intern()
 }
+
+// https://docs.oracle.com/javase/8/docs/technotes/guides/jni/spec/design.html
+// Resolving Native Method Names
+// Dynamic linkers resolve entries based on their names. A native method name is concatenated
+// from the following components:
+// • the prefix Java_
+// • a mangled fully-qualified class name
+// • an underscore (“_”) separator
+// • a mangled method name
+// • for overloaded native methods, two underscores (“__”) followed by the mangled argument signature
+// The VM checks for a method name match for methods that reside in the native library. The VM looks
+// first for the short name; that is, the name without the argument signature. It then looks for the
+// long name, which is the name with the argument signature.
+val MethodInfo.jniShortName: String
+    get() = "Java_${this.declaringClass.thisClass.className.asJNIIdentifier()}_${this.name.asJNIIdentifier()}"
+
+val MethodInfo.jniLongName: String
+    get() {
+        val desc = this.descriptor.descriptor
+        // Keep the argument desc only
+        val argDesc = desc.substring(1, desc.lastIndexOf(')'))
+        return "${this.jniShortName}__${argDesc.asJNIIdentifier()}"
+    }
+
+
+// We adopted a simple name-mangling scheme to ensure that all Unicode characters translate into valid
+// C function names. We use the underscore (“_”) character as the substitute for the slash (“/”) in fully
+// qualified class names. Since a name or type descriptor never begins with a number, we can use
+// _0, ..., _9 for escape sequences, as the following table illustrates:
+//
+// Unicode Character Translation
+// +-----------------+----------------------
+// | Escape Sequence | Denotes
+// +-----------------+----------------------
+// | _0XXXX          | a Unicode character XXXX. Note that lower case is used to represent non-ASCII Unicode
+// |                 | characters, for example, _0abcd as opposed to _0ABCD.
+// +-----------------+----------------------
+// | _1              | the character “_”
+// +-----------------+----------------------
+// | _2              | the character “;” in signatures
+// +-----------------+----------------------
+// | _3              | the character “[“ in signatures
+// +-----------------+----------------------
+private fun Char.asJNIIdentifier(): String = when (this) {
+    in '0'..'9', in 'a'..'z', in 'A'..'Z' -> this.toString()
+    '/' -> "_"
+    '_' -> "_1"
+    ';' -> "_2"
+    '[' -> "_3"
+    else -> "_0%04x".format(this.toInt())
+}
+
+private fun String.asJNIIdentifier(): String = asSequence().joinToString(separator = "") { it.asJNIIdentifier() }.intern()
