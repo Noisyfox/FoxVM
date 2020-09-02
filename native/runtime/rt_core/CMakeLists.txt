@@ -1,5 +1,7 @@
 set(SOURCE_FILES_RT_CORE
-        java_lang_Class.c)
+        java_lang_Class.c
+        java_lang_Float.c
+        java_lang_Double.c)
 
 include_directories($<TARGET_PROPERTY:foxvm_runtime,INCLUDE_DIRECTORIES>)
 
