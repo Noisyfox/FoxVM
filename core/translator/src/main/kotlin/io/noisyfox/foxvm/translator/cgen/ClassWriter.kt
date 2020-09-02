@@ -1310,16 +1310,18 @@ class ClassWriter(
         // here we use the parameter count as the `maxLocals` so we can pass parameters
         // like a normal method.
         val argumentTypes = method.descriptor.argumentTypes
-        val argumentCount = if (method.isStatic) {
-            argumentTypes.size
+        val localSlotCountOrig = argumentTypes.fold(0) { acc, type -> acc + type.localSlotCount }
+        val (argumentCount, localSlotCount) = if (method.isStatic) {
+            argumentTypes.size to localSlotCountOrig
         } else {
-            argumentTypes.size + 1 // implicitly passed this
+            // implicitly passed this
+            argumentTypes.size + 1 to localSlotCountOrig + 1
         }
 
         val stackStartStatement = if(argumentCount == 0) {
             "stack_frame_start_zero(${index})"
         } else {
-            "stack_frame_start(${index}, 0 /* native method does not use stack */, $argumentCount)"
+            "stack_frame_start(${index}, 0 /* native method does not use stack */, $localSlotCount)"
         }
         cWriter.write(
             """
@@ -1386,12 +1388,12 @@ class ClassWriter(
             jniArgs.add("bc_jni_arg_jref(0, ${Jni.TYPE_OBJECT})")
         }
         // Pass remaining arguments
-        val localOffset = if (method.isStatic) {
+        var localOffset = if (method.isStatic) {
             0
         } else {
             1
         }
-        argumentTypes.withIndex().mapTo(jniArgs) { (index, arg) ->
+        argumentTypes.mapTo(jniArgs) { arg ->
             when (arg.sort) {
                 Type.BOOLEAN,
                 Type.CHAR,
@@ -1400,12 +1402,14 @@ class ClassWriter(
                 Type.INT,
                 Type.FLOAT,
                 Type.LONG,
-                Type.DOUBLE -> "bc_jni_arg_${arg.toJNIType()}(${index + localOffset})"
+                Type.DOUBLE -> "bc_jni_arg_${arg.toJNIType()}($localOffset)"
 
                 Type.ARRAY,
-                Type.OBJECT -> "bc_jni_arg_jref(${index + localOffset}, ${arg.toJNIType()})"
+                Type.OBJECT -> "bc_jni_arg_jref($localOffset, ${arg.toJNIType()})"
 
                 else -> throw IllegalArgumentException("Unexpected type ${arg.sort} for argument.")
+            }.also {
+                localOffset += arg.localSlotCount
             }
         }
         val jniArgStr = jniArgs.joinToString(separator = """

@@ -131,6 +131,24 @@ fun Type.toCBaseTypeName(): String = when (sort) {
     else -> throw IllegalArgumentException("Unknown type ${sort}.")
 }
 
+// See local_transfer_arguments() in vm_stack.h
+val Type.localSlotCount: Int
+    get() = when(sort) {
+        Type.BOOLEAN,
+        Type.CHAR,
+        Type.BYTE,
+        Type.SHORT,
+        Type.INT,
+        Type.FLOAT,
+        Type.ARRAY,
+        Type.OBJECT -> 1
+
+        Type.LONG,
+        Type.DOUBLE -> 2
+
+        else -> throw IllegalArgumentException("Unknown supported type ${sort}.")
+    }
+
 /**
  * A string to "string", or NULL
  */
