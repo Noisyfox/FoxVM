@@ -9,6 +9,7 @@
 #include "vm_tlab.h"
 #include "vm_stack.h"
 #include "opa_primitives.h"
+#include "jni.h"
 
 typedef struct {
     uint32_t numberOfProcessors;
@@ -22,6 +23,8 @@ JAVA_BOOLEAN thread_init();
 typedef JAVA_VOID (*VMThreadCallback)(VM_PARAM_CURRENT_CONTEXT);
 
 struct _VMThreadContext {
+    JNIEnv jni;
+
     VMThreadContext *next;
 
     VMThreadCallback entrance;
