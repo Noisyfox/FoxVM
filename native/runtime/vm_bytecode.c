@@ -169,7 +169,17 @@ decl_arithmetic_func(i##name) {                                                 
 
 #define def_lshift_func(name, operation)                                                        \
 decl_arithmetic_func(l##name) {                                                                 \
-    arithmetic_bi_operand(VM_SLOT_LONG);                                                        \
+    VMStackSlot *value2 = stack->top - 1;                                                       \
+    VMStackSlot *value1 = stack->top - 2;                                                       \
+                                                                                                \
+    assert(value1 >= stack->slots);                                                             \
+                                                                                                \
+    assert(value1->type == VM_SLOT_LONG);                                                       \
+    assert(value2->type == VM_SLOT_INT);                                                        \
+                                                                                                \
+    /* Pop value2 */                                                                            \
+    stack->top = value2;                                                                        \
+    value2->type = VM_SLOT_INVALID;                                                             \
                                                                                                 \
     value1->data.l = (JAVA_ULONG)value1->data.l operation ((JAVA_ULONG)value2->data.l & 0x3Fu); \
 }
@@ -196,7 +206,17 @@ decl_arithmetic_func(ishr) {
     }
 }
 decl_arithmetic_func(lshr) {
-    arithmetic_bi_operand(VM_SLOT_LONG);
+    VMStackSlot *value2 = stack->top - 1;
+    VMStackSlot *value1 = stack->top - 2;
+
+    assert(value1 >= stack->slots);
+
+    assert(value1->type == VM_SLOT_LONG);
+    assert(value2->type == VM_SLOT_INT);
+
+    /* Pop value2 */
+    stack->top = value2;
+    value2->type = VM_SLOT_INVALID;
 
     JAVA_ULONG s = (JAVA_ULONG)value2->data.l & 0x3Fu;
     if(s > 0) {
