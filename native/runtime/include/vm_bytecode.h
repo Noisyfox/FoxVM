@@ -509,4 +509,6 @@ JAVA_VOID bc_read_stack_top(VMOperandStack *stack, void *valueOut, BasicType req
 JAVA_VOID bc_check_objref(VMStackFrame* frame);
 #define bc_check_objectref()  bc_check_objref(&STACK_FRAME)
 
+void *bc_resolve_native(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method);
+
 #endif //FOXVM_VM_BYTECODE_H

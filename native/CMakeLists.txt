@@ -14,7 +14,10 @@ include_directories($<TARGET_PROPERTY:foxvm_runtime,INCLUDE_DIRECTORIES>)
 add_subdirectory(dev_rt)
 include_directories($<TARGET_PROPERTY:foxvm_rt,INCLUDE_DIRECTORIES>)
 
-add_executable(foxvm main.c)
+add_executable(foxvm
+        $<TARGET_OBJECTS:foxvm_rt_core>
+        main.c
+        )
 
 target_link_libraries(foxvm
         foxvm_runtime

@@ -5,8 +5,6 @@ import io.noisyfox.foxvm.bytecode.asCString
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
-import io.noisyfox.foxvm.bytecode.jniLongName
-import io.noisyfox.foxvm.bytecode.jniShortName
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import io.noisyfox.foxvm.translator.DiffFileWriter
 import org.objectweb.asm.Opcodes
@@ -1353,7 +1351,7 @@ class ClassWriter(
                 |
                 |    // Resolve the function ptr
                 |    ${Jni.declFunctionPtr("ptr", method.isStatic, method.descriptor.returnType, argumentTypes.toList())};
-                |    ptr = NULL; // TODO
+                |    ptr = bc_resolve_native(vmCurrentContext, &${method.cName});
                 |
                 |""".trimMargin()
         )

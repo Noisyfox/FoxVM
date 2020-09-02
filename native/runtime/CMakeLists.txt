@@ -26,6 +26,14 @@ set(SOURCE_FILES_RUNTIME
 
         classloader/vm_classloader.c
         classloader/vm_boot_classloader.c
+
+        native/vm_native.c
+        )
+
+set(LOCAL_LIBS
+        Threads::Threads
+        m
+        opa
         )
 
 # Set thread implementation
@@ -45,12 +53,21 @@ else ()
     message(FATAL_ERROR "Not supported on this platform.")
 endif ()
 
+if (HAVE_DLFCN_H)
+    list(APPEND SOURCE_FILES_RUNTIME native/vm_native_posix.c)
+    list(APPEND LOCAL_LIBS ${CMAKE_DL_LIBS})
+else ()
+    message(FATAL_ERROR "Not supported on this platform.")
+endif ()
+
 add_subdirectory(3rd)
 
 include_directories(
         $<TARGET_PROPERTY:opa,INCLUDE_DIRECTORIES>
         3rd/uthash
 )
+
+add_subdirectory(rt_core)
 
 add_c_library(
         foxvm_runtime
@@ -66,7 +83,5 @@ add_c_library(
         LIBRARIES
 
         LOCAL_LIBRARIES
-        Threads::Threads
-        m
-        opa
+        ${LOCAL_LIBS}
 )

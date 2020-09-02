@@ -4,6 +4,7 @@
 
 #include "vm_main.h"
 #include "vm_memory.h"
+#include "vm_native.h"
 #include "vm_classloader.h"
 
 int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
@@ -34,6 +35,9 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     heap_init(vmCurrentContext, &heapConfig);
     // Init main tlab
     tlab_init(&vmCurrentContext->tlab);
+
+    // Init jni
+    native_init();
 
     // Init classloader
     if (!classloader_init(vmCurrentContext)) {

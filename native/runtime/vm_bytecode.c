@@ -10,6 +10,7 @@
 #include "vm_thread.h"
 #include <stdio.h>
 #include "vm_string.h"
+#include "vm_native.h"
 
 #define JAVA_TYPE_a JAVA_ARRAY
 #define JAVA_TYPE_o JAVA_OBJECT
@@ -775,4 +776,15 @@ JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CS
 
 JAVA_OBJECT bc_ldc_string_const(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_index) {
     return string_get_constant(vmCurrentContext, constant_index);
+}
+
+void *bc_resolve_native(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method) {
+    assert((method->method.accessFlags & METHOD_ACC_NATIVE) == METHOD_ACC_NATIVE);
+
+    void *nativePtr = method->nativePtr;
+    if (nativePtr) {
+        return nativePtr;
+    }
+
+    return native_bind_method(vmCurrentContext, method);
 }
