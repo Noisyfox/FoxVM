@@ -8,6 +8,7 @@
 #include "vm_base.h"
 
 JAVA_BOOLEAN native_init();
+JAVA_VOID native_thread_attach_jni(VM_PARAM_CURRENT_CONTEXT);
 
 void* native_load_library(C_CSTR name);
 void* native_find_symbol(void* handle, C_CSTR symbol);

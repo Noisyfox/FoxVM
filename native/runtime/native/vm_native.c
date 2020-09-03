@@ -10,6 +10,8 @@ static VMSpinLock g_jniMethodLock = OPA_INT_T_INITIALIZER(0);
 
 static void* g_libHandleThis = NULL;
 
+static struct JNINativeInterface jni;
+
 JAVA_BOOLEAN native_init() {
     spin_lock_init(&g_jniMethodLock);
 
@@ -17,6 +19,10 @@ JAVA_BOOLEAN native_init() {
     assert(g_libHandleThis != NULL);
 
     return JAVA_TRUE;
+}
+
+JAVA_VOID native_thread_attach_jni(VM_PARAM_CURRENT_CONTEXT) {
+    vmCurrentContext->jni = &jni;
 }
 
 void* native_bind_method(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method) {
@@ -49,3 +55,16 @@ void* native_bind_method(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method) {
 
     return nativePtr;
 }
+
+// Implementations of JNI interface methods
+static jfieldID GetStaticFieldID(JNIEnv* env, jclass cls, const char* name, const char* sig) {
+    return NULL;
+}
+
+static struct JNINativeInterface jni = {
+    .reserved0 = NULL,
+    .reserved1 = NULL,
+    .reserved2 = NULL,
+    .reserved3 = NULL,
+    .GetStaticFieldID = GetStaticFieldID,
+};
