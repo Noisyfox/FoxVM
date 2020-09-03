@@ -15,8 +15,8 @@ data class ClassInfo(
     val interfaces: List<Clazz>,
     val fields: MutableList<FieldInfo> = mutableListOf(),
     val methods: MutableList<MethodInfo> = mutableListOf(),
-    val preResolvedStaticFields: MutableList<PreResolvedStaticFieldInfo> = mutableListOf(),
-    val preResolvedInstanceFields: MutableList<PreResolvedInstanceFieldInfo> = mutableListOf(),
+    val preResolvedStaticFields: MutableList<PreResolvedFieldInfo> = mutableListOf(),
+    val preResolvedInstanceFields: MutableList<PreResolvedFieldInfo> = mutableListOf(),
     val vtable: MutableList<MethodInfo> = mutableListOf()
 ) {
 

@@ -4,8 +4,7 @@ import io.noisyfox.foxvm.bytecode.asCString
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.FieldInfo
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
-import io.noisyfox.foxvm.bytecode.clazz.PreResolvedInstanceFieldInfo
-import io.noisyfox.foxvm.bytecode.clazz.PreResolvedStaticFieldInfo
+import io.noisyfox.foxvm.bytecode.clazz.PreResolvedFieldInfo
 import io.noisyfox.foxvm.bytecode.resolver.mangleClassName
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.LabelNode
@@ -308,52 +307,20 @@ val ClassInfo.cNameResolveHandler: String
     get() = "resolve_${this.cIdentifier}"
 
 /**
- * The C enum name for referencing the given static field
+ * The C field name for storing the given field
  */
-val PreResolvedStaticFieldInfo.cNameEnum: String
-    get() {
-        return "FIELD_STATIC_${field.declaringClass.cIdentifier}${field.cIdentifier}"
+val PreResolvedFieldInfo.cName: String
+    get() = if (this.field.isStatic) {
+        "fieldStorage${field.cIdentifier}"
+    } else {
+        "fieldStorage${field.declaringClass.cIdentifier}${field.cIdentifier}"
     }
 
 /**
- * The C field name for storing the given static field
+ * The C type name for storing the given field
  */
-val PreResolvedStaticFieldInfo.cName: String
-    get() {
-        return "fieldStorage${field.cIdentifier}"
-    }
-
-/**
- * The C type name for storing the given static field
- */
-val PreResolvedStaticFieldInfo.cStorageType: String
-    get() {
-        return field.descriptor.toCBaseTypeName()
-    }
-
-/**
- * The C enum name for referencing the given instance field
- */
-val PreResolvedInstanceFieldInfo.cNameEnum: String
-    get() {
-        return "FIELD_INSTANCE_${field.declaringClass.cIdentifier}${field.cIdentifier}"
-    }
-
-/**
- * The C field name for storing the given instance field
- */
-val PreResolvedInstanceFieldInfo.cName: String
-    get() {
-        return "fieldStorage${field.declaringClass.cIdentifier}${field.cIdentifier}"
-    }
-
-/**
- * The C type name for storing the given instance field
- */
-val PreResolvedInstanceFieldInfo.cStorageType: String
-    get() {
-        return field.descriptor.toCBaseTypeName()
-    }
+val PreResolvedFieldInfo.cStorageType: String
+    get() = field.descriptor.toCBaseTypeName()
 
 /**
  * The C method info structure name of the method.

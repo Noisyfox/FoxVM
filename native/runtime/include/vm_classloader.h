@@ -17,4 +17,6 @@ JAVA_CLASS classloader_get_class_init(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT clas
 
 JAVA_CLASS classloader_get_class_by_name_init(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT classloader, C_CSTR className);
 
+JAVA_BOOLEAN classloader_prepare_fields(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS thisClass);
+
 #endif //FOXVM_VM_CLASSLOADER_H

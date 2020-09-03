@@ -5,6 +5,7 @@ import io.noisyfox.foxvm.bytecode.asCString
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
+import io.noisyfox.foxvm.bytecode.clazz.PreResolvedFieldInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import io.noisyfox.foxvm.translator.DiffFileWriter
 import org.objectweb.asm.Opcodes
@@ -96,58 +97,6 @@ class ClassWriter(
                     |""".trimMargin()
         )
 
-        // Generate static field index enum
-        if (info.preResolvedStaticFields.isNotEmpty()) {
-            headerWriter.write(
-                """
-                    |// Index of static fields
-                    |enum {
-                    |""".trimMargin()
-            )
-
-            info.preResolvedStaticFields.forEachIndexed { i, field ->
-                headerWriter.write(
-                    """
-                    |    ${field.cNameEnum} = ${i},    // Static field ${info.fields[field.fieldIndex].name}: ${info.fields[field.fieldIndex].descriptor}
-                    |""".trimMargin()
-                )
-            }
-
-            headerWriter.write(
-                """
-                    |};
-                    |
-                    |""".trimMargin()
-            )
-        }
-
-        // Generate instance field index enum, we only care about the fields declared by this class
-        if (info.preResolvedInstanceFields.any { it.field.declaringClass == info }) {
-            headerWriter.write(
-                """
-                    |// Index of instance fields
-                    |enum {
-                    |""".trimMargin()
-            )
-
-            info.preResolvedInstanceFields.forEachIndexed { i, field ->
-                if (field.field.declaringClass == info) {
-                    headerWriter.write(
-                        """
-                    |    ${field.cNameEnum} = ${i},    // Instance field ${info.fields[field.fieldIndex].name}: ${info.fields[field.fieldIndex].descriptor}
-                    |""".trimMargin()
-                    )
-                }
-            }
-
-            headerWriter.write(
-                """
-                    |};
-                    |
-                    |""".trimMargin()
-            )
-        }
-
         // Generate class definition
         headerWriter.write(
             """
@@ -170,14 +119,14 @@ class ClassWriter(
         if (info.preResolvedStaticFields.isNotEmpty()) {
             headerWriter.write(
                 """
-                    |    ResolvedStaticField $CNAME_BACKING_STATIC_FIELDS[${info.preResolvedStaticFields.size}];
+                    |    ResolvedField $CNAME_BACKING_STATIC_FIELDS[${info.preResolvedStaticFields.size}];
                     |""".trimMargin()
             )
         }
         if (info.preResolvedInstanceFields.isNotEmpty()) {
             headerWriter.write(
                 """
-                    |    ResolvedInstanceField $CNAME_BACKING_INSTANCE_FIELDS[${info.preResolvedInstanceFields.size}];
+                    |    ResolvedField $CNAME_BACKING_INSTANCE_FIELDS[${info.preResolvedInstanceFields.size}];
                     |""".trimMargin()
             )
         }
@@ -340,14 +289,22 @@ class ClassWriter(
                     |""".trimMargin()
             )
 
-            info.fields.forEach {
+            info.fields.forEach {f->
+                val offset = if(f.isStatic) {
+                    val resolvedStaticFieldInfo = info.preResolvedStaticFields.single { it.field == f }
+                    "offsetof(${info.cClassName}, ${resolvedStaticFieldInfo.cName})"
+                } else {
+                    val resolvedInstanceFieldInfo = info.preResolvedInstanceFields.single { it.field == f }
+                    "offsetof(${info.cObjectName}, ${resolvedInstanceFieldInfo.cName})"
+                }
                 cWriter.write(
                     """
                     |    {
-                    |        .accessFlags = ${AccFlag.translateFieldAcc(it.access)},
-                    |        .name = "${it.name.asCString()}",
-                    |        .descriptor = "${it.descriptor.toString().asCString()}",
-                    |        .signature = ${it.signature.toCString()},
+                    |        .accessFlags = ${AccFlag.translateFieldAcc(f.access)},
+                    |        .name = "${f.name.asCString()}",
+                    |        .descriptor = "${f.descriptor.toString().asCString()}",
+                    |        .signature = ${f.signature.toCString()},
+                    |        .offset = $offset,
                     |    },
                     |""".trimMargin()
                 )
@@ -430,24 +387,36 @@ class ClassWriter(
             )
         }
 
+        fun CWriter.write(f: PreResolvedFieldInfo) {
+            val dc = if (f.field.declaringClass == info) {
+                CNull
+            } else {
+                // Add dependency
+                addDependency(f.field.declaringClass)
+                "&${f.field.declaringClass.cName}"
+            }
+            write(
+                """
+                    |    {
+                    |        .declaringClass = $dc,
+                    |        .fieldIndex = ${f.fieldIndex},
+                    |        .isReference = ${f.isReference.translate()},
+                    |    },
+                    |""".trimMargin()
+            )
+        }
+
         // Write pre-resolved static field info
         if (info.preResolvedStaticFields.isNotEmpty()) {
             cWriter.write(
                 """
                     |// Pre-resolved static fields of this class
-                    |static PreResolvedStaticFieldInfo ${info.cNameStaticFields}[] = {
+                    |static PreResolvedFieldInfo ${info.cNameStaticFields}[] = {
                     |""".trimMargin()
             )
 
             info.preResolvedStaticFields.forEach {
-                cWriter.write(
-                    """
-                    |    {
-                    |        .fieldIndex = ${it.fieldIndex},
-                    |        .isReference = ${it.isReference.translate()},
-                    |    },
-                    |""".trimMargin()
-                )
+                cWriter.write(it)
             }
 
             cWriter.write(
@@ -463,27 +432,12 @@ class ClassWriter(
             cWriter.write(
                 """
                     |// Pre-resolved instance fields of this class
-                    |static PreResolvedInstanceFieldInfo ${info.cNameInstanceFields}[] = {
+                    |static PreResolvedFieldInfo ${info.cNameInstanceFields}[] = {
                     |""".trimMargin()
             )
 
             info.preResolvedInstanceFields.forEach {
-                val dc = if (it.field.declaringClass == info) {
-                    CNull
-                } else {
-                    // Add dependency
-                    cWriter.addDependency(it.field.declaringClass)
-                    "&${it.field.declaringClass.cName}"
-                }
-                cWriter.write(
-                    """
-                    |    {
-                    |        .declaringClass = $dc,
-                    |        .fieldIndex = ${it.fieldIndex},
-                    |        .isReference = ${it.isReference.translate()},
-                    |    },
-                    |""".trimMargin()
-                )
+                cWriter.write(it)
             }
 
             cWriter.write(
@@ -589,17 +543,13 @@ class ClassWriter(
         if (info.interfaces.isNotEmpty()) {
             cWriter.write(
                 """
-                    |    c->interfaceCount = ${info.interfaces.size};
                     |    c->interfaces = clazz->$CNAME_BACKING_INTERFACES;
-                    |
                     |""".trimMargin()
             )
         } else {
             cWriter.write(
                 """
-                    |    c->interfaceCount = 0;
                     |    c->interfaces = $CNull;
-                    |
                     |""".trimMargin()
             )
         }
@@ -608,34 +558,13 @@ class ClassWriter(
         if (info.preResolvedStaticFields.isNotEmpty()) {
             cWriter.write(
                 """
-                    |    c->staticFieldCount = ${info.preResolvedStaticFields.size};
                     |    c->staticFields = clazz->$CNAME_BACKING_STATIC_FIELDS;
-                    |""".trimMargin()
-            )
-            // Resolve offset
-            var hasRef = false
-            info.preResolvedStaticFields.forEachIndexed { i, field ->
-                cWriter.write(
-                    """
-                    |    c->staticFields[$i].info = &${info.cNameStaticFields}[$i];
-                    |    c->staticFields[$i].offset = offsetof(${info.cClassName}, ${field.cName});
-                    |""".trimMargin()
-                )
-                hasRef = hasRef || field.isReference
-            }
-            cWriter.write(
-                """
-                    |    c->hasStaticReference = ${hasRef.translate()};
-                    |
                     |""".trimMargin()
             )
         } else {
             cWriter.write(
                 """
-                    |    c->staticFieldCount = 0;
                     |    c->staticFields = $CNull;
-                    |    c->hasStaticReference = ${false.translate()};
-                    |
                     |""".trimMargin()
             )
         }
@@ -644,34 +573,13 @@ class ClassWriter(
         if (info.preResolvedInstanceFields.isNotEmpty()) {
             cWriter.write(
                 """
-                    |    c->fieldCount = ${info.preResolvedInstanceFields.size};
                     |    c->fields = clazz->$CNAME_BACKING_INSTANCE_FIELDS;
-                    |""".trimMargin()
-            )
-            // Resolve offset
-            var hasRef = false
-            info.preResolvedInstanceFields.forEachIndexed { i, field ->
-                cWriter.write(
-                    """
-                    |    c->fields[$i].info = &${info.cNameInstanceFields}[$i];
-                    |    c->fields[$i].offset = offsetof(${info.cObjectName}, ${field.cName});
-                    |""".trimMargin()
-                )
-                hasRef = hasRef || field.isReference
-            }
-            cWriter.write(
-                """
-                    |    c->hasReference = ${hasRef.translate()};
-                    |
                     |""".trimMargin()
             )
         } else {
             cWriter.write(
                 """
-                    |    c->fieldCount = 0;
                     |    c->fields = $CNull;
-                    |    c->hasReference = ${false.translate()};
-                    |
                     |""".trimMargin()
             )
         }
@@ -685,6 +593,7 @@ class ClassWriter(
         if (noneStringStaticFieldsWithDefault.isNotEmpty()) {
             cWriter.write(
                 """
+                    |
                     |    // Init default value for static fields, except Strings
                     |""".trimMargin()
             )

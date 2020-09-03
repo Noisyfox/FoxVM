@@ -6,8 +6,7 @@ import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.FieldInfo
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
-import io.noisyfox.foxvm.bytecode.clazz.PreResolvedInstanceFieldInfo
-import io.noisyfox.foxvm.bytecode.clazz.PreResolvedStaticFieldInfo
+import io.noisyfox.foxvm.bytecode.clazz.PreResolvedFieldInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassVisitor
@@ -216,25 +215,19 @@ private class PreResolverClassVisitor(
         // Do pre-resolving
         val info = clazz.requireClassInfo()
 
-        val instanceFields = mutableListOf<PreResolvedInstanceFieldInfo>()
+        val instanceFields = mutableListOf<PreResolvedFieldInfo>()
 
         info.fields.forEachIndexed { i, f ->
+            val preResolved = PreResolvedFieldInfo(
+                field = f,
+                fieldIndex = i,
+                isReference = f.isReference
+            )
+
             if (f.isStatic) {
-                info.preResolvedStaticFields.add(
-                    PreResolvedStaticFieldInfo(
-                        field = f,
-                        fieldIndex = i,
-                        isReference = f.isReference
-                    )
-                )
+                info.preResolvedStaticFields.add(preResolved)
             } else {
-                instanceFields.add(
-                    PreResolvedInstanceFieldInfo(
-                        field = f,
-                        fieldIndex = i,
-                        isReference = f.isReference
-                    )
-                )
+                instanceFields.add(preResolved)
             }
         }
 

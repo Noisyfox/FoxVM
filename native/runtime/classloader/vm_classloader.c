@@ -7,6 +7,7 @@
 #include "vm_thread.h"
 #include <stdio.h>
 #include "vm_array.h"
+#include <string.h>
 
 JAVA_BOOLEAN classloader_init(VM_PARAM_CURRENT_CONTEXT) {
     if (!cl_bootstrap_init(vmCurrentContext)) {
@@ -221,4 +222,61 @@ JAVA_CLASS classloader_get_class_by_name_init(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJ
     }
 
     return c;
+}
+
+static JAVA_BOOLEAN classloader_resolve_fields(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS thisClass, uint32_t fieldCount,
+                                                PreResolvedFieldInfo* preResolvedFields, ResolvedField* resolvedFields,
+                                                JAVA_BOOLEAN* hasRefOut) {
+    JAVA_BOOLEAN hasRef = JAVA_FALSE;
+
+    for (uint32_t i = 0; i < fieldCount; i++) {
+        PreResolvedFieldInfo *preResolved = &preResolvedFields[i];
+        ResolvedField *resolved = &resolvedFields[i];
+
+        JAVA_CLASS declaringClass = thisClass;
+        if (preResolved->declaringClass) {
+            declaringClass = classloader_get_class(vmCurrentContext,
+                                                   thisClass->classLoader, preResolved->declaringClass);
+
+            if (!declaringClass || declaringClass->state < CLASS_STATE_RESOLVED) {
+                fprintf(stderr, "Classloader: unable to load class %s\n",
+                        preResolved->declaringClass->thisClass);
+                /* TODO: throw exception */
+                return JAVA_FALSE;
+            }
+        }
+
+        FieldInfo *field = &declaringClass->info->fields[preResolved->fieldIndex];
+        memcpy(&resolved->info, field, sizeof(FieldInfo));
+        resolved->declaringClass = declaringClass;
+        resolved->isReference = preResolved->isReference;
+        hasRef = hasRef || preResolved->isReference;
+    }
+    *hasRefOut = hasRef;
+
+    return JAVA_TRUE;
+}
+
+JAVA_BOOLEAN classloader_prepare_fields(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS thisClass) {
+    JavaClassInfo *classInfo = thisClass->info;
+
+    // Resolve the instance fields
+    thisClass->fieldCount = classInfo->preResolvedInstanceFieldCount;
+    if (classloader_resolve_fields(vmCurrentContext, thisClass, thisClass->fieldCount,
+                                   classInfo->preResolvedInstanceFields, thisClass->fields,
+                                   &thisClass->hasReference) != JAVA_TRUE) {
+        fprintf(stderr, "Classloader: unable to prepare instance field for class %s\n", classInfo->thisClass);
+        return JAVA_FALSE;
+    }
+
+    // Resolve the static fields
+    thisClass->staticFieldCount = classInfo->preResolvedStaticFieldCount;
+    if (classloader_resolve_fields(vmCurrentContext, thisClass, thisClass->staticFieldCount,
+                                   classInfo->preResolvedStaticFields, thisClass->staticFields,
+                                   &thisClass->hasStaticReference) != JAVA_TRUE) {
+        fprintf(stderr, "Classloader: unable to prepare static field for class %s\n", classInfo->thisClass);
+        return JAVA_FALSE;
+    }
+
+    return JAVA_TRUE;
 }

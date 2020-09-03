@@ -328,6 +328,8 @@ static JAVA_CLASS cl_bootstrap_createPrimitiveClass(VM_PARAM_CURRENT_CONTEXT, Ja
         return (JAVA_CLASS) JAVA_NULL;
     }
     thisClass->isPrimitive = JAVA_TRUE;
+    thisClass->classLoader = JAVA_NULL;
+
     // We then register the class
     entry->key = classInfo;
     entry->clazz = thisClass;
@@ -564,6 +566,7 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
         return (JAVA_CLASS) JAVA_NULL;
     }
     thisClass->isPrimitive = JAVA_FALSE;
+    thisClass->classLoader = JAVA_NULL;
 
     // We then register the class
     entry->key = classInfo;
@@ -585,6 +588,7 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
     classInfo->resolveHandler(thisClass);
     thisClass->superClass = superclass;
     // Then resolve direct superinterfaces
+    thisClass->interfaceCount = classInfo->interfaceCount;
     if (classInfo->interfaceCount > 0) {
         for (int i = 0; i < classInfo->interfaceCount; i++) {
             JAVA_CLASS it = cl_bootstrap_find_class_by_info(vmCurrentContext, classInfo->interfaces[i]);
@@ -598,6 +602,13 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
             }
             thisClass->interfaces[i] = it;
         }
+    }
+
+    if(classloader_prepare_fields(vmCurrentContext, thisClass) != JAVA_TRUE) {
+        thisClass->state = CLASS_STATE_ERROR;
+        monitor_exit(vmCurrentContext, &g_bootstrapClassLock);
+        // TODO: throw exception
+        return (JAVA_CLASS) JAVA_NULL;
     }
 
     // Init the java/lang/Class instance
@@ -694,6 +705,7 @@ static JAVA_CLASS cl_bootstrap_find_array_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR
         return (JAVA_CLASS) JAVA_NULL;
     }
     thisClass->isPrimitive = JAVA_FALSE;
+    thisClass->classLoader = JAVA_NULL;
 
     JavaArrayClass *arrayClass = (JavaArrayClass *) thisClass;
     arrayClass->componentType = componentType;

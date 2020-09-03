@@ -172,20 +172,19 @@ typedef struct {
     C_CSTR signature; // Signature of this field if it is generic type, or `NULL`
 
     // TODO: Add field attributes
+
+    // Offset to where the field data is stored
+    // If this field is static, then the base address is the beginning of the [JavaClass] structure,
+    // otherwise the base address is the beginning of the [JavaObjectBase] structure.
+    ptrdiff_t offset;
 } FieldInfo;
-
-typedef struct {
-    uint16_t fieldIndex; // The index of `JavaClassInfo.fields`
-
-    JAVA_BOOLEAN isReference;
-} PreResolvedStaticFieldInfo;
 
 typedef struct {
     JavaClassInfo *declaringClass; // The class that declares this field, NULL means this class
     uint16_t fieldIndex; // The index of `JavaClassInfo.fields`
 
     JAVA_BOOLEAN isReference;
-} PreResolvedInstanceFieldInfo;
+} PreResolvedFieldInfo;
 
 typedef enum {
     METHOD_ACC_PUBLIC = 0x0001,
@@ -265,10 +264,10 @@ struct _JavaClassInfo {
     size_t instanceSize; // Size of the object struct
 
     uint16_t preResolvedStaticFieldCount; // All static fields from this class ONLY
-    PreResolvedStaticFieldInfo *preResolvedStaticFields;
+    PreResolvedFieldInfo *preResolvedStaticFields;
 
-    uint16_t preResolvedInstanceFieldCount; // Include ALL instance fields from super classes
-    PreResolvedInstanceFieldInfo *preResolvedInstanceFields;
+    uint32_t preResolvedInstanceFieldCount; // Include ALL instance fields from super classes
+    PreResolvedFieldInfo *preResolvedInstanceFields;
 
     uint16_t vtableCount;
     VTableItem *vtable;
@@ -286,19 +285,13 @@ struct _JavaClassInfo {
 // Resolved runtime type info, contain data resolved by class loader
 //*********************************************************************************************************
 
+// Contains redundant information to speed up access
 typedef struct {
-    PreResolvedStaticFieldInfo *info;
+    FieldInfo info;
 
-    // GC scanning information
-    size_t offset;
-} ResolvedStaticField;
-
-typedef struct {
-    PreResolvedInstanceFieldInfo *info;
-
-    // GC scanning information
-    size_t offset; // Offset to where the field data is stored
-} ResolvedInstanceField;
+    JAVA_CLASS declaringClass;
+    JAVA_BOOLEAN isReference;
+} ResolvedField;
 
 typedef enum {
     CLASS_STATE_ERROR = -1,
@@ -324,16 +317,17 @@ struct _JavaClass {
 
     // Resolved data
     JAVA_CLASS superClass;
+
     int interfaceCount;
     JAVA_CLASS *interfaces;
 
     // Static fields of this class, fields from super class / interfaces not included.
     uint16_t staticFieldCount; // Number of resolved static fields of this class
-    ResolvedStaticField *staticFields;
+    ResolvedField *staticFields;
     JAVA_BOOLEAN hasStaticReference;
 
     uint32_t fieldCount; // Number of resolved instance fields, includes ALL fields from super classes and interfaces
-    ResolvedInstanceField *fields;
+    ResolvedField *fields;
     JAVA_BOOLEAN hasReference;
 };
 
