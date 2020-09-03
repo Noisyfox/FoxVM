@@ -177,6 +177,10 @@ typedef struct {
     // If this field is static, then the base address is the beginning of the [JavaClass] structure,
     // otherwise the base address is the beginning of the [JavaObjectBase] structure.
     ptrdiff_t offset;
+
+    // If this field is static and has string default value, then this stores the index in the constant table,
+    // otherwise -1
+    JAVA_INT defaultConstantIndex;
 } FieldInfo;
 
 typedef struct {

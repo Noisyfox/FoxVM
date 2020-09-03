@@ -30,6 +30,7 @@ class Clazz(
 
     companion object {
         const val CLASS_JAVA_LANG_OBJECT = "java/lang/Object"
+        const val CLASS_JAVA_LANG_STRING = "java/lang/String"
         const val CLASS_JAVA_LANG_ENUM = "java/lang/Enum"
     }
 }

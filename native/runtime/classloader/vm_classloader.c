@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "vm_array.h"
 #include <string.h>
+#include "vm_string.h"
 
 JAVA_BOOLEAN classloader_init(VM_PARAM_CURRENT_CONTEXT) {
     if (!cl_bootstrap_init(vmCurrentContext)) {
@@ -100,7 +101,15 @@ static JAVA_BOOLEAN classloader_init_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS 
     // ClassFile structure.
     // The default value for numeric fields have already set during resolving process,
     // here we only deal with String fields.
-    // TODO
+    for(uint16_t i = 0; i < clazz->staticFieldCount; i++) {
+        ResolvedField *f = &clazz->staticFields[i];
+        JAVA_INT index = f->info.defaultConstantIndex;
+        if (index >= 0) {
+            JAVA_OBJECT str = string_get_constant(vmCurrentContext, index);
+            JAVA_OBJECT *fieldPtr = ptr_inc(clazz, f->info.offset);
+            *fieldPtr = str;
+        }
+    }
 
     // 7. Init superclasses and superinterfaces
     if (clazz->superClass) {

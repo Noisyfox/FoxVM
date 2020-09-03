@@ -289,14 +289,24 @@ class ClassWriter(
                     |""".trimMargin()
             )
 
-            info.fields.forEach {f->
-                val offset = if(f.isStatic) {
+            info.fields.forEach { f ->
+                val offset = if (f.isStatic) {
                     val resolvedStaticFieldInfo = info.preResolvedStaticFields.single { it.field == f }
                     "offsetof(${info.cClassName}, ${resolvedStaticFieldInfo.cName})"
                 } else {
                     val resolvedInstanceFieldInfo = info.preResolvedInstanceFields.single { it.field == f }
                     "offsetof(${info.cObjectName}, ${resolvedInstanceFieldInfo.cName})"
                 }
+
+                val defaultIndex = if (f.isStatic && f.defaultValue is String) {
+                    if(f.descriptor.internalName != Clazz.CLASS_JAVA_LANG_STRING) {
+                        throw IncompatibleClassChangeError("Non-string field $f cannot have string default value")
+                    }
+                    constantPool.addConstant(f.defaultValue)
+                } else {
+                    -1
+                }
+
                 cWriter.write(
                     """
                     |    {
@@ -305,6 +315,7 @@ class ClassWriter(
                     |        .descriptor = "${f.descriptor.toString().asCString()}",
                     |        .signature = ${f.signature.toCString()},
                     |        .offset = $offset,
+                    |        .defaultConstantIndex = $defaultIndex,
                     |    },
                     |""".trimMargin()
                 )

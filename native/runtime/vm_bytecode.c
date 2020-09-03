@@ -528,6 +528,7 @@ JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR de
     if (!array) {
         fprintf(stderr, "Unable to alloc array %s with count %d\n", desc, count);
         // TODO: throw OOM exception
+        exit(-1);
         return (JAVA_ARRAY) JAVA_NULL;
     }
 
@@ -706,6 +707,7 @@ JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *info) {
     if (!obj) {
         fprintf(stderr, "Unable to create instance of class %s \n", info->thisClass);
         // TODO: throw OOM exception
+        exit(-1);
         return JAVA_NULL;
     }
     obj->clazz = clazz;
