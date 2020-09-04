@@ -168,6 +168,8 @@ JAVA_VOID thread_leave_saferegion(VM_PARAM_CURRENT_CONTEXT);
  */
 JAVA_BOOLEAN thread_checkpoint(VM_PARAM_CURRENT_CONTEXT);
 
+JAVA_BOOLEAN thread_in_checkpoint(VM_PARAM_CURRENT_CONTEXT);
+
 // For object lock
 
 int monitor_create(VM_PARAM_CURRENT_CONTEXT, VMStackSlot *obj);

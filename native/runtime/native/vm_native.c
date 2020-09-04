@@ -67,6 +67,13 @@ void* native_bind_method(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method) {
     return nativePtr;
 }
 
+jobject native_get_local_ref(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
+    // This cannot be called inside a checkpoint because the obj might be moved by GC
+    assert(!thread_in_checkpoint(vmCurrentContext));
+
+    return NULL;
+}
+
 // Implementations of JNI interface methods
 static jfieldID GetStaticFieldID(JNIEnv* env, jclass cls, const char* name, const char* sig) {
     return NULL;

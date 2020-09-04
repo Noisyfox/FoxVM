@@ -21,6 +21,14 @@ typedef struct _NativeStackFrame {
     // Reference table
 } NativeStackFrame;
 
+#define native_stack_frame_start(ref_capacity) \
+
+
+
+
+
+#define native_stack_frame_end()
+#define native_stack_frame_end_with_result(result)
 
 JAVA_BOOLEAN native_init();
 
@@ -33,5 +41,7 @@ void* native_load_library(C_CSTR name);
 void* native_find_symbol(void* handle, C_CSTR symbol);
 
 void* native_bind_method(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method);
+
+jobject native_get_local_ref(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj);
 
 #endif //FOXVM_VM_NATIVE_H

@@ -772,12 +772,12 @@ class ClassWriter(
                         in byteCodesReturn -> {
                             val (bytecodesMnemonic, allowedReturnInsn) = byteCodesReturn.getValue(inst.opcode)
                             val returnType = method.descriptor.returnType
-                            val functionName = allowedReturnInsn[returnType.sort]
+                            val functionPrefix = allowedReturnInsn[returnType.sort]
                                 ?: throw VerifyError("$bytecodesMnemonic cannot be used in method with return type $returnType")
                             cWriter.write(
                                 """
                     |    // $bytecodesMnemonic
-                    |    ${functionName}();
+                    |    bc_${functionPrefix}return();
                     |""".trimMargin()
                             )
                         }
@@ -1224,42 +1224,25 @@ class ClassWriter(
 
     private fun writeNativeMethodBridge(cWriter: CWriter, clazzInfo: ClassInfo, index: Int, method: MethodInfo) {
         val clazz = clazzInfo.thisClass
-        val node = method.methodNode
+        val jniMethod = JNIMethod(method)
 
-        // For native method, `maxStack` and `maxLocals` are always 0
-        // here we use the parameter count as the `maxLocals` so we can pass parameters
-        // like a normal method.
-        val argumentTypes = method.descriptor.argumentTypes
-        val localSlotCountOrig = argumentTypes.fold(0) { acc, type -> acc + type.localSlotCount }
-        val (argumentCount, localSlotCount) = if (method.isStatic) {
-            argumentTypes.size to localSlotCountOrig
-        } else {
-            // implicitly passed this
-            argumentTypes.size + 1 to localSlotCountOrig + 1
-        }
-
-        val stackStartStatement = if(argumentCount == 0) {
-            "stack_frame_start_zero(${index})"
-        } else {
-            "stack_frame_start(${index}, 0 /* native method does not use stack */, $localSlotCount)"
-        }
         cWriter.write(
             """
                     |// Native method bridge for ${clazz.className}.${method.name}${method.descriptor}
                     |${method.cFunctionDeclaration} {
-                    |    $stackStartStatement;
+                    |    stack_frame_start(${index}, 1 /* for storing return value */, ${jniMethod.localSlotCount});
                     |""".trimMargin()
         )
 
         // Pass arguments
-        if (argumentCount > 0) {
+        if (jniMethod.argumentCount > 0) {
             cWriter.write(
                 """
-                    |    bc_prepare_arguments(${argumentCount});
+                    |    bc_prepare_arguments(${jniMethod.argumentCount});
                     |""".trimMargin()
             )
         }
-        if(!method.isStatic) {
+        if(!jniMethod.isStatic) {
             cWriter.write(
                 """
                     |    bc_check_objectref();
@@ -1267,101 +1250,81 @@ class ClassWriter(
             )
         }
 
-        // TODO: resolve the function pointer to the native method
+        // Resolve the function pointer to the native method
         cWriter.write(
             """
                 |
                 |    // Resolve the function ptr
-                |    ${Jni.declFunctionPtr("ptr", method.isStatic, method.descriptor.returnType, argumentTypes.toList())};
+                |    ${jniMethod.functionPtrDecl("ptr")};
                 |    ptr = bc_resolve_native(vmCurrentContext, &${method.cName});
                 |
                 |""".trimMargin()
         )
 
+        // Prepare native stack frame
+        cWriter.write(
+            """
+                |    // Prepare native frame
+                |    bc_native_prepare();
+                |""".trimMargin()
+        )
+
+        // Prepare handler for argument that is object reference
+        cWriter.write(
+                """
+                |
+                |    // Prepare arguments
+                |${jniMethod.referenceArgumentsPreparationCode}
+                |""".trimMargin()
+        )
+
         // Call real function
-        val hasReturnValue = method.descriptor.returnType.sort != Type.VOID
+        val hasReturnValue = jniMethod.returnType.sort != Type.VOID
         if (hasReturnValue) {
             cWriter.write(
                 """
                 |    // Call real function
-                |    ${method.descriptor.returnType.toJNIType()} result = ptr(
+                |    bc_native_start();
+                |    ${jniMethod.returnType.toJNIType()} result = ptr(
                 |""".trimMargin()
             )
         } else {
             cWriter.write(
                 """
                 |    // Call real function
+                |    bc_native_start();
                 |    ptr(
                 |""".trimMargin()
             )
         }
-        // Build argument list
-        val jniArgs = mutableListOf<String>()
-        // Pass JNIEnv
-        jniArgs.add("&vmCurrentContext->jni")
-        // Pass second param
-        if(method.isStatic) {
-            // Pass current class
-            jniArgs.add("(${Jni.TYPE_CLASS}) THIS_CLASS")
-        } else {
-            // $this is stored in the local[0]
-            jniArgs.add("bc_jni_arg_jref(0, ${Jni.TYPE_OBJECT})")
-        }
-        // Pass remaining arguments
-        var localOffset = if (method.isStatic) {
-            0
-        } else {
-            1
-        }
-        argumentTypes.mapTo(jniArgs) { arg ->
-            when (arg.sort) {
-                Type.BOOLEAN,
-                Type.CHAR,
-                Type.BYTE,
-                Type.SHORT,
-                Type.INT,
-                Type.FLOAT,
-                Type.LONG,
-                Type.DOUBLE -> "bc_jni_arg_${arg.toJNIType()}($localOffset)"
 
-                Type.ARRAY,
-                Type.OBJECT -> "bc_jni_arg_jref($localOffset, ${arg.toJNIType()})"
-
-                else -> throw IllegalArgumentException("Unexpected type ${arg.sort} for argument.")
-            }.also {
-                localOffset += arg.localSlotCount
-            }
-        }
-        val jniArgStr = jniArgs.joinToString(separator = """
-                |,
-                |        """.trimMargin())
         cWriter.write(
             """
-                |        $jniArgStr
+                |        ${jniMethod.argumentsPassingCode}
                 |    );
-                |
                 |""".trimMargin()
         )
 
-        // End the frame
-        cWriter.write(
-            """
-                    |    stack_frame_end();
-                    |""".trimMargin()
-        )
-
         // Handle return
+        val returnPrefix = returnTypePrefixes.getValue(method.descriptor.returnType.sort)
         if(hasReturnValue) {
             cWriter.write(
                 """
-                    |
-                    |    return result;
+                    |    bc_native_end_${returnPrefix}(result);
+                    |""".trimMargin()
+            )
+        } else {
+            cWriter.write(
+                """
+                    |    bc_native_end_o(JAVA_NULL);
                     |""".trimMargin()
             )
         }
 
         cWriter.write(
             """
+                    |
+                    |    bc_${returnPrefix}return();
                     |}
                     |
                     |""".trimMargin()
@@ -1675,28 +1638,36 @@ class ClassWriter(
         private val byteCodesReturn = mapOf(
             // – All instance initialization methods, class or interface initialization methods,
             //   and methods declared to return void must use only the return instruction.
-            Opcodes.RETURN  to Pair("return", mapOf(Type.VOID to "bc_return")),
+            Opcodes.RETURN to Pair("return", mapOf(Type.VOID to "")),
             // – If the method returns a boolean, byte, char, short, or int, only the ireturn
             //   instruction may be used.
-            Opcodes.IRETURN to Pair("ireturn", mapOf(
-                Type.BOOLEAN to "bc_zreturn",
-                Type.CHAR    to "bc_creturn",
-                Type.BYTE    to "bc_breturn",
-                Type.SHORT   to "bc_sreturn",
-                Type.INT     to "bc_ireturn"
-            )),
+            Opcodes.IRETURN to Pair(
+                "ireturn", mapOf(
+                    Type.BOOLEAN to "z",
+                    Type.CHAR to "c",
+                    Type.BYTE to "b",
+                    Type.SHORT to "s",
+                    Type.INT to "i"
+                )
+            ),
             // – If the method returns a float, long, or double, only an freturn, lreturn, or
             //   dreturn instruction, respectively, may be used.
-            Opcodes.FRETURN to Pair("freturn", mapOf(Type.FLOAT  to "bc_freturn")),
-            Opcodes.LRETURN to Pair("lreturn", mapOf(Type.LONG   to "bc_lreturn")),
-            Opcodes.DRETURN to Pair("dreturn", mapOf(Type.DOUBLE to "bc_dreturn")),
+            Opcodes.FRETURN to Pair("freturn", mapOf(Type.FLOAT to "f")),
+            Opcodes.LRETURN to Pair("lreturn", mapOf(Type.LONG to "l")),
+            Opcodes.DRETURN to Pair("dreturn", mapOf(Type.DOUBLE to "d")),
             // – If the method returns a reference type, only an areturn instruction may be
             //   used, and the type of the returned value must be assignment compatible with
             //   the return descriptor of the method (JLS §5.2, §4.3.3).
-            Opcodes.ARETURN to Pair("areturn", mapOf(
-                Type.ARRAY  to "bc_areturn",
-                Type.OBJECT to "bc_oreturn"
-            ))
+            Opcodes.ARETURN to Pair(
+                "areturn", mapOf(
+                    Type.ARRAY to "a",
+                    Type.OBJECT to "o"
+                )
+            )
         )
+
+        private val returnTypePrefixes: Map<Int, String> = byteCodesReturn
+                .map { it.value.second }
+                .reduce { acc, map -> acc + map }
     }
 }

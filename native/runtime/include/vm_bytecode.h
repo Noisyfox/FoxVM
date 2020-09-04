@@ -493,6 +493,29 @@ JAVA_VOID bc_read_stack_top(VMOperandStack *stack, void *valueOut, BasicType req
 /** Record current label. */
 #define bc_label(label_number) STACK_FRAME.currentLabel = (label_number)
 
+// JNI stack frame helpers
+// Setup the native stack frame for the jni call
+#define bc_native_prepare()
+// Before it enters a native method, the VM automatically ensures that at least 16 local references can be created.
+// Mark the current thread that has entered the native call frames, so GC can work on this thread if needed.
+// After this is called, before the native frame ended, access of any object must be done via ref handler, because
+// the object can be moved by the GC at any time.
+// This affectively makes current thread entering the safe region until the call returns.
+#define bc_native_start() native_stack_frame_start(16)
+// End the native stack frame then push the result to the java stack.
+// This also switch the state of current thread back to normal.
+#define bc_native_end_z(result) do {native_stack_frame_end(); stack_push_int(result);   } while(0)
+#define bc_native_end_c(result) do {native_stack_frame_end(); stack_push_int(result);   } while(0)
+#define bc_native_end_b(result) do {native_stack_frame_end(); stack_push_int(result);   } while(0)
+#define bc_native_end_s(result) do {native_stack_frame_end(); stack_push_int(result);   } while(0)
+#define bc_native_end_i(result) do {native_stack_frame_end(); stack_push_int(result);   } while(0)
+#define bc_native_end_f(result) do {native_stack_frame_end(); stack_push_float(result); } while(0)
+#define bc_native_end_l(result) do {native_stack_frame_end(); stack_push_long(result);  } while(0)
+#define bc_native_end_d(result) do {native_stack_frame_end(); stack_push_double(result);} while(0)
+// For reference return types, we need to convert the native handler to object reference
+#define bc_native_end_a(result)
+#define bc_native_end_o(result)
+
 // JNI argument passing helpers
 #define bc_jni_arg_jboolean(local)       (local_of(local).data.i == 0 ? JNI_FALSE : JNI_TRUE)
 #define bc_jni_arg_jchar(local)          ((jchar)local_of(local).data.i)
@@ -502,7 +525,8 @@ JAVA_VOID bc_read_stack_top(VMOperandStack *stack, void *valueOut, BasicType req
 #define bc_jni_arg_jfloat(local)         ((jfloat)local_of(local).data.f)
 #define bc_jni_arg_jlong(local)          ((jlong)local_of(local).data.l)
 #define bc_jni_arg_jdouble(local)        ((jdouble)local_of(local).data.d)
-#define bc_jni_arg_jref(local, ref_type) ((ref_type)local_of(local).data.o)
+#define bc_jni_arg_jref(local, ref_type) ((ref_type)native_get_local_ref(vmCurrentContext, local_of(local).data.o))
+#define bc_jni_arg_this_class()          ((jclass)native_get_local_ref(vmCurrentContext, (JAVA_OBJECT)THIS_CLASS))
 
 // Called at the beginning of each instance method to check the validity of the objectref
 // and also populate the STACK_FRAME.thisClass

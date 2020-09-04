@@ -37,27 +37,139 @@ object Jni {
     // Field and method IDs
     const val TYPE_FIELD_ID = "jfieldID"
     const val TYPE_METHOD_ID = "jmethodID"
+}
 
-    fun declFunctionPtr(variableName: String, isStatic: Boolean, returnType: Type, arguments: List<Type>): String {
-        val sb = StringBuilder()
-        sb.append(returnType.toJNIType())
-        sb.append(" (* JNICALL $variableName)(JNIEnv *, ")
+class JNIMethod(
+    private val info: MethodInfo
+) {
+    val isStatic: Boolean = info.isStatic
+    val returnType: Type = info.descriptor.returnType
 
+    private val argumentTypes: List<Type> = info.descriptor.argumentTypes.toList()
+
+    val argumentCount = argumentTypes.size.let {
         if (isStatic) {
-            // The second argument to a static native method is a reference to its Java class.
-            sb.append(TYPE_CLASS)
+            it
         } else {
-            // The second argument to a nonstatic native method is a reference to the object.
-            sb.append(TYPE_OBJECT)
+            it + 1 // One extra slot for `this`
+        }
+    }
+
+    // For native method, `maxStack` and `maxLocals` are always 0
+    // here we use the parameter types to determine the `maxLocals` so we can pass parameters
+    // like a normal method.
+    val localSlotCount: Int = argumentTypes.fold(0) { acc, type -> acc + type.localSlotCount }
+        .let {
+            if (isStatic) {
+                it
+            } else {
+                it + 1 // One extra slot for `this`
+            }
         }
 
-        // remaining arguments
-        arguments.joinToString(separator = "") { ", ${it.toJNIType()}" }
-            .let { sb.append(it) }
+    fun functionPtrDecl(variableName: String): String = declFunctionPtr(variableName, isStatic, returnType, argumentTypes)
 
-        sb.append(")")
+    val referenceArgumentsPreparationCode: String
+        get() {
+            val sb = StringBuilder()
+            if (isStatic) {
+                // Get the reference handler for this class
+                sb.append(
+                    """
+                |    jclass argThisClazz = bc_jni_arg_this_class();
+                |""".trimMargin()
+                )
+            }
 
-        return sb.toString().intern()
+            val arguments: List<Type> = if (isStatic) {
+                argumentTypes
+            } else {
+                listOf(Type.getObjectType(info.declaringClass.thisClass.className)) + argumentTypes
+            }
+            var localIndex = 0
+            arguments.forEach {
+                if (it.sort == Type.OBJECT || it.sort == Type.ARRAY) {
+                    sb.append(
+                        """
+                |    ${it.toJNIType()} argRef_${localIndex} = bc_jni_arg_jref($localIndex, ${it.toJNIType()});
+                |""".trimMargin()
+                    )
+                }
+
+                localIndex += it.localSlotCount
+            }
+
+            return sb.toString()
+        }
+
+    val argumentsPassingCode: String
+        get() {
+            // Build argument list
+            val jniArgs = mutableListOf<String>()
+            // Pass JNIEnv
+            jniArgs.add("&vmCurrentContext->jni")
+
+            if (isStatic) {
+                // Pass current class
+                jniArgs.add("argThisClazz")
+            }
+
+            // Pass remaining arguments
+            val arguments: List<Type> = if (isStatic) {
+                argumentTypes
+            } else {
+                listOf(Type.getObjectType(info.declaringClass.thisClass.className)) + argumentTypes
+            }
+            var localIndex = 0
+            arguments.mapTo(jniArgs) { arg ->
+                when (arg.sort) {
+                    Type.BOOLEAN,
+                    Type.CHAR,
+                    Type.BYTE,
+                    Type.SHORT,
+                    Type.INT,
+                    Type.FLOAT,
+                    Type.LONG,
+                    Type.DOUBLE -> "bc_jni_arg_${arg.toJNIType()}($localIndex)"
+
+                    Type.ARRAY,
+                    Type.OBJECT -> "argRef_${localIndex}"
+
+                    else -> throw IllegalArgumentException("Unexpected type ${arg.sort} for argument.")
+                }.also {
+                    localIndex += arg.localSlotCount
+                }
+            }
+
+            return jniArgs.joinToString(
+                separator = """
+                |,
+                |        """.trimMargin()
+            )
+        }
+
+    companion object {
+        private fun declFunctionPtr(variableName: String, isStatic: Boolean, returnType: Type, arguments: List<Type>): String {
+            val sb = StringBuilder()
+            sb.append(returnType.toJNIType())
+            sb.append(" (* JNICALL $variableName)(JNIEnv *, ")
+
+            if (isStatic) {
+                // The second argument to a static native method is a reference to its Java class.
+                sb.append(Jni.TYPE_CLASS)
+            } else {
+                // The second argument to a nonstatic native method is a reference to the object.
+                sb.append(Jni.TYPE_OBJECT)
+            }
+
+            // remaining arguments
+            arguments.joinToString(separator = "") { ", ${it.toJNIType()}" }
+                .let { sb.append(it) }
+
+            sb.append(")")
+
+            return sb.toString().intern()
+        }
     }
 }
 
