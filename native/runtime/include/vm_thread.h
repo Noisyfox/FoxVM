@@ -9,7 +9,7 @@
 #include "vm_tlab.h"
 #include "vm_stack.h"
 #include "opa_primitives.h"
-#include "jni.h"
+#include "vm_native.h"
 
 typedef struct {
     uint32_t numberOfProcessors;
@@ -33,7 +33,7 @@ struct _VMThreadContext {
     JAVA_LONG threadId;
     JAVA_OBJECT currentThread;  // A java Thread object of this thread
 
-    VMStackFrame frameRoot;  // Root of the call stack
+    NativeStackFrame frameRoot;  // Root of the call stack
     JAVA_CLASS callingClass;  // The class that the target method belongs to
 
     void *nativeContext;  // Platform specific thread context

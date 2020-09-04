@@ -37,27 +37,32 @@ typedef struct {
     VMStackSlot *slots; // Header of the slot array
 } VMLocals;
 
+typedef enum {
+    VM_STACK_FRAME_JAVA,
+    VM_STACK_FRAME_NATIVE,
+} StackFrameType;
+
 typedef struct _VMStackFrame {
     struct _VMStackFrame *prev;
     struct _VMStackFrame *next;
+    StackFrameType type;
 
     JAVA_CLASS thisClass; // Reference to current class
+} VMStackFrame;
+
+typedef struct _JavaStackFrame {
+    VMStackFrame baseFrame;
+
     uint16_t methodIndex; // The index of current method in [thisClass->methods]
     VMOperandStack operandStack;
     VMLocals locals;
 
     uint16_t currentLine; // Current line number in the source file
     int32_t currentLabel; // Current label in the instruction stream
-} VMStackFrame;
-
-/** Init the thread root stack frame */
-void stack_frame_make_root(VMStackFrame *root);
+} JavaStackFrame;
 
 /** Current top of the call stack */
 VMStackFrame *stack_frame_top(VM_PARAM_CURRENT_CONTEXT);
-
-/** Init the stack frame of current method */
-void stack_frame_init(VMStackFrame *frame, VMStackSlot *slot_base, uint16_t max_stack, uint16_t max_locals);
 
 /** Push the given frame to the top of the current call stack */
 void stack_frame_push(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame);
@@ -65,34 +70,37 @@ void stack_frame_push(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame);
 /** Pop the top of the call stack frame */
 void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT);
 
+/** Init the stack frame of current method */
+void stack_frame_init_java(JavaStackFrame *frame, VMStackSlot *slot_base, uint16_t max_stack, uint16_t max_locals);
+
 #define STACK_FRAME __stackFrame
 #define STACK_SLOTS __slots
 #define OP_STACK (&STACK_FRAME.operandStack)
 
-#define stack_frame_start(index, max_stack, max_locals)                     \
-    VMStackFrame STACK_FRAME;                                               \
-    VMStackSlot STACK_SLOTS[(max_stack) + (max_locals)];                    \
-    stack_frame_init(&STACK_FRAME, STACK_SLOTS, (max_stack), (max_locals)); \
-    STACK_FRAME.thisClass = vmCurrentContext->callingClass;                 \
-    STACK_FRAME.methodIndex = index;                                        \
-    stack_frame_push(vmCurrentContext, &STACK_FRAME)
+#define stack_frame_start(index, max_stack, max_locals)                             \
+    JavaStackFrame STACK_FRAME;                                                     \
+    VMStackSlot STACK_SLOTS[(max_stack) + (max_locals)];                            \
+    stack_frame_init_java(&STACK_FRAME, STACK_SLOTS, (max_stack), (max_locals));    \
+    STACK_FRAME.baseFrame.thisClass = vmCurrentContext->callingClass;               \
+    STACK_FRAME.methodIndex = index;                                                \
+    stack_frame_push(vmCurrentContext, &STACK_FRAME.baseFrame)
 
-#define stack_frame_start_zero(index)                                       \
-    VMStackFrame STACK_FRAME;                                               \
-    stack_frame_init(&STACK_FRAME, NULL, 0, 0);                             \
-    STACK_FRAME.thisClass = vmCurrentContext->callingClass;                 \
-    STACK_FRAME.methodIndex = index;                                        \
-    stack_frame_push(vmCurrentContext, &STACK_FRAME)
+#define stack_frame_start_zero(index)                                               \
+    JavaStackFrame STACK_FRAME;                                                     \
+    stack_frame_init_java(&STACK_FRAME, NULL, 0, 0);                                \
+    STACK_FRAME.baseFrame.thisClass = vmCurrentContext->callingClass;               \
+    STACK_FRAME.methodIndex = index;                                                \
+    stack_frame_push(vmCurrentContext, &STACK_FRAME.baseFrame)
 
 #define stack_frame_end() \
     stack_frame_pop(vmCurrentContext)
 
-#define THIS_CLASS STACK_FRAME.thisClass
+#define THIS_CLASS STACK_FRAME.baseFrame.thisClass
 
 #define local_of(local) STACK_SLOTS[local]
 
 #define stack_frame_iterate(thread, frame) \
-    for (VMStackFrame *frame = stack_frame_top(thread); frame != &thread->frameRoot; frame = frame->prev)
+    for (VMStackFrame *frame = stack_frame_top(thread); frame != (VMStackFrame *)&thread->frameRoot; frame = frame->prev)
 
 #define stack_frame_operand_stack_iterate(frame, slot) \
     for (VMStackSlot *slot = frame->operandStack.slots; slot < frame->operandStack.top; slot++)
@@ -448,8 +456,11 @@ static inline void stack_swap(VMOperandStack *stack) {
 /**
  * Transfer arguments from caller's operand stack to current method's local slots
  */
-static inline void local_transfer_arguments(VMStackFrame* frame, uint16_t argument_count) {
-    VMOperandStack *stackFrom = &frame->prev->operandStack;
+static inline void local_transfer_arguments(JavaStackFrame* frame, uint16_t argument_count) {
+    JavaStackFrame *parentFrame = (JavaStackFrame *) frame->baseFrame.prev;
+    assert(parentFrame->baseFrame.type == VM_STACK_FRAME_JAVA);
+
+    VMOperandStack *stackFrom = &parentFrame->operandStack;
     VMLocals *localsTo = &frame->locals;
 
     VMStackSlot *stackSlotFromLimit = stackFrom->top;

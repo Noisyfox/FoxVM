@@ -464,18 +464,22 @@ static void scan_roots(scan_func fn, void *scan_context) {
     thread_iterate(thread) {
         // Scan each frame
         stack_frame_iterate(thread, frame) {
-            // Scan operand stack
-            stack_frame_operand_stack_iterate(frame, slot) {
-                if (slot->type == VM_SLOT_OBJECT) {
-                    fn(&slot->data.o, scan_context);
+            if(frame->type == VM_STACK_FRAME_JAVA) {
+                JavaStackFrame *javaFrame = (JavaStackFrame *) frame;
+                // Scan operand stack
+                stack_frame_operand_stack_iterate(javaFrame, slot) {
+                    if (slot->type == VM_SLOT_OBJECT) {
+                        fn(&slot->data.o, scan_context);
+                    }
+                }
+                // Scan local slots
+                stack_frame_local_iterate(javaFrame, slot) {
+                    if (slot->type == VM_SLOT_OBJECT) {
+                        fn(&slot->data.o, scan_context);
+                    }
                 }
             }
-            // Scan local slots
-            stack_frame_local_iterate(frame, slot) {
-                if (slot->type == VM_SLOT_OBJECT) {
-                    fn(&slot->data.o, scan_context);
-                }
-            }
+            // TODO: scan native stack frame
         }
     }
 }

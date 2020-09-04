@@ -307,14 +307,14 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack);
 #define bc_ldc_long(v)   stack_push_long(v)
 #define bc_ldc_float(v)  stack_push_float(v)
 #define bc_ldc_double(v) stack_push_double(v)
-JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR class_name);
+JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_CSTR class_name);
 #define bc_ldc_class(class_name) do {JAVA_OBJECT obj = bc_ldc_class_obj(vmCurrentContext, &STACK_FRAME, class_name); stack_push_object(obj);} while(0)
 JAVA_OBJECT bc_ldc_string_const(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_index);
 #define bc_ldc_string(constant_index) do { JAVA_OBJECT str = bc_ldc_string_const(vmCurrentContext, constant_index); stack_push_object(str);} while(0)
 
 // new instruction
-JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *info);
-#define bc_new(class_info) do {JAVA_OBJECT obj = bc_create_instance(vmCurrentContext, class_info); stack_push_object(obj);} while(0)
+JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, JavaClassInfo *info);
+#define bc_new(class_info) do {JAVA_OBJECT obj = bc_create_instance(vmCurrentContext, &STACK_FRAME, class_info); stack_push_object(obj);} while(0)
 
 // invokeXXXX instructions
 #define bc_invoke_special(fp)                          ((JavaMethodRetVoid)    fp)(vmCurrentContext)
@@ -329,7 +329,7 @@ JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *info);
 #define bc_invoke_special_a(fp) do {JAVA_ARRAY   ret = ((JavaMethodRetArray)   fp)(vmCurrentContext); stack_push_object((JAVA_OBJECT)ret);} while(0)
 #define bc_invoke_special_o(fp) do {JAVA_OBJECT  ret = ((JavaMethodRetObject)  fp)(vmCurrentContext); stack_push_object(ret);             } while(0)
 
-JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassInfo *classInfo,
+JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, JavaClassInfo *classInfo,
                            JAVA_CLASS *classRefOut);
 #define bc_invoke_static_prepare(class_info)                                    \
     JAVA_CLASS classRef;                                                        \
@@ -394,7 +394,7 @@ JAVA_OBJECT bc_getfield(VMOperandStack *stack);
 #define bc_getfield_a(object_type, field_name) do {bc_do_getfield(object_type, field_name, ARRAY);   stack_push_object((JAVA_OBJECT)value);} while(0)
 #define bc_getfield_o(object_type, field_name) do {bc_do_getfield(object_type, field_name, OBJECT);  stack_push_object(value);             } while(0)
 
-JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassInfo *classInfo,
+JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, JavaClassInfo *classInfo,
                        JAVA_CLASS *classRefOut, void *valueOut, BasicType fieldType);
 #define bc_do_putstatic(class_info, class_type, field_name, field_type)                                 \
     JAVA_CLASS classRef;                                                                                \
@@ -429,7 +429,7 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassI
 #define bc_getstatic_o(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, OBJECT);  stack_push_object(value);             } while(0)
 
 // array related instructions
-JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR desc);
+JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_CSTR desc);
 #define bc_newarray(desc) do {JAVA_ARRAY array = bc_new_array(vmCurrentContext, &STACK_FRAME, desc); stack_push_object((JAVA_OBJECT)array);} while(0)
 
 JAVA_INT bc_array_length(VMOperandStack *stack);
@@ -506,7 +506,7 @@ JAVA_VOID bc_read_stack_top(VMOperandStack *stack, void *valueOut, BasicType req
 
 // Called at the beginning of each instance method to check the validity of the objectref
 // and also populate the STACK_FRAME.thisClass
-JAVA_VOID bc_check_objref(VMStackFrame* frame);
+JAVA_VOID bc_check_objref(JavaStackFrame* frame);
 #define bc_check_objectref()  bc_check_objref(&STACK_FRAME)
 
 void *bc_resolve_native(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method);

@@ -366,7 +366,7 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack) {
     return value->data.i;
 }
 
-JAVA_VOID bc_check_objref(VMStackFrame *frame) {
+JAVA_VOID bc_check_objref(JavaStackFrame *frame) {
     // objectref is always in the local0
     assert(frame->locals.maxLocals > 0);
     VMStackSlot *objSlot = &frame->locals.slots[0];
@@ -375,8 +375,8 @@ JAVA_VOID bc_check_objref(VMStackFrame *frame) {
     JAVA_OBJECT obj = objSlot->data.o;
     assert(obj != JAVA_NULL); // TODO: throw NullPointerException instead
 
-    frame->thisClass = obj_get_class(obj);
-    assert(frame->thisClass != (JAVA_CLASS) JAVA_NULL);
+    frame->baseFrame.thisClass = obj_get_class(obj);
+    assert(frame->baseFrame.thisClass != (JAVA_CLASS) JAVA_NULL);
 }
 
 /**
@@ -477,14 +477,14 @@ JAVA_OBJECT bc_getfield(VMOperandStack *stack) {
     return obj;
 }
 
-JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassInfo *classInfo,
+JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, JavaClassInfo *classInfo,
                        JAVA_CLASS *classRefOut, void *valueOut, BasicType fieldType) {
     bc_resolve_class(vmCurrentContext, frame, classInfo, classRefOut);
 
     bc_read_stack_top(&frame->operandStack, valueOut, fieldType);
 }
 
-JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaClassInfo *classInfo,
+JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, JavaClassInfo *classInfo,
                            JAVA_CLASS *classRefOut) {
     // jvms8 §5.5 Initialization
     // A class or interface C may be initialized only as a result of:
@@ -497,15 +497,15 @@ JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, JavaCl
     //   interface that declared the resolved field or method is initialized if it has not been
     //   initialized already.
 
-    JAVA_CLASS clazz = classloader_get_class_init(vmCurrentContext, frame->thisClass->classLoader, classInfo);
+    JAVA_CLASS clazz = classloader_get_class_init(vmCurrentContext, frame->baseFrame.thisClass->classLoader, classInfo);
     assert(clazz != (JAVA_CLASS) JAVA_NULL);
     *classRefOut = clazz;
 }
 
-JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR desc) {
+JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_CSTR desc) {
     assert(desc[0] == TYPE_DESC_ARRAY);
 
-    JAVA_CLASS clazz = classloader_get_class_by_name_init(vmCurrentContext, frame->thisClass->classLoader, desc);
+    JAVA_CLASS clazz = classloader_get_class_by_name_init(vmCurrentContext, frame->baseFrame.thisClass->classLoader, desc);
     assert(clazz != (JAVA_CLASS) JAVA_NULL);
 
     VMOperandStack *stack = &frame->operandStack;
@@ -697,9 +697,9 @@ JAVA_VOID bc_array_store(VMOperandStack *stack, BasicType fieldType) {
     arrayRef->type = VM_SLOT_INVALID;
 }
 
-JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *info) {
+JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, JavaClassInfo *info) {
     JAVA_CLASS clazz;
-    bc_resolve_class(vmCurrentContext, stack_frame_top(vmCurrentContext), info, &clazz);
+    bc_resolve_class(vmCurrentContext, frame, info, &clazz);
 
     assert(!clazz->isPrimitive);
 
@@ -785,9 +785,9 @@ void *bc_vtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, uint16_t 
     return info->vtable[vtable_index].code;
 }
 
-JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame, C_CSTR class_name) {
+JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_CSTR class_name) {
     // ldc won't cause the resolved class to be initialized
-    JAVA_CLASS clazz = classloader_get_class_by_name(vmCurrentContext, frame->thisClass->classLoader, class_name);
+    JAVA_CLASS clazz = classloader_get_class_by_name(vmCurrentContext, frame->baseFrame.thisClass->classLoader, class_name);
     assert(clazz != (JAVA_CLASS) JAVA_NULL);
 
     JAVA_OBJECT obj = clazz->classInstance;

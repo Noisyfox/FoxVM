@@ -6,22 +6,17 @@
 #include "vm_thread.h"
 #include <assert.h>
 
-void stack_frame_make_root(VMStackFrame *root) {
-    stack_frame_init(root, NULL, 0, 0);
-
-    root->prev = root;
-    root->next = root;
-}
-
 inline VMStackFrame *stack_frame_top(VM_PARAM_CURRENT_CONTEXT) {
-    return vmCurrentContext->frameRoot.prev;
+    return vmCurrentContext->frameRoot.baseFrame.prev;
 }
 
-void stack_frame_init(VMStackFrame *frame, VMStackSlot *slot_base, uint16_t max_stack, uint16_t max_locals) {
-    frame->prev = NULL;
-    frame->next = NULL;
+void stack_frame_init_java(JavaStackFrame *frame, VMStackSlot *slot_base, uint16_t max_stack, uint16_t max_locals) {
+    VMStackFrame *base = &frame->baseFrame;
+    base->prev = NULL;
+    base->next = NULL;
+    base->thisClass = NULL;
+    base->type = VM_STACK_FRAME_JAVA;
 
-    frame->thisClass = NULL;
     frame->currentLine = 0;
 
     /**

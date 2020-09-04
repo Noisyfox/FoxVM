@@ -21,6 +21,17 @@ JAVA_BOOLEAN native_init() {
     return JAVA_TRUE;
 }
 
+void native_make_root_stack_frame(NativeStackFrame *root) {
+    VMStackFrame *base = &root->baseFrame;
+    // TODO: init ref table
+
+    base->prev = base;
+    base->next = base;
+    base->type = VM_STACK_FRAME_NATIVE; // Root frame must be a native frame
+    base->thisClass = NULL;
+}
+
+
 JAVA_VOID native_thread_attach_jni(VM_PARAM_CURRENT_CONTEXT) {
     vmCurrentContext->jni = &jni;
 }

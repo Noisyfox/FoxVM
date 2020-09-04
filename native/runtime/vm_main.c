@@ -20,7 +20,7 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     VM_PARAM_CURRENT_CONTEXT = &thread_main;
 
     // Init main thread
-    stack_frame_make_root(&vmCurrentContext->frameRoot);
+    native_make_root_stack_frame(&vmCurrentContext->frameRoot);
     thread_native_init(vmCurrentContext);
     thread_native_attach_main(vmCurrentContext);
     // register the main thread to global thread list
@@ -50,6 +50,7 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     // start GC thread
 //    gc_thread_start(vmCurrentContext);
 
+    // Since we are calling into java function, we need a java stack frame
     stack_frame_start(-1, 1, 0);
 
     bc_aconst_null();
