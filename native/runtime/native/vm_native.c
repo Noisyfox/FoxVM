@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "vm_gc.h"
+#include "vm_classloader.h"
+#include "vm_field.h"
 
 static VMSpinLock g_jniMethodLock = OPA_INT_T_INITIALIZER(0);
 
@@ -245,14 +247,82 @@ JAVA_OBJECT native_dereference(VM_PARAM_CURRENT_CONTEXT, jobject ref) {
 }
 
 // Implementations of JNI interface methods
-static jfieldID GetStaticFieldID(JNIEnv* env, jclass cls, const char* name, const char* sig) {
-    return NULL;
+#define get_thread_context() VM_PARAM_CURRENT_CONTEXT = (VMThreadContext *)env
+
+static ResolvedField *native_get_field(JNIEnv *env, jclass cls, const char *name, const char *sig) {
+    assert(cls != NULL);
+
+    get_thread_context();
+    native_exit_jni(vmCurrentContext);
+
+    JAVA_CLASS clazz = (JAVA_CLASS) native_dereference(vmCurrentContext, cls);
+    assert(clazz != (JAVA_CLASS) JAVA_NULL);
+
+    // GetFieldID()/GetStaticFieldID() causes an uninitialized class to be initialized.
+    if (classloader_init_class(vmCurrentContext, clazz) != JAVA_TRUE) {
+        // TODO: throw ExceptionInInitializerError
+        native_enter_jni(vmCurrentContext);
+        return NULL;
+    }
+
+    ResolvedField *field = field_find(clazz, name, sig);
+
+    native_enter_jni(vmCurrentContext);
+    return field;
+}
+
+static jfieldID GetStaticFieldID(JNIEnv *env, jclass cls, const char *name, const char *sig) {
+    ResolvedField *field = native_get_field(env, cls, name, sig);
+    if (field != NULL) {
+        // Make sure it's static field
+        if ((field->info.accessFlags & FIELD_ACC_STATIC) != FIELD_ACC_STATIC) {
+            // TODO: Throw NoSuchFieldError instead
+            field = NULL;
+        }
+    }
+
+    return (jfieldID) field;
+}
+
+static jfieldID GetFieldID(JNIEnv *env, jclass cls, const char *name, const char *sig) {
+    ResolvedField *field = native_get_field(env, cls, name, sig);
+    if (field != NULL) {
+        // Make sure it's instance field
+        if ((field->info.accessFlags & FIELD_ACC_STATIC) == FIELD_ACC_STATIC) {
+            // TODO: Throw NoSuchFieldError instead
+            field = NULL;
+        }
+    }
+
+    return (jfieldID) field;
+}
+
+static void SetStaticObjectField(JNIEnv* env, jclass cls, jfieldID fieldID, jobject value) {
+    assert(cls != NULL);
+    assert(fieldID != NULL);
+    ResolvedField *field = (ResolvedField *) fieldID;
+    // Make sure it's static field
+    assert((field->info.accessFlags & FIELD_ACC_STATIC) == FIELD_ACC_STATIC);
+
+    get_thread_context();
+    native_exit_jni(vmCurrentContext);
+
+    JAVA_CLASS clazz = (JAVA_CLASS) native_dereference(vmCurrentContext, cls);
+    assert(clazz != (JAVA_CLASS) JAVA_NULL);
+
+    JAVA_OBJECT obj = native_dereference(vmCurrentContext, value);
+
+    *((JAVA_OBJECT *) ptr_inc(clazz, field->info.offset)) = obj;
+
+    native_enter_jni(vmCurrentContext);
 }
 
 static struct JNINativeInterface jni = {
-    .reserved0 = NULL,
-    .reserved1 = NULL,
-    .reserved2 = NULL,
-    .reserved3 = NULL,
-    .GetStaticFieldID = GetStaticFieldID,
+        .reserved0 = NULL,
+        .reserved1 = NULL,
+        .reserved2 = NULL,
+        .reserved3 = NULL,
+        .GetFieldID = GetFieldID,
+        .GetStaticFieldID = GetStaticFieldID,
+        .SetStaticObjectField = SetStaticObjectField,
 };

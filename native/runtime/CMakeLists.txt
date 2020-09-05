@@ -14,6 +14,7 @@ set(SOURCE_FILES_RUNTIME
         vm_array.c
         vm_exception.c
         vm_stack.c
+        vm_field.c
         vm_bytecode.c
         vm_string.c
 
