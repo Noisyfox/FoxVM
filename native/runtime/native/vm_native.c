@@ -181,7 +181,43 @@ jobject native_get_local_ref(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
         return NULL;
     }
 
-    return NULL;
+    jint maxCapacity = 8;
+    RefTable *table = frame->refTable;
+    if (table != NULL) {
+        if (table->top < table->capacity) {
+            JAVA_OBJECT *ref = &table->objects[table->top];
+            table->top++;
+            *ref = obj;
+            return ref;
+        }
+
+        // Find a slot that is marked as g_deletedHandle
+        while (table != NULL) {
+            maxCapacity = table->capacity > maxCapacity ? table->capacity : maxCapacity;
+
+            for (jint i = 0; i < table->capacity; i++) {
+                JAVA_OBJECT *ref = &table->objects[i];
+                if (*ref == &g_deletedHandle) {
+                    *ref = obj;
+                    return ref;
+                }
+            }
+            table = table->next;
+        }
+    }
+
+    // All existing tables are full, need to allocate a new table
+    jint newCapacity = (maxCapacity > 1024 ? 1024 : maxCapacity) * 2;
+    table = heap_alloc_uncollectable(vmCurrentContext, sizeof(RefTable) + newCapacity * sizeof(JAVA_OBJECT));
+    assert(table);
+    native_reftable_init(table, ptr_inc(table, sizeof(RefTable)), newCapacity);
+
+    // Put the table at the beginning of the list
+    table->next = frame->refTable;
+    frame->refTable = table;
+
+    // Try again
+    return native_get_local_ref(vmCurrentContext, obj);
 }
 
 JAVA_OBJECT native_dereference(VM_PARAM_CURRENT_CONTEXT, jobject ref) {
