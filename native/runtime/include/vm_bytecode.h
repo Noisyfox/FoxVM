@@ -495,26 +495,26 @@ JAVA_VOID bc_read_stack_top(VMOperandStack *stack, void *valueOut, BasicType req
 
 // JNI stack frame helpers
 // Setup the native stack frame for the jni call
-#define bc_native_prepare()
 // Before it enters a native method, the VM automatically ensures that at least 16 local references can be created.
+#define bc_native_prepare() native_stack_frame_start(16)
 // Mark the current thread that has entered the native call frames, so GC can work on this thread if needed.
 // After this is called, before the native frame ended, access of any object must be done via ref handler, because
 // the object can be moved by the GC at any time.
 // This affectively makes current thread entering the safe region until the call returns.
-#define bc_native_start() native_stack_frame_start(16)
+#define bc_native_start() native_enter_jni(vmCurrentContext);
 // End the native stack frame then push the result to the java stack.
 // This also switch the state of current thread back to normal.
-#define bc_native_end_z(result) do {native_stack_frame_end(); stack_push_int(result);   } while(0)
-#define bc_native_end_c(result) do {native_stack_frame_end(); stack_push_int(result);   } while(0)
-#define bc_native_end_b(result) do {native_stack_frame_end(); stack_push_int(result);   } while(0)
-#define bc_native_end_s(result) do {native_stack_frame_end(); stack_push_int(result);   } while(0)
-#define bc_native_end_i(result) do {native_stack_frame_end(); stack_push_int(result);   } while(0)
-#define bc_native_end_f(result) do {native_stack_frame_end(); stack_push_float(result); } while(0)
-#define bc_native_end_l(result) do {native_stack_frame_end(); stack_push_long(result);  } while(0)
-#define bc_native_end_d(result) do {native_stack_frame_end(); stack_push_double(result);} while(0)
+#define bc_native_end_z(result) do {native_exit_jni(vmCurrentContext); stack_push_int(result);    native_stack_frame_end();} while(0)
+#define bc_native_end_c(result) do {native_exit_jni(vmCurrentContext); stack_push_int(result);    native_stack_frame_end();} while(0)
+#define bc_native_end_b(result) do {native_exit_jni(vmCurrentContext); stack_push_int(result);    native_stack_frame_end();} while(0)
+#define bc_native_end_s(result) do {native_exit_jni(vmCurrentContext); stack_push_int(result);    native_stack_frame_end();} while(0)
+#define bc_native_end_i(result) do {native_exit_jni(vmCurrentContext); stack_push_int(result);    native_stack_frame_end();} while(0)
+#define bc_native_end_f(result) do {native_exit_jni(vmCurrentContext); stack_push_float(result);  native_stack_frame_end();} while(0)
+#define bc_native_end_l(result) do {native_exit_jni(vmCurrentContext); stack_push_long(result);   native_stack_frame_end();} while(0)
+#define bc_native_end_d(result) do {native_exit_jni(vmCurrentContext); stack_push_double(result); native_stack_frame_end();} while(0)
 // For reference return types, we need to convert the native handler to object reference
-#define bc_native_end_a(result)
-#define bc_native_end_o(result)
+#define bc_native_end_a(result) bc_native_end_o(result)
+#define bc_native_end_o(result) do {native_exit_jni(vmCurrentContext); JAVA_OBJECT obj = native_dereference(vmCurrentContext, result); stack_push_object(obj); native_stack_frame_end();} while(0)
 
 // JNI argument passing helpers
 #define bc_jni_arg_jboolean(local)       (local_of(local).data.i == 0 ? JNI_FALSE : JNI_TRUE)

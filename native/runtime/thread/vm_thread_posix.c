@@ -432,7 +432,7 @@ JAVA_BOOLEAN thread_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
     }
 }
 
-JAVA_BOOLEAN thread_in_checkpoint(VM_PARAM_CURRENT_CONTEXT) {
+JAVA_BOOLEAN thread_in_saferegion(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeContext = vmCurrentContext->nativeContext;
     return nativeContext->inSafeRegion;
 }
