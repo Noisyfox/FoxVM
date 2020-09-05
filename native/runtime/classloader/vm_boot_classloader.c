@@ -310,20 +310,29 @@ static JAVA_BOOLEAN cl_bootstrap_create_class(VM_PARAM_CURRENT_CONTEXT, JavaClas
     return JAVA_TRUE;
 }
 
-static JAVA_CLASS cl_bootstrap_createPrimitiveClass(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *classInfo) {
-    printf("Bootstrap Classloader: creating primitive class %s\n", classInfo->thisClass);
-
+// Register non-array class to the bootstrap class registry
+static JAVA_BOOLEAN cl_bootstrap_register_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz) {
     LoadedClassEntry *entry = heap_alloc_uncollectable(vmCurrentContext, sizeof(LoadedClassEntry));
     if (!entry) {
-        fprintf(stderr, "Bootstrap Classloader: unable to alloc LoadedClassEntry for class %s\n", classInfo->thisClass);
+        fprintf(stderr, "Bootstrap Classloader: unable to alloc LoadedClassEntry for class %s\n",
+                clazz->info->thisClass);
         // TODO: throw OOM exception
-        return (JAVA_CLASS) JAVA_NULL;
+        return JAVA_FALSE;
     }
+    entry->key = clazz->info;
+    entry->clazz = clazz;
+    HASH_ADD_PTR(g_loadedClasses, key, entry);
+    clazz->state = CLASS_STATE_REGISTERED;
+
+    return JAVA_TRUE;
+}
+
+static JAVA_CLASS cl_bootstrap_createPrimitiveClass(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *classInfo) {
+    printf("Bootstrap Classloader: creating primitive class %s\n", classInfo->thisClass);
 
     JAVA_CLASS thisClass;
     JAVA_OBJECT classObject;
     if (cl_bootstrap_create_class(vmCurrentContext, classInfo, &thisClass, &classObject) != JAVA_TRUE) {
-        heap_free_uncollectable(vmCurrentContext, entry);
         // TODO: throw OOM exception
         return (JAVA_CLASS) JAVA_NULL;
     }
@@ -331,10 +340,10 @@ static JAVA_CLASS cl_bootstrap_createPrimitiveClass(VM_PARAM_CURRENT_CONTEXT, Ja
     thisClass->classLoader = JAVA_NULL;
 
     // We then register the class
-    entry->key = classInfo;
-    entry->clazz = thisClass;
-    HASH_ADD_PTR(g_loadedClasses, key, entry);
-    thisClass->state = CLASS_STATE_REGISTERED;
+    if(!cl_bootstrap_register_class(vmCurrentContext, thisClass)) {
+        // TODO: throw OOM exception
+        return (JAVA_CLASS) JAVA_NULL;
+    }
 
     // Then we pre-init the class
     VMStackSlot thisSlot;
@@ -531,24 +540,12 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
     // Start loading class
     printf("Bootstrap Classloader: loading class %s\n", classInfo->thisClass);
 
-    // We first create the holder for this class. This is done before allocating the actual class
-    // because this could trigger a GC and we don't want the newly allocated class got freed before
-    // it's registered.
-    LoadedClassEntry *entry = heap_alloc_uncollectable(vmCurrentContext, sizeof(LoadedClassEntry));
-    if (!entry) {
-        monitor_exit(vmCurrentContext, &g_bootstrapClassLock);
-        fprintf(stderr, "Bootstrap Classloader: unable to alloc LoadedClassEntry for class %s\n", classInfo->thisClass);
-        // TODO: throw OOM exception
-        return (JAVA_CLASS) JAVA_NULL;
-    }
-
     // First we check if superclasses and superinterfaces are loaded
     JAVA_CLASS superclass = (JAVA_CLASS) JAVA_NULL;
     if (classInfo->superClass) {
         superclass = cl_bootstrap_find_class_by_info(vmCurrentContext, classInfo->superClass);
         if (!superclass || superclass->state < CLASS_STATE_RESOLVED) {
             monitor_exit(vmCurrentContext, &g_bootstrapClassLock);
-            heap_free_uncollectable(vmCurrentContext, entry);
             fprintf(stderr, "Bootstrap Classloader: unable to load superclass %s\n", classInfo->superClass->thisClass);
             // TODO: throw exception
             return (JAVA_CLASS) JAVA_NULL;
@@ -561,7 +558,6 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
     JAVA_OBJECT classObject;
     if (cl_bootstrap_create_class(vmCurrentContext, classInfo, &thisClass, &classObject) != JAVA_TRUE) {
         monitor_exit(vmCurrentContext, &g_bootstrapClassLock);
-        heap_free_uncollectable(vmCurrentContext, entry);
         // TODO: throw OOM exception
         return (JAVA_CLASS) JAVA_NULL;
     }
@@ -569,10 +565,11 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
     thisClass->classLoader = JAVA_NULL;
 
     // We then register the class
-    entry->key = classInfo;
-    entry->clazz = thisClass;
-    HASH_ADD_PTR(g_loadedClasses, key, entry);
-    thisClass->state = CLASS_STATE_REGISTERED;
+    if(!cl_bootstrap_register_class(vmCurrentContext, thisClass)) {
+        monitor_exit(vmCurrentContext, &g_bootstrapClassLock);
+        // TODO: throw OOM exception
+        return (JAVA_CLASS) JAVA_NULL;
+    }
 
     // Then we pre-init the class
     VMStackSlot thisSlot;
@@ -654,12 +651,14 @@ static JAVA_CLASS cl_bootstrap_find_array_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR
     }
 
     // Find class in dynamic created array cache
-    LoadedArrayClassEntry *entry;
-    HASH_FIND_STR(g_loadedArrayClasses, desc, entry);
-    if (entry) {
-        JAVA_CLASS c = entry->clazz;
-        monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
-        return c;
+    {
+        LoadedArrayClassEntry *entry;
+        HASH_FIND_STR(g_loadedArrayClasses, desc, entry);
+        if (entry) {
+            JAVA_CLASS c = entry->clazz;
+            monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
+            return c;
+        }
     }
 
     // Need to create one
@@ -676,31 +675,12 @@ static JAVA_CLASS cl_bootstrap_find_array_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR
         return NULL;
     }
 
-    entry = heap_alloc_uncollectable(vmCurrentContext, sizeof(LoadedArrayClassEntry));
-    if (!entry) {
-        monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
-        fprintf(stderr, "Bootstrap Classloader: unable to alloc LoadedArrayClassEntry for array class %s\n", desc);
-        // TODO: throw OOM exception
-        return (JAVA_CLASS) JAVA_NULL;
-    }
-    // Make a copy of the class desc string
-    C_CSTR desc_dup = strdup(desc);
-    if (!desc_dup) {
-        monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
-        fprintf(stderr, "Bootstrap Classloader: unable to duplicate class descriptor %s\n", desc);
-        heap_free_uncollectable(vmCurrentContext, entry);
-        // TODO: throw OOM exception
-        return (JAVA_CLASS) JAVA_NULL;
-    }
-
     // Create a new JavaArrayClass for this class, using the prototype info
     JAVA_CLASS thisClass;
     JAVA_OBJECT classObject;
     if (cl_bootstrap_create_class(vmCurrentContext, &g_classInfo_array_prototype, &thisClass, &classObject) !=
         JAVA_TRUE) {
         monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
-        free((void *) desc_dup);
-        heap_free_uncollectable(vmCurrentContext, entry);
         // TODO: throw OOM exception
         return (JAVA_CLASS) JAVA_NULL;
     }
@@ -710,11 +690,30 @@ static JAVA_CLASS cl_bootstrap_find_array_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR
     JavaArrayClass *arrayClass = (JavaArrayClass *) thisClass;
     arrayClass->componentType = componentType;
 
-    // We then register the class
-    entry->key = desc_dup; // <- here we keep the reference to the duplicated string, so it won't leak
-    entry->clazz = thisClass;
-    HASH_ADD_STR(g_loadedArrayClasses, key, entry);
-    thisClass->state = CLASS_STATE_REGISTERED;
+    // Make a copy of the class desc string
+    C_CSTR desc_dup = strdup(desc);
+    if (!desc_dup) {
+        monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
+        fprintf(stderr, "Bootstrap Classloader: unable to duplicate class descriptor %s\n", desc);
+        // TODO: throw OOM exception
+        return (JAVA_CLASS) JAVA_NULL;
+    }
+
+    {
+        // We then register the class
+        LoadedArrayClassEntry *entry = heap_alloc_uncollectable(vmCurrentContext, sizeof(LoadedArrayClassEntry));
+        if (!entry) {
+            monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
+            free((void *) desc_dup);
+            fprintf(stderr, "Bootstrap Classloader: unable to alloc LoadedArrayClassEntry for array class %s\n", desc);
+            // TODO: throw OOM exception
+            return (JAVA_CLASS) JAVA_NULL;
+        }
+        entry->key = desc_dup; // <- here we keep the reference to the duplicated string, so it won't leak
+        entry->clazz = thisClass;
+        HASH_ADD_STR(g_loadedArrayClasses, key, entry);
+        thisClass->state = CLASS_STATE_REGISTERED;
+    }
 
     // Then we pre-init the class
     VMStackSlot thisSlot;

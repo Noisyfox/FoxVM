@@ -835,11 +835,6 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
 
 void *heap_alloc_uncollectable(VM_PARAM_CURRENT_CONTEXT, size_t size) {
     void *result = mem_aligned_malloc(size, DATA_ALIGNMENT);
-    if(!result) {
-        // Trigger a loh gc and try again
-        gc(vmCurrentContext, loh_generation);
-        result = mem_aligned_malloc(size, DATA_ALIGNMENT);
-    }
     if(result) {
         // Zero out memory
         memset(result, 0, size);
