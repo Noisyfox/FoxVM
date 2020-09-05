@@ -23,27 +23,31 @@ typedef struct _NativeStackFrame {
     // If true, then the root reftable will be freed when this frame
     // is popped, as well as this frame itself.
     JAVA_BOOLEAN isJniLocalFrame;
-
     // Reference table
-    RefTable refTable;
+    RefTable* refTable;
 } NativeStackFrame;
 
 #define native_stack_frame_start(ref_capacity)                          \
     NativeStackFrame __nativeFrame;                                     \
+    RefTable __refTable;                                                \
     JAVA_OBJECT __nativeRefs[ref_capacity];                             \
-    native_frame_init(&__nativeFrame, __nativeRefs, ref_capacity);      \
+    native_reftable_init(&__refTable, __nativeRefs, ref_capacity);      \
+    native_frame_init(&__nativeFrame, &__refTable);                     \
     __nativeFrame.baseFrame.thisClass = vmCurrentContext->callingClass; \
     stack_frame_push(vmCurrentContext, &__nativeFrame.baseFrame)
 
 #define native_stack_frame_end() \
-    stack_frame_pop(vmCurrentContext)
+    native_frame_pop(vmCurrentContext)
 
 JAVA_BOOLEAN native_init();
 
 /** Init the thread root stack frame */
 void native_make_root_stack_frame(NativeStackFrame *root);
 
-void native_frame_init(NativeStackFrame *frame, JAVA_OBJECT* refs, jint capacity);
+void native_reftable_init(RefTable *table, JAVA_OBJECT* storage, jint capacity);
+
+void native_frame_init(NativeStackFrame *frame, RefTable* initialRefTable);
+void native_frame_pop(VM_PARAM_CURRENT_CONTEXT);
 
 JAVA_VOID native_thread_attach_jni(VM_PARAM_CURRENT_CONTEXT);
 

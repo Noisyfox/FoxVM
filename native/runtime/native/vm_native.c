@@ -6,6 +6,7 @@
 #include "vm_thread.h"
 #include <stdio.h>
 #include <stdint.h>
+#include "vm_gc.h"
 
 static VMSpinLock g_jniMethodLock = OPA_INT_T_INITIALIZER(0);
 
@@ -21,13 +22,24 @@ static struct JNINativeInterface jni;
 static JavaObjectBase g_deletedHandle;
 
 // Value that an empty ref table is filled with
+// Make sure the bit 0 and bit 32 are 1, which is an invalid address for
+// any heap-allocated object.
 static const JAVA_OBJECT g_badHandle = (JAVA_OBJECT) UINT64_C(0xABABABABABABABAB);
 
-static JAVA_VOID native_clear_reftable(RefTable *table) {
+static void native_reftable_clear(RefTable *table) {
+    table->top = 0;
     for (jint i = 0; i < table->capacity; i++) {
         table->objects[i] = g_badHandle;
     }
+}
+
+void native_reftable_init(RefTable *table, JAVA_OBJECT* storage, jint capacity) {
+    table->next = NULL;
+    table->capacity = capacity;
     table->top = 0;
+    table->objects = storage;
+
+    native_reftable_clear(table);
 }
 
 JAVA_BOOLEAN native_init() {
@@ -42,13 +54,13 @@ JAVA_BOOLEAN native_init() {
 void native_make_root_stack_frame(NativeStackFrame *root) {
     VMStackFrame *base = &root->baseFrame;
 
-    native_frame_init(root, NULL, 0);
+    native_frame_init(root, NULL);
 
     base->prev = base;
     base->next = base;
 }
 
-void native_frame_init(NativeStackFrame *frame, JAVA_OBJECT* refs, jint capacity) {
+void native_frame_init(NativeStackFrame *frame, RefTable* initialRefTable) {
     VMStackFrame *base = &frame->baseFrame;
 
     base->prev = NULL;
@@ -56,14 +68,54 @@ void native_frame_init(NativeStackFrame *frame, JAVA_OBJECT* refs, jint capacity
     base->type = VM_STACK_FRAME_NATIVE;
     base->thisClass = NULL;
 
-    frame->isJniLocalFrame = JAVA_FALSE;
-
     // init ref table
-    frame->refTable.next = NULL;
-    frame->refTable.capacity = capacity;
-    frame->refTable.top = 0;
-    frame->refTable.objects = refs;
-    native_clear_reftable(&frame->refTable);
+    if (initialRefTable) {
+        frame->refTable = initialRefTable;
+        frame->isJniLocalFrame = JAVA_FALSE;
+    } else {
+        frame->isJniLocalFrame = JAVA_TRUE;
+        frame->refTable = NULL;
+    }
+}
+
+void native_frame_pop(VM_PARAM_CURRENT_CONTEXT) {
+    VMStackFrame *base = stack_frame_top(vmCurrentContext);
+    assert(base->type == VM_STACK_FRAME_NATIVE);
+    NativeStackFrame *frame = (NativeStackFrame *) base;
+
+    RefTable *table = frame->refTable;
+    if (table == NULL) {
+        assert(frame->isJniLocalFrame);
+        stack_frame_pop(vmCurrentContext);
+        return;
+    }
+
+    while (table->next != NULL) {
+        RefTable *next = table->next;
+
+        // Reset the table
+        native_reftable_clear(table);
+        // Then free the memory
+        heap_free_uncollectable(vmCurrentContext, table);
+
+        table = next;
+    }
+
+    // Now deal with the initial table
+    // First reset the table
+    native_reftable_clear(table);
+    if (frame->isJniLocalFrame) {
+        // Then free the memory since for jni local frame, all tables are allocated dynamically
+        heap_free_uncollectable(vmCurrentContext, table);
+        // Reset the frame
+        frame->refTable = NULL;
+    } else {
+        // Leave the table there since the initial table is not allocated dynamically
+        frame->refTable = table;
+    }
+
+    // Finally pop the frame
+    stack_frame_pop(vmCurrentContext);
 }
 
 JAVA_VOID native_thread_attach_jni(VM_PARAM_CURRENT_CONTEXT) {
@@ -136,9 +188,7 @@ JAVA_OBJECT native_dereference(VM_PARAM_CURRENT_CONTEXT, jobject ref) {
     // This cannot be called inside a saferegion because the obj might be moved by GC
     assert(!thread_in_saferegion(vmCurrentContext));
 
-    VMStackFrame *top = stack_frame_top(vmCurrentContext);
-    assert(top->type == VM_STACK_FRAME_NATIVE);
-    NativeStackFrame *frame = (NativeStackFrame *) top;
+    assert(stack_frame_top(vmCurrentContext)->type == VM_STACK_FRAME_NATIVE);
 
     if (ref == NULL) {
         return JAVA_NULL;
