@@ -6,6 +6,25 @@
 #include "vm_memory.h"
 #include "vm_native.h"
 #include "vm_classloader.h"
+#include <string.h>
+
+static void main_call_initializeSystemClass(VM_PARAM_CURRENT_CONTEXT) {
+    JAVA_CLASS java_lang_System = classloader_get_class_by_name_init(vmCurrentContext, JAVA_NULL, "java/lang/System");
+
+    JavaClassInfo *info = java_lang_System->info;
+    MethodInfo *method_initializeSystemClass = NULL;
+    for (int i = 0; i < info->methodCount; i++) {
+        MethodInfo *m = info->methods[i];
+        if (strcmp("initializeSystemClass", m->name) == 0 && strcmp("()V", m->descriptor) == 0) {
+            method_initializeSystemClass = m;
+            break;
+        }
+    }
+
+    assert(method_initializeSystemClass);
+
+    ((JavaMethodRetVoid) method_initializeSystemClass->code)(vmCurrentContext);
+}
 
 int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     // Init low level memory system first
@@ -52,6 +71,9 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
 
     // Since we are calling into java function, we need a java stack frame
     stack_frame_start(-1, 1, 0);
+
+    // Call `java.lang.System#initializeSystemClass`
+    main_call_initializeSystemClass(vmCurrentContext);
 
     bc_aconst_null();
     entrance(vmCurrentContext);

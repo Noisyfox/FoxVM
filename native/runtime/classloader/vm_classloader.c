@@ -29,7 +29,7 @@ JAVA_BOOLEAN classloader_init(VM_PARAM_CURRENT_CONTEXT) {
     monitor_exit(vmCurrentContext, &clazz_slot);                                            \
 } while(0)
 
-static JAVA_BOOLEAN classloader_init_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz) {
+JAVA_BOOLEAN classloader_init_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz) {
     if (clazz->state == CLASS_STATE_INITIALIZED) {
         return JAVA_TRUE;
     }
