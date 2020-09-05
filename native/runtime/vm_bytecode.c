@@ -394,7 +394,7 @@ static JAVA_VOID bc_stack_value_out(VMStackSlot *value, void *valueOut, BasicTyp
             *((JAVA_CHAR *) valueOut) = value->data.i;
             break;
         case VM_TYPE_FLOAT:
-            assert(value->type == VM_SLOT_INT);
+            assert(value->type == VM_SLOT_FLOAT);
             *((JAVA_FLOAT *) valueOut) = value->data.f;
             break;
         case VM_TYPE_DOUBLE:
