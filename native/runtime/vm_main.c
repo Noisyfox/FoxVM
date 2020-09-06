@@ -32,28 +32,31 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
         return -1;
     }
 
-    thread_init();
-
-    // Create main thread
-    VMThreadContext thread_main = {0};
-    VM_PARAM_CURRENT_CONTEXT = &thread_main;
-
-    // Init main thread
-    native_make_root_stack_frame(&vmCurrentContext->frameRoot);
-    thread_native_init(vmCurrentContext);
-    thread_native_attach_main(vmCurrentContext);
-    // register the main thread to global thread list
-    thread_managed_add(vmCurrentContext);
-
+    // Init heap first because we need it for allocating thread context
     HeapConfig heapConfig = {
 //            .maxSize=0,
 //            .newRatio=2,
 //            .survivorRatio=8
     };
+    heap_init(&heapConfig);
 
-    heap_init(vmCurrentContext, &heapConfig);
+    // Then we init native thread system
+    thread_init();
+
+    // Create main thread
+    VMThreadContext* thread_main = heap_alloc_uncollectable(sizeof(VMThreadContext));
+    assert(thread_main);
+    VM_PARAM_CURRENT_CONTEXT = thread_main;
+
     // Init main tlab
     tlab_init(&vmCurrentContext->tlab);
+
+    // Init main thread
+    native_make_root_stack_frame(&vmCurrentContext->frameRoot);
+    thread_native_init(vmCurrentContext);
+    // register the main thread to global thread list
+    thread_managed_add(vmCurrentContext);
+    thread_native_attach_main(vmCurrentContext);
 
     // Init jni
     native_init();

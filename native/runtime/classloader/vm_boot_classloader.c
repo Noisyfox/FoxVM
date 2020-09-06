@@ -312,7 +312,7 @@ static JAVA_BOOLEAN cl_bootstrap_create_class(VM_PARAM_CURRENT_CONTEXT, JavaClas
 
 // Register non-array class to the bootstrap class registry
 static JAVA_BOOLEAN cl_bootstrap_register_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz) {
-    LoadedClassEntry *entry = heap_alloc_uncollectable(vmCurrentContext, sizeof(LoadedClassEntry));
+    LoadedClassEntry *entry = heap_alloc_uncollectable(sizeof(LoadedClassEntry));
     if (!entry) {
         fprintf(stderr, "Bootstrap Classloader: unable to alloc LoadedClassEntry for class %s\n",
                 clazz->info->thisClass);
@@ -701,7 +701,7 @@ static JAVA_CLASS cl_bootstrap_find_array_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR
 
     {
         // We then register the class
-        LoadedArrayClassEntry *entry = heap_alloc_uncollectable(vmCurrentContext, sizeof(LoadedArrayClassEntry));
+        LoadedArrayClassEntry *entry = heap_alloc_uncollectable(sizeof(LoadedArrayClassEntry));
         if (!entry) {
             monitor_exit(vmCurrentContext, &g_bootstrapArrayClassLock);
             free((void *) desc_dup);

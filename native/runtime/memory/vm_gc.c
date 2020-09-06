@@ -346,7 +346,7 @@ size_t heap_gen0_free() {
     return ptr_offset(gen0->allocationSegment->allocated, gen0->allocationSegment->end);
 }
 
-int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config) {
+int heap_init(HeapConfig *config) {
     // Init gc constants
     g_fillerArraySizeMax = array_max_size_of_type(VM_TYPE_INT);
     g_fillerArraySizeMin = array_min_size_of_type(VM_TYPE_INT);
@@ -833,7 +833,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size) {
     return NULL;
 }
 
-void *heap_alloc_uncollectable(VM_PARAM_CURRENT_CONTEXT, size_t size) {
+void *heap_alloc_uncollectable(size_t size) {
     void *result = mem_aligned_malloc(size, DATA_ALIGNMENT);
     if(result) {
         // Zero out memory
@@ -842,6 +842,6 @@ void *heap_alloc_uncollectable(VM_PARAM_CURRENT_CONTEXT, size_t size) {
     return result;
 }
 
-void heap_free_uncollectable(VM_PARAM_CURRENT_CONTEXT, void* ptr) {
+void heap_free_uncollectable(void* ptr) {
     mem_aligned_free(ptr);
 }

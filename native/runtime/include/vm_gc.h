@@ -15,7 +15,7 @@ typedef struct {
  * Initialize global application heap.
  * @return 0 if success, 1 otherwise.
  */
-int heap_init(VM_PARAM_CURRENT_CONTEXT, HeapConfig *config);
+int heap_init(HeapConfig *config);
 
 /**
  * Allocates an object with the given size.
@@ -35,7 +35,7 @@ void *heap_alloc(VM_PARAM_CURRENT_CONTEXT, size_t size);
  */
 void *heap_alloc_loh(VM_PARAM_CURRENT_CONTEXT, size_t size);
 
-void *heap_alloc_uncollectable(VM_PARAM_CURRENT_CONTEXT, size_t size);
-void heap_free_uncollectable(VM_PARAM_CURRENT_CONTEXT, void* ptr);
+void *heap_alloc_uncollectable(size_t size);
+void heap_free_uncollectable(void* ptr);
 
 #endif //FOXVM_VM_GC_H

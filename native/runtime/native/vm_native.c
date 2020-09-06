@@ -98,7 +98,7 @@ void native_frame_pop(VM_PARAM_CURRENT_CONTEXT) {
         // Reset the table
         native_reftable_clear(table);
         // Then free the memory
-        heap_free_uncollectable(vmCurrentContext, table);
+        heap_free_uncollectable(table);
 
         table = next;
     }
@@ -108,7 +108,7 @@ void native_frame_pop(VM_PARAM_CURRENT_CONTEXT) {
     native_reftable_clear(table);
     if (frame->isJniLocalFrame) {
         // Then free the memory since for jni local frame, all tables are allocated dynamically
-        heap_free_uncollectable(vmCurrentContext, table);
+        heap_free_uncollectable(table);
         // Reset the frame
         frame->refTable = NULL;
     } else {
@@ -210,7 +210,7 @@ jobject native_get_local_ref(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT obj) {
 
     // All existing tables are full, need to allocate a new table
     jint newCapacity = (maxCapacity > 1024 ? 1024 : maxCapacity) * 2;
-    table = heap_alloc_uncollectable(vmCurrentContext, sizeof(RefTable) + newCapacity * sizeof(JAVA_OBJECT));
+    table = heap_alloc_uncollectable(sizeof(RefTable) + newCapacity * sizeof(JAVA_OBJECT));
     assert(table);
     native_reftable_init(table, ptr_inc(table, sizeof(RefTable)), newCapacity);
 
