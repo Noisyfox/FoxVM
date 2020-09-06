@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include "vm_bytecode.h"
 #include "vm_array.h"
+#include "vm_method.h"
 
 extern JavaClassInfo *foxvm_class_infos_rt[];
 
@@ -455,15 +456,9 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
         return JAVA_FALSE;
     }
     // We here get the init method of the java/lang/Class
-    for (uint32_t i = 0; i < g_classInfo_java_lang_Class->methodCount; i++) {
-        MethodInfo *method = g_classInfo_java_lang_Class->methods[i];
-        if (strcmp(method->name, "<init>") == 0) {
-            java_lang_Class_init = method;
-            break;
-        }
-    }
+    java_lang_Class_init = method_find(g_classInfo_java_lang_Class, "<init>", "(Ljava/lang/Object;)V");
     if (!java_lang_Class_init) {
-        fprintf(stderr, "Bootstrap Classloader: unable to find method java.lang.Class.<init>\n");
+        fprintf(stderr, "Bootstrap Classloader: unable to find method java.lang.Class.<init>(Ljava/lang/Object;)V\n");
         return JAVA_FALSE;
     }
     // Fix some fields that depends on the java/lang/Object and java/lang/Class

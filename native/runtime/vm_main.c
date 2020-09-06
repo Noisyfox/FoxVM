@@ -6,21 +6,13 @@
 #include "vm_memory.h"
 #include "vm_native.h"
 #include "vm_classloader.h"
-#include <string.h>
+#include "vm_method.h"
 
 static void main_call_initializeSystemClass(VM_PARAM_CURRENT_CONTEXT) {
     JAVA_CLASS java_lang_System = classloader_get_class_by_name_init(vmCurrentContext, JAVA_NULL, "java/lang/System");
 
     JavaClassInfo *info = java_lang_System->info;
-    MethodInfo *method_initializeSystemClass = NULL;
-    for (int i = 0; i < info->methodCount; i++) {
-        MethodInfo *m = info->methods[i];
-        if (strcmp("initializeSystemClass", m->name) == 0 && strcmp("()V", m->descriptor) == 0) {
-            method_initializeSystemClass = m;
-            break;
-        }
-    }
-
+    MethodInfo *method_initializeSystemClass = method_find(info, "initializeSystemClass", "()V");
     assert(method_initializeSystemClass);
 
     ((JavaMethodRetVoid) method_initializeSystemClass->code)(vmCurrentContext);
