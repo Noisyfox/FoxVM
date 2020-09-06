@@ -115,6 +115,7 @@ JAVA_BOOLEAN thread_init_main(VM_PARAM_CURRENT_CONTEXT) {
     JAVA_OBJECT threadObj = local_of(0).data.o;
 
     // Since `Thread.<init>()` calls `currentThread()`, we need to set it up before init the object
+    // This is what OpenJDK does in hotspot\src\share\vm\runtime\thread.cpp: `create_initial_thread()`.
     // Find the eetop field
     java_lang_Thread_eetop = field_find(threadObj->clazz, "eetop", "J");
     assert(java_lang_Thread_eetop);
