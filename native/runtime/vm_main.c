@@ -48,7 +48,7 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     thread_native_init(vmCurrentContext);
     // register the main thread to global thread list
     thread_managed_add(vmCurrentContext);
-    thread_native_attach_main(vmCurrentContext);
+    thread_native_attach(vmCurrentContext);
 
     // Init jni
     native_init();
@@ -59,7 +59,8 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
         return -1;
     }
 
-    // TODO: create java Thread Object for main thread
+    // Create java Thread Object for main thread
+    thread_init_main(vmCurrentContext);
 
     // start GC thread
 //    gc_thread_start(vmCurrentContext);

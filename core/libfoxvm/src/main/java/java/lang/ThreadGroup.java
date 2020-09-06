@@ -55,6 +55,10 @@ import sun.misc.VM;
  */
 public
 class ThreadGroup implements Thread.UncaughtExceptionHandler {
+    /* the VM uses these directly; do not rename */
+    static final ThreadGroup mSystem = new ThreadGroup();
+    static final ThreadGroup mMain = new ThreadGroup(mSystem, "main");
+
     private final ThreadGroup parent;
     String name;
     int maxPriority;

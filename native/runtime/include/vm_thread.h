@@ -75,7 +75,12 @@ JAVA_LONG thread_get_native_id(VM_PARAM_CURRENT_CONTEXT);
  *
  * The given context must be inited by calling `thread_native_init` first.
  */
-JAVA_BOOLEAN thread_native_attach_main(VM_PARAM_CURRENT_CONTEXT);
+JAVA_BOOLEAN thread_native_attach(VM_PARAM_CURRENT_CONTEXT);
+
+/**
+ * Set upt the main thread and create the associated java Thread object.
+ */
+JAVA_BOOLEAN thread_init_main(VM_PARAM_CURRENT_CONTEXT);
 
 JAVA_BOOLEAN thread_managed_add(VM_PARAM_CURRENT_CONTEXT);
 

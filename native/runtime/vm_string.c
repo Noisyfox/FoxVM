@@ -116,6 +116,37 @@ static JAVA_VOID string_utf8_to_unicode(C_CSTR utf8_str, JAVA_ARRAY char_array) 
     }
 }
 
+JAVA_OBJECT string_create_utf8(VM_PARAM_CURRENT_CONTEXT, C_CSTR utf8) {
+    stack_frame_start(-1, 4, 2);
+
+    JAVA_INT requiredCharCount = string_unicode_length_of(utf8);
+    // Allocate a char[] that can contains the unicode string
+    stack_push_int(requiredCharCount);
+    bc_newarray("[C");
+    bc_store(0, VM_SLOT_OBJECT); // Store in local 0
+    // Convert the utf8 to unicode string
+    string_utf8_to_unicode(utf8, (JAVA_ARRAY) local_of(0).data.o);
+    // Create a instance of java/lang/String
+    bc_new(g_classInfo_java_lang_String);
+    // Dup the stack
+    bc_dup();
+    // Push the array to stack
+    bc_load(0, VM_SLOT_OBJECT);
+    // Push the second arg "share"
+    bc_iconst_1();
+    // Call the init function java/lang/String.<init>([CZ)V
+    bc_invoke_special(method_9Pjava_lang6CString_4IINIT_A1C_Z);
+    // Now there should be an instance of java/lang/String at the top of the stack
+    // We store it in local 0
+    bc_store(0, VM_SLOT_OBJECT);
+
+    JAVA_OBJECT objRef = local_of(0).data.o;
+
+    stack_frame_end();
+
+    return objRef;
+}
+
 JAVA_OBJECT string_get_constant(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_index) {
     assert(constant_index >= 0);
     assert(constant_index < foxvm_constant_pool_rt_count);
@@ -129,7 +160,7 @@ JAVA_OBJECT string_get_constant(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_inde
     }
 
     // Otherwise we need to create one
-    stack_frame_start(-1, 4, 2);
+    stack_frame_start(-1, 1, 2);
 
     // Lock the String class
     VMStackSlot *clazz_slot = &local_of(0);
@@ -171,23 +202,11 @@ JAVA_OBJECT string_get_constant(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_inde
 
     // Get the utf-8 encoded string
     C_CSTR utf8Encoded = foxvm_constant_pool_rt[constant_index];
-    JAVA_INT requiredCharCount = string_unicode_length_of(utf8Encoded);
-    // Allocate a char[] that can contains the unicode string
-    stack_push_int(requiredCharCount);
-    bc_newarray("[C");
-    bc_store(1, VM_SLOT_OBJECT); // Store in local 1
-    // Convert the utf8 to unicode string
-    string_utf8_to_unicode(utf8Encoded, (JAVA_ARRAY) local_of(1).data.o);
-    // Create a instance of java/lang/String
-    bc_new(g_classInfo_java_lang_String);
-    // Dup the stack
-    bc_dup();
-    // Push the array to stack
-    bc_load(1, VM_SLOT_OBJECT);
-    // Push the second arg "share"
-    bc_iconst_1();
-    // Call the init function java/lang/String.<init>([CZ)V
-    bc_invoke_special(method_9Pjava_lang6CString_4IINIT_A1C_Z);
+    // Call `string_create_utf8`
+    JAVA_OBJECT str = string_create_utf8(vmCurrentContext, utf8Encoded);
+    // Since we need to call `monitor_enter()` later, to prevent GC from deleting the created string,
+    // we need to keep the reference in the stack frame
+    stack_push_object(str);
     // Now there should be an instance of java/lang/String at the top of the stack
     // We store it in local 1
     bc_store(1, VM_SLOT_OBJECT);

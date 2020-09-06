@@ -138,7 +138,7 @@ JAVA_LONG thread_get_native_id(VM_PARAM_CURRENT_CONTEXT) {
     return (JAVA_LONG) nativeThreadContext->nativeThreadId;
 }
 
-JAVA_BOOLEAN thread_native_attach_main(VM_PARAM_CURRENT_CONTEXT) {
+JAVA_BOOLEAN thread_native_attach(VM_PARAM_CURRENT_CONTEXT) {
     NativeThreadContext *nativeThreadContext = vmCurrentContext->nativeContext;
     if (nativeThreadContext == NULL) {
         return JAVA_FALSE;

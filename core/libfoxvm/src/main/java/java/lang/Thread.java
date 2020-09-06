@@ -132,12 +132,13 @@ class Thread implements Runnable {
     /* Make sure registerNatives is the first thing <clinit> does. */
     private static native void registerNatives();
     static {
-        registerNatives();
+        // registerNatives();
     }
 
     private volatile String name;
     private int            priority;
     private Thread         threadQ;
+    /* Stores the pointer to the foxvm thread context associated with this thread */
     private long           eetop;
 
     /* Whether or not to single_step this thread. */
