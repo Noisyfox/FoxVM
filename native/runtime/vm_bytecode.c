@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include "vm_string.h"
 #include "vm_native.h"
+#include "vm_class.h"
 
 #define JAVA_TYPE_a JAVA_ARRAY
 #define JAVA_TYPE_o JAVA_OBJECT
@@ -809,4 +810,50 @@ void *bc_resolve_native(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method) {
     }
 
     return native_bind_method(vmCurrentContext, method);
+}
+
+JAVA_BOOLEAN bc_instance_of(VMOperandStack *stack, JavaClassInfo *info) {
+    VMStackSlot *objectRef = stack->top - 1;
+
+    assert(objectRef >= stack->slots);
+
+    assert(objectRef->type == VM_SLOT_OBJECT);
+
+    JAVA_BOOLEAN result = JAVA_FALSE;
+
+    JAVA_OBJECT obj = objectRef->data.o;
+    if (obj != JAVA_NULL) {
+        JavaClassInfo *i = obj_get_class(obj)->info;
+
+        result = class_assignable(i, info);
+    }
+
+    // Pop
+    stack->top = objectRef;
+    objectRef->type = VM_SLOT_INVALID;
+
+    return result;
+}
+
+JAVA_BOOLEAN bc_instance_of_a(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, C_CSTR desc) {
+    VMStackSlot *objectRef = stack->top - 1;
+
+    assert(objectRef >= stack->slots);
+
+    assert(objectRef->type == VM_SLOT_OBJECT);
+
+    JAVA_BOOLEAN result = JAVA_FALSE;
+
+    JAVA_OBJECT obj = objectRef->data.o;
+    if (obj != JAVA_NULL) {
+        JavaClassInfo *i = obj_get_class(obj)->info;
+
+        result = class_assignable_desc(vmCurrentContext, i, desc);
+    }
+
+    // Pop
+    stack->top = objectRef;
+    objectRef->type = VM_SLOT_INVALID;
+
+    return result;
 }

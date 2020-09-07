@@ -1156,7 +1156,7 @@ class ClassWriter(
                         }
                         Opcodes.ANEWARRAY -> {
                             val componentType = Type.getObjectType(inst.desc)
-                            val arrayDesc = when(componentType.sort) {
+                            val arrayDesc = when (componentType.sort) {
                                 Type.OBJECT -> "[L${inst.desc};"
                                 Type.ARRAY -> "[${inst.desc}"
                                 else -> throw IllegalArgumentException("Unsupported type ${componentType.sort} for anewarray.")
@@ -1172,7 +1172,31 @@ class ClassWriter(
                             // TODO
                         }
                         Opcodes.INSTANCEOF -> {
-                            // TODO
+                            val type = Type.getObjectType(inst.desc)
+                            when (type.sort) {
+                                Type.OBJECT -> {
+                                    val resolvedClass = requireNotNull(classPool.getClass(inst.desc)) {
+                                        "Could not find class ${inst.desc}"
+                                    }.requireClassInfo()
+
+                                    cWriter.addDependency(resolvedClass)
+                                    cWriter.write(
+                                        """
+                    |    // instanceof ${inst.desc}
+                    |    bc_instanceof(&${resolvedClass.cName});
+                    |""".trimMargin()
+                                    )
+                                }
+                                Type.ARRAY -> {
+                                    cWriter.write(
+                                        """
+                    |    // instanceof ${inst.desc}
+                    |    bc_instanceof_a("${inst.desc}");
+                    |""".trimMargin()
+                                    )
+                                }
+                                else -> throw IllegalArgumentException("Unsupported type ${type.sort} for instanceof.")
+                            }
                         }
                         else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                     }
