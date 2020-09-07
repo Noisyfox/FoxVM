@@ -130,7 +130,6 @@ class ClassWriter(
                     |""".trimMargin()
             )
         }
-        // TODO: Write resolved static field reference
 
         // Write static field data storage
         headerWriter.write(
@@ -459,8 +458,6 @@ class ClassWriter(
             )
         }
 
-        // TODO: Write pre-resolved static field reference
-
         // Write vtable
         if (info.vtable.isNotEmpty()) {
             cWriter.write(
@@ -595,8 +592,6 @@ class ClassWriter(
             )
         }
 
-        // TODO: resolve staticFieldReferences
-
         // Set static const field to its initial value, except Strings
         val noneStringStaticFieldsWithDefault = info.preResolvedStaticFields.filter { f ->
             f.field.defaultValue != null && f.field.defaultValue !is String
@@ -711,9 +706,7 @@ class ClassWriter(
                 }
                 is VarInsnNode -> {
                     when (inst.opcode) {
-                        Opcodes.RET -> {
-                            // TODO
-                        }
+                        Opcodes.RET -> throw IncompatibleClassChangeError("ret not supported")
                         in byteCodesVarInst -> {
                             val functionName = byteCodesVarInst[inst.opcode]
                             cWriter.write(
@@ -869,9 +862,7 @@ class ClassWriter(
                                 else -> throw IllegalArgumentException("Unexpected type ${v.sort} for ldc.")
                             }
                         }
-                        else -> {
-                            // TODO
-                        }
+                        else -> throw IllegalArgumentException("Unexpected type $v for ldc.")
                     }
                 }
                 is FieldInsnNode -> {
