@@ -490,6 +490,12 @@ JAVA_BOOLEAN bc_instance_of_a(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, C
 #define bc_instanceof(class_info)   do {JAVA_BOOLEAN r = bc_instance_of(OP_STACK, class_info);                     stack_push_int(r);} while(0)
 #define bc_instanceof_a(array_desc) do {JAVA_BOOLEAN r = bc_instance_of_a(vmCurrentContext, OP_STACK, array_desc); stack_push_int(r);} while(0)
 
+// checkcast instructions
+JAVA_VOID bc_cast(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JavaClassInfo *info);
+JAVA_VOID bc_cast_a(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, C_CSTR desc);
+#define bc_checkcast(class_info)   bc_cast(vmCurrentContext, OP_STACK, class_info)
+#define bc_checkcast_a(array_desc) bc_cast_a(vmCurrentContext, OP_STACK, array_desc)
+
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)
 

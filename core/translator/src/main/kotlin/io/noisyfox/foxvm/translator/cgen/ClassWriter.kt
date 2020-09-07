@@ -1169,7 +1169,31 @@ class ClassWriter(
                             )
                         }
                         Opcodes.CHECKCAST -> {
-                            // TODO
+                            val type = Type.getObjectType(inst.desc)
+                            when (type.sort) {
+                                Type.OBJECT -> {
+                                    val resolvedClass = requireNotNull(classPool.getClass(inst.desc)) {
+                                        "Could not find class ${inst.desc}"
+                                    }.requireClassInfo()
+
+                                    cWriter.addDependency(resolvedClass)
+                                    cWriter.write(
+                                        """
+                    |    // checkcast ${inst.desc}
+                    |    bc_checkcast(&${resolvedClass.cName});
+                    |""".trimMargin()
+                                    )
+                                }
+                                Type.ARRAY -> {
+                                    cWriter.write(
+                                        """
+                    |    // checkcast ${inst.desc}
+                    |    bc_checkcast_a("${inst.desc}");
+                    |""".trimMargin()
+                                    )
+                                }
+                                else -> throw IllegalArgumentException("Unsupported type ${type.sort} for instanceof.")
+                            }
                         }
                         Opcodes.INSTANCEOF -> {
                             val type = Type.getObjectType(inst.desc)

@@ -857,3 +857,45 @@ JAVA_BOOLEAN bc_instance_of_a(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, C
 
     return result;
 }
+
+JAVA_VOID bc_cast(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JavaClassInfo *info) {
+    VMStackSlot *objectRef = stack->top - 1;
+
+    assert(objectRef >= stack->slots);
+
+    assert(objectRef->type == VM_SLOT_OBJECT);
+
+    JAVA_OBJECT obj = objectRef->data.o;
+    if (obj != JAVA_NULL) {
+        JavaClassInfo *i = obj_get_class(obj)->info;
+
+        JAVA_BOOLEAN result = class_assignable(i, info);
+
+        if (!result) {
+            assert(!"ClassCastException!");
+            // TODO: throw ClassCastException instead.
+            exit(-1);
+        }
+    }
+}
+
+JAVA_VOID bc_cast_a(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, C_CSTR desc) {
+    VMStackSlot *objectRef = stack->top - 1;
+
+    assert(objectRef >= stack->slots);
+
+    assert(objectRef->type == VM_SLOT_OBJECT);
+
+    JAVA_OBJECT obj = objectRef->data.o;
+    if (obj != JAVA_NULL) {
+        JavaClassInfo *i = obj_get_class(obj)->info;
+
+        JAVA_BOOLEAN result = class_assignable_desc(vmCurrentContext, i, desc);
+
+        if (!result) {
+            assert(!"ClassCastException!");
+            // TODO: throw ClassCastException instead.
+            exit(-1);
+        }
+    }
+}
