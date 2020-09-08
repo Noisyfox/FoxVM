@@ -43,6 +43,12 @@ class ClassWriter(
     var updatedClassNumber: Int = 0
         private set
 
+    var processedMethodNumber: Long = 0
+        private set
+
+    var processedInstructionNumber: Long = 0
+        private set
+
     override fun handleApplicationClass(clazz: Clazz) {
         processedClassNumber++
 
@@ -630,6 +636,8 @@ class ClassWriter(
             )
 
             nonAbstractMethods.forEach {
+                processedMethodNumber++
+
                 when {
                     it.value.isConcrete -> writeMethodImpl(cWriter, info, it.index, it.value)
                     it.value.isNative -> writeNativeMethodBridge(cWriter, info, it.index, it.value)
@@ -686,6 +694,8 @@ class ClassWriter(
         // TODO: write instructions
 
         node.instructions.forEach { inst ->
+            processedInstructionNumber++
+
             when (inst) {
                 is LabelNode -> {
                     cWriter.write(

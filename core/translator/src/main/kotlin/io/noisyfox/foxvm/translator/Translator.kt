@@ -80,11 +80,12 @@ class Translator(
             applicationClassPool.accept(it)
 
             if (it.updatedClassNumber == 0) {
-                LOGGER.info("{} class(es) translated, all up-to-date.", it.processedClassNumber)
+                LOGGER.info("{} class(es), {} method(s) and {} instruction(s) translated, all up-to-date.",
+                    it.processedClassNumber, it.processedMethodNumber, it.processedInstructionNumber)
             } else {
                 LOGGER.info(
-                    "{} class(es) translated, {} class(es) updated.",
-                    it.processedClassNumber,
+                    "{} class(es), {} method(s) and {} instruction(s) translated, {} class(es) updated.",
+                    it.processedClassNumber, it.processedMethodNumber, it.processedInstructionNumber,
                     it.updatedClassNumber
                 )
             }
