@@ -48,6 +48,9 @@ class CMakeListsWriter(
                     |    
                     |    SOURCES
                     |    ${"$"}{${sourceNameOf(isRt)}}
+                    |
+                    |    LOCAL_LIBRARIES
+                    |    foxvm_runtime
                     |)
                     |""".trimMargin()
         )
