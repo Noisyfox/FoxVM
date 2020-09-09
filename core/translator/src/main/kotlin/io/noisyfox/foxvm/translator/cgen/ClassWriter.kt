@@ -696,7 +696,7 @@ class ClassWriter(
             cWriter.write(
                 """
                     |
-                    |    exception_frame_start(${node.tryCatchBlocks.size});
+                    |    exception_frame_start();
                     |""".trimMargin()
             )
 
@@ -730,13 +730,20 @@ class ClassWriter(
                     )
                 }
             }
+
+            cWriter.write(
+                """
+                    |    exception_block_end();
+                    |""".trimMargin()
+            )
         } else if(method.isSynchronized) {
             // Need an empty try for releasing the lock before exception is thrown up
             cWriter.write(
                 """
                     |
                     |    // Empty exception frame for freeing the lock of synchronized method
-                    |    exception_frame_start(0);
+                    |    exception_frame_start();
+                    |    exception_block_end();
                     |""".trimMargin()
             )
         }
@@ -1355,7 +1362,8 @@ class ClassWriter(
                 """
                     |
                     |    // Empty exception frame for freeing the lock of synchronized method
-                    |    exception_frame_start(0);
+                    |    exception_frame_start();
+                    |    exception_block_end();
                     |""".trimMargin()
             )
         }

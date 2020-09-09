@@ -14,8 +14,10 @@ typedef struct _ExceptionFrame {
     jmp_buf jmpTarget;
 } ExceptionFrame;
 
-#define exception_frame_start(block_number)
+#define exception_frame_start()
 
 #define exception_new_block(index, start, end, handler, type)
+
+#define exception_block_end()
 
 #endif //FOXVM_VM_EXCEPTION_H
