@@ -691,6 +691,56 @@ class ClassWriter(
             )
         }
 
+        // Define exception handlers
+        if (node.tryCatchBlocks.isNotEmpty()) {
+            cWriter.write(
+                """
+                    |
+                    |    exception_frame_start(${node.tryCatchBlocks.size});
+                    |""".trimMargin()
+            )
+
+            val throwableClass = requireNotNull(classPool.getClass("java/lang/Throwable")) {
+                "cannot find class java/lang/Throwable"
+            }.requireClassInfo()
+
+            node.tryCatchBlocks.forEachIndexed { i, it ->
+                if(it.type == null) {
+                    cWriter.write(
+                        """
+                    |    exception_new_block($i, ${it.start.index(method)}, ${it.end.index(method)}, ${it.handler.index(method)}, $CNull);
+                    |""".trimMargin()
+                    )
+                } else {
+                    val exceptionClass = requireNotNull(classPool.getClass(it.type)) {
+                        "cannot find class ${it.type}"
+                    }.requireClassInfo()
+
+                    require(exceptionClass instanceOf throwableClass) {
+                        "class $exceptionClass is not a subclass of $throwableClass"
+                    }
+
+                    // Add the class as dependency
+                    cWriter.addDependency(exceptionClass)
+
+                    cWriter.write(
+                        """
+                    |    exception_new_block($i, ${it.start.index(method)}, ${it.end.index(method)}, ${it.handler.index(method)}, &${exceptionClass.cName});
+                    |""".trimMargin()
+                    )
+                }
+            }
+        } else if(method.isSynchronized) {
+            // Need an empty try for releasing the lock before exception is thrown up
+            cWriter.write(
+                """
+                    |
+                    |    // Empty exception frame for freeing the lock of synchronized method
+                    |    exception_frame_start(0);
+                    |""".trimMargin()
+            )
+        }
+
         // TODO: write instructions
 
         node.instructions.forEach { inst ->
@@ -1295,6 +1345,17 @@ class ClassWriter(
             cWriter.write(
                 """
                     |    bc_check_objectref();
+                    |""".trimMargin()
+            )
+        }
+
+        if(method.isSynchronized) {
+            // Need an empty try for releasing the lock before exception is thrown up
+            cWriter.write(
+                """
+                    |
+                    |    // Empty exception frame for freeing the lock of synchronized method
+                    |    exception_frame_start(0);
                     |""".trimMargin()
             )
         }

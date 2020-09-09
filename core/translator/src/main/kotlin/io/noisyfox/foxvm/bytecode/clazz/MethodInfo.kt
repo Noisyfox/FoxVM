@@ -33,6 +33,8 @@ data class MethodInfo(
 
     val isFinalizer: Boolean = FINALIZE == name
 
+    val isSynchronized: Boolean = (access and Opcodes.ACC_SYNCHRONIZED) == Opcodes.ACC_SYNCHRONIZED
+
     val isAbstract: Boolean = (access and Opcodes.ACC_ABSTRACT) == Opcodes.ACC_ABSTRACT
 
     val isNative: Boolean = (access and Opcodes.ACC_NATIVE) == Opcodes.ACC_NATIVE

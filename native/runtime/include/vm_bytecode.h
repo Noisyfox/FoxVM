@@ -6,6 +6,7 @@
 #define FOXVM_VM_BYTECODE_H
 
 #include "vm_stack.h"
+#include "vm_exception.h"
 #include "jni.h"
 
 /**
