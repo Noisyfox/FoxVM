@@ -34,7 +34,9 @@ typedef struct _NativeStackFrame {
     native_reftable_init(&__refTable, __nativeRefs, ref_capacity);      \
     native_frame_init(&__nativeFrame, &__refTable);                     \
     __nativeFrame.baseFrame.thisClass = vmCurrentContext->callingClass; \
-    stack_frame_push(vmCurrentContext, &__nativeFrame.baseFrame)
+    stack_frame_push(vmCurrentContext, &__nativeFrame.baseFrame);       \
+    /* Native frame don't inherit exception handler from java world */  \
+    __nativeFrame.baseFrame.exceptionHandler = NULL
 
 #define native_stack_frame_end() \
     native_frame_pop(vmCurrentContext)

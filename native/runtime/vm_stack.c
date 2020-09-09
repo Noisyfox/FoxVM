@@ -51,6 +51,9 @@ void stack_frame_push(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame) {
 
     frame->prev->next = frame;
     frame->next->prev = frame;
+
+    // Inherit the exception handler from caller
+    frame->exceptionHandler = curr->exceptionHandler;
 }
 
 void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT) {

@@ -9,6 +9,8 @@
 #include <assert.h>
 #include <stdlib.h>
 
+struct _ExceptionFrame;
+
 static inline VMTypeCategory slot_type_category(VMStackSlotType type) {
     switch (type) {
         case VM_SLOT_OBJECT:
@@ -46,6 +48,8 @@ typedef struct _VMStackFrame {
     struct _VMStackFrame *prev;
     struct _VMStackFrame *next;
     StackFrameType type;
+
+    struct _ExceptionFrame *exceptionHandler;
 
     JAVA_CLASS thisClass; // Reference to current class
 } VMStackFrame;
