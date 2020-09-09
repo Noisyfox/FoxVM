@@ -103,7 +103,7 @@ JAVA_BOOLEAN thread_init_main(VM_PARAM_CURRENT_CONTEXT) {
     java_lang_Thread_init = method_find(g_classInfo_java_lang_Thread, "<init>", "(Ljava/lang/ThreadGroup;Ljava/lang/String;)V");
     assert(java_lang_Thread_init);
 
-    stack_frame_start(-1, 3, 1);
+    stack_frame_start(NULL, 3, 1);
 
     // Create a new Thread instance
     bc_new(g_classInfo_java_lang_Thread);

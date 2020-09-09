@@ -57,7 +57,7 @@ typedef struct _VMStackFrame {
 typedef struct _JavaStackFrame {
     VMStackFrame baseFrame;
 
-    uint16_t methodIndex; // The index of current method in [thisClass->methods]
+    MethodInfo *currentMethod; // Might be null for internal system methods
     VMOperandStack operandStack;
     VMLocals locals;
 
@@ -81,19 +81,19 @@ void stack_frame_init_java(JavaStackFrame *frame, VMStackSlot *slot_base, uint16
 #define STACK_SLOTS __slots
 #define OP_STACK (&STACK_FRAME.operandStack)
 
-#define stack_frame_start(index, max_stack, max_locals)                             \
+#define stack_frame_start(method_info, max_stack, max_locals)                       \
     JavaStackFrame STACK_FRAME;                                                     \
     VMStackSlot STACK_SLOTS[(max_stack) + (max_locals)];                            \
     stack_frame_init_java(&STACK_FRAME, STACK_SLOTS, (max_stack), (max_locals));    \
     STACK_FRAME.baseFrame.thisClass = vmCurrentContext->callingClass;               \
-    STACK_FRAME.methodIndex = index;                                                \
+    STACK_FRAME.currentMethod = method_info;                                        \
     stack_frame_push(vmCurrentContext, &STACK_FRAME.baseFrame)
 
-#define stack_frame_start_zero(index)                                               \
+#define stack_frame_start_zero(method_info)                                         \
     JavaStackFrame STACK_FRAME;                                                     \
     stack_frame_init_java(&STACK_FRAME, NULL, 0, 0);                                \
     STACK_FRAME.baseFrame.thisClass = vmCurrentContext->callingClass;               \
-    STACK_FRAME.methodIndex = index;                                                \
+    STACK_FRAME.currentMethod = method_info;                                        \
     stack_frame_push(vmCurrentContext, &STACK_FRAME.baseFrame)
 
 #define stack_frame_end() \

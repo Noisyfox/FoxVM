@@ -212,6 +212,8 @@ typedef struct {
     C_CSTR descriptor; // Type descriptor of this method
     C_CSTR signature; // Signature of this method if it contains generic type, or `NULL`
 
+    JavaClassInfo *declaringClass; // The class that declares this method
+
     void *code; // Pointer to the function
 } MethodInfo;
 

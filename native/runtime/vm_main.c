@@ -66,7 +66,7 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
 //    gc_thread_start(vmCurrentContext);
 
     // Since we are calling into java function, we need a java stack frame
-    stack_frame_start(-1, 1, 0);
+    stack_frame_start(NULL, 1, 0);
 
     // Call `java.lang.System#initializeSystemClass`
     main_call_initializeSystemClass(vmCurrentContext);

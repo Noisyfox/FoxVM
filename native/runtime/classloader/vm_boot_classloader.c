@@ -138,12 +138,15 @@ static JavaClass *g_array_interfaces_resolved[2] = {
         NULL, NULL
 };
 
+static JavaClassInfo g_classInfo_array_prototype;
+
 // Methods of arrays
-static MethodInfo g_array_methodInfo_5Mclone_R9Pjava_lang6CObject = {
+MethodInfo g_array_methodInfo_5Mclone_R9Pjava_lang6CObject = {
         .accessFlags = METHOD_ACC_PUBLIC | METHOD_ACC_FINAL,
         .name = "clone",
         .descriptor = "()Ljava/lang/Object;",
         .signature = NULL,
+        .declaringClass = &g_classInfo_array_prototype,
         .code = g_array_5Mclone_R9Pjava_lang6CObject,
 };
 static MethodInfo* g_array_methods[] = {
@@ -179,7 +182,7 @@ static JAVA_VOID resolve_handler_array(JAVA_CLASS c) {
 // The prototype of all array class infos
 static JavaClassInfo g_classInfo_array_prototype = {
         .accessFlags = CLASS_ACC_PUBLIC | CLASS_ACC_FINAL,
-        .thisClass = NULL,
+        .thisClass = "[",
         .signature = NULL,
         .superClass = NULL, // Assigned in [cl_bootstrap_init]
         .interfaceCount = 2,
@@ -275,7 +278,7 @@ static JavaClassInfo *cl_bootstrap_class_info_lookup_by_descriptor(C_CSTR desc) 
 } while(0)
 
 static void cl_bootstrap_init_class_object(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT classObject, JAVA_CLASS clazz) {
-    stack_frame_start(-1, 2, 0);
+    stack_frame_start(NULL, 2, 0);
 
     stack_push_object(classObject);
     stack_push_object((JAVA_OBJECT) clazz);

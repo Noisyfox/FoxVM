@@ -117,7 +117,7 @@ static JAVA_VOID string_utf8_to_unicode(C_CSTR utf8_str, JAVA_ARRAY char_array) 
 }
 
 JAVA_OBJECT string_create_utf8(VM_PARAM_CURRENT_CONTEXT, C_CSTR utf8) {
-    stack_frame_start(-1, 4, 2);
+    stack_frame_start(NULL, 4, 2);
 
     JAVA_INT requiredCharCount = string_unicode_length_of(utf8);
     // Allocate a char[] that can contains the unicode string
@@ -160,7 +160,7 @@ JAVA_OBJECT string_get_constant(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_inde
     }
 
     // Otherwise we need to create one
-    stack_frame_start(-1, 1, 2);
+    stack_frame_start(NULL, 1, 2);
 
     // Lock the String class
     VMStackSlot *clazz_slot = &local_of(0);

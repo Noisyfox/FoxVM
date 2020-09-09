@@ -357,6 +357,7 @@ class ClassWriter(
                     |                .name = "${it.name.asCString()}",
                     |                .descriptor = "${it.descriptor.toString().asCString()}",
                     |                .signature = ${it.signature.toCString()},
+                    |                .declaringClass = &${info.cName},
                     |                .code = $codeRef,
                     |        },
                     |        .shortName = "${it.jniShortName}",
@@ -373,6 +374,7 @@ class ClassWriter(
                     |        .name = "${it.name.asCString()}",
                     |        .descriptor = "${it.descriptor.toString().asCString()}",
                     |        .signature = ${it.signature.toCString()},
+                    |        .declaringClass = &${info.cName},
                     |        .code = $codeRef,
                     |};
                     |""".trimMargin()
@@ -626,7 +628,7 @@ class ClassWriter(
         )
 
         // Write implementation of concrete methods
-        val nonAbstractMethods = info.methods.withIndex().filterNot { it.value.isAbstract }
+        val nonAbstractMethods = info.methods.filterNot { it.isAbstract }
         if (nonAbstractMethods.isNotEmpty()) {
             cWriter.write(
                 """
@@ -639,27 +641,27 @@ class ClassWriter(
                 processedMethodNumber++
 
                 when {
-                    it.value.isConcrete -> writeMethodImpl(cWriter, info, it.index, it.value)
-                    it.value.isNative -> writeNativeMethodBridge(cWriter, info, it.index, it.value)
+                    it.isConcrete -> writeMethodImpl(cWriter, info, it)
+                    it.isNative -> writeNativeMethodBridge(cWriter, info, it)
                     else -> LOGGER.error(
                         "Unable to generate method impl for {}.{}{}: unexpected method type",
                         clazz.className,
-                        it.value.name,
-                        it.value.descriptor
+                        it.name,
+                        it.descriptor
                     )
                 }
             }
         }
     }
 
-    private fun writeMethodImpl(cWriter: CWriter, clazzInfo: ClassInfo, index: Int, method: MethodInfo) {
+    private fun writeMethodImpl(cWriter: CWriter, clazzInfo: ClassInfo, method: MethodInfo) {
         val clazz = clazzInfo.thisClass
         val node = method.methodNode
 
         val stackStartStatement = if(node.maxStack == 0 && node.maxLocals == 0) {
-            "stack_frame_start_zero(${index})"
+            "stack_frame_start_zero(&${method.cName})"
         } else {
-            "stack_frame_start(${index}, ${node.maxStack}, ${node.maxLocals})"
+            "stack_frame_start(&${method.cName}, ${node.maxStack}, ${node.maxLocals})"
         }
         cWriter.write(
             """
@@ -1328,7 +1330,7 @@ class ClassWriter(
         )
     }
 
-    private fun writeNativeMethodBridge(cWriter: CWriter, clazzInfo: ClassInfo, index: Int, method: MethodInfo) {
+    private fun writeNativeMethodBridge(cWriter: CWriter, clazzInfo: ClassInfo, method: MethodInfo) {
         val clazz = clazzInfo.thisClass
         val jniMethod = JNIMethod(method)
 
@@ -1336,7 +1338,7 @@ class ClassWriter(
             """
                     |// Native method bridge for ${clazz.className}.${method.name}${method.descriptor}
                     |${method.cFunctionDeclaration} {
-                    |    stack_frame_start(${index}, 1 /* for storing return value */, ${jniMethod.localSlotCount});
+                    |    stack_frame_start(&${method.cName}.method, 1 /* for storing return value */, ${jniMethod.localSlotCount});
                     |""".trimMargin()
         )
 

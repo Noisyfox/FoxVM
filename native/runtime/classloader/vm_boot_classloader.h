@@ -36,6 +36,8 @@ cached_class(java_lang_Error);
 
 #undef cached_class
 
+extern MethodInfo g_array_methodInfo_5Mclone_R9Pjava_lang6CObject;
+
 JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT);
 
 JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *classInfo);

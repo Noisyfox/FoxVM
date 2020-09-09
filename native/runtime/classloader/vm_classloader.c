@@ -166,7 +166,7 @@ JAVA_BOOLEAN classloader_init_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz) 
     }
     // call clinit
     // Create a fake stack
-    stack_frame_start(-1, 0, 0);
+    stack_frame_start(NULL, 0, 0);
     // Setup the invoke context
     vmCurrentContext->callingClass = clazz;
     // Call the function
