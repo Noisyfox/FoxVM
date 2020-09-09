@@ -497,6 +497,9 @@ JAVA_VOID bc_cast_a(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, C_CSTR desc
 #define bc_checkcast(class_info)   bc_cast(vmCurrentContext, OP_STACK, class_info)
 #define bc_checkcast_a(array_desc) bc_cast_a(vmCurrentContext, OP_STACK, array_desc)
 
+// athrow instruction
+#define bc_athrow()
+
 // FoxVM specific instructions
 #define bc_prepare_arguments(argument_count) local_transfer_arguments(&STACK_FRAME, argument_count)
 

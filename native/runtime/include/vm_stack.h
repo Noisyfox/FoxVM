@@ -190,6 +190,13 @@ static inline void stack_push_from(VMOperandStack *stack, VMStackSlot *from, VMS
 
 
 /**
+ * Empty the given stack. Typically used when handling exceptions.
+ */
+static inline void stack_clear(VMOperandStack *stack) {
+    stack->top = stack->slots;
+}
+
+/**
  * Pop the top of the given stack, and store the data into given [to] slot.
  * This also checks if the data type matches the [required_type].
  */

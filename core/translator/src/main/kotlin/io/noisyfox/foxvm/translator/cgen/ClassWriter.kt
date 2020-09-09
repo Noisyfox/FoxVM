@@ -704,11 +704,11 @@ class ClassWriter(
                 "cannot find class java/lang/Throwable"
             }.requireClassInfo()
 
-            node.tryCatchBlocks.forEachIndexed { i, it ->
+            node.tryCatchBlocks.forEach {
                 if(it.type == null) {
                     cWriter.write(
                         """
-                    |    exception_new_block($i, ${it.start.index(method)}, ${it.end.index(method)}, ${it.handler.index(method)}, $CNull);
+                    |        exception_new_block(${it.start.index(method)}, ${it.end.index(method)}, ${it.handler.cName(method)}, $CNull);
                     |""".trimMargin()
                     )
                 } else {
@@ -725,7 +725,7 @@ class ClassWriter(
 
                     cWriter.write(
                         """
-                    |    exception_new_block($i, ${it.start.index(method)}, ${it.end.index(method)}, ${it.handler.index(method)}, &${exceptionClass.cName});
+                    |        exception_new_block(${it.start.index(method)}, ${it.end.index(method)}, ${it.handler.cName(method)}, &${exceptionClass.cName});
                     |""".trimMargin()
                     )
                 }
@@ -841,7 +841,7 @@ class ClassWriter(
                     |""".trimMargin()
                             )
                         }
-//                        else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
+                        else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                     }
                 }
                 is JumpInsnNode -> {
@@ -1717,7 +1717,9 @@ class ClassWriter(
             Opcodes.AASTORE to "bc_aastore",
 
             Opcodes.MONITORENTER to "bc_monitorenter",
-            Opcodes.MONITOREXIT  to "bc_monitorexit"
+            Opcodes.MONITOREXIT  to "bc_monitorexit",
+
+            Opcodes.ATHROW to "bc_athrow"
         )
 
         private val byteCodesJumpInst = mapOf(
