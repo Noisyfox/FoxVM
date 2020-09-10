@@ -32,6 +32,7 @@ JAVA_BOOLEAN exception_matches(JAVA_OBJECT ex, int32_t current_sp, int32_t start
     exception_frame_push(&STACK_FRAME.baseFrame, &__exceptionFrame);    \
     if (setjmp(__exceptionFrame.jmpTarget) == EX_VAL) {                 \
         JAVA_OBJECT ex = vmCurrentContext->exception;                   \
+        vmCurrentContext->exception = JAVA_NULL;                        \
         assert(ex);                                                     \
         stack_clear(OP_STACK);                                          \
         stack_push_object(ex)
