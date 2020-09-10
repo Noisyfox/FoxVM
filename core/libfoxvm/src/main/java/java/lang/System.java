@@ -1164,7 +1164,7 @@ public final class System {
         // very beginning of the initialization and all system properties to
         // be put into it directly.
         props = new Properties();
-        initProperties(props);  // initialized by the VM
+        // initProperties(props);  // initialized by the VM
 
         // There are certain system configurations that may be controlled by
         // VM options such as the maximum amount of direct memory and
@@ -1180,23 +1180,23 @@ public final class System {
         // Save a private copy of the system properties object that
         // can only be accessed by the internal implementation.  Remove
         // certain system properties that are not intended for public access.
-        sun.misc.VM.saveAndRemoveProperties(props);
+        // sun.misc.VM.saveAndRemoveProperties(props);
 
 
         lineSeparator = props.getProperty("line.separator");
         // StaticProperty.jdkSerialFilter();   // Load StaticProperty to cache the property values
         sun.misc.Version.init();
 
-        FileInputStream fdIn = new FileInputStream(FileDescriptor.in);
+        // FileInputStream fdIn = new FileInputStream(FileDescriptor.in);
         FileOutputStream fdOut = new FileOutputStream(FileDescriptor.out);
         FileOutputStream fdErr = new FileOutputStream(FileDescriptor.err);
-        setIn0(new BufferedInputStream(fdIn));
+        // setIn0(new BufferedInputStream(fdIn));
         setOut0(newPrintStream(fdOut, props.getProperty("sun.stdout.encoding")));
         setErr0(newPrintStream(fdErr, props.getProperty("sun.stderr.encoding")));
 
         // Load the zip library now in order to keep java.util.zip.ZipFile
         // from trying to use itself to load this library later.
-        loadLibrary("zip");
+        // loadLibrary("zip");
 
         // Setup Java signal handlers for HUP, TERM, and INT (where available).
         Terminator.setup();
