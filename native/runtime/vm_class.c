@@ -35,7 +35,7 @@ static JAVA_BOOLEAN class_assignable_interface(JavaClassInfo *s, JavaClassInfo *
     }
 
     for (uint16_t i = 0; i < s->interfaceCount; i++) {
-        if (class_assignable_interface(s, s->interfaces[i])) {
+        if (class_assignable_interface(s->interfaces[i], t)) {
             return JAVA_TRUE;
         }
     }
