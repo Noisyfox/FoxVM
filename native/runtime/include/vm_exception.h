@@ -95,7 +95,7 @@ JAVA_VOID exception_set_UnsatisfiedLinkError(VM_PARAM_CURRENT_CONTEXT, MethodInf
     }                                           \
 } while(0)
 
-#define exception_suppressedv do {              \
+#define exception_suppressedv() do {              \
     exception_not_handled() {                   \
         exception_set(vmCurrentContext, ex);    \
         stack_frame_end();                      \

@@ -7,6 +7,7 @@
 #include "vm_native.h"
 #include "vm_classloader.h"
 #include "vm_method.h"
+#include <stdio.h>
 
 static void main_call_initializeSystemClass(VM_PARAM_CURRENT_CONTEXT) {
     JAVA_CLASS java_lang_System = classloader_get_class_by_name_init(vmCurrentContext, JAVA_NULL, "java/lang/System");
@@ -16,6 +17,22 @@ static void main_call_initializeSystemClass(VM_PARAM_CURRENT_CONTEXT) {
     assert(method_initializeSystemClass);
 
     ((JavaMethodRetVoid) method_initializeSystemClass->code)(vmCurrentContext);
+}
+
+static void start_main(VM_PARAM_CURRENT_CONTEXT, JavaMethodRetVoid entrance) {
+    // Since we are calling into java function, we need a java stack frame
+    stack_frame_start(NULL, 1, 0);
+    exception_frame_start();
+        exception_suppressedv();
+    exception_block_end();
+
+    // Call `java.lang.System#initializeSystemClass`
+    main_call_initializeSystemClass(vmCurrentContext);
+
+    bc_aconst_null();
+    entrance(vmCurrentContext);
+
+    stack_frame_end();
 }
 
 int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
@@ -65,16 +82,11 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     // start GC thread
 //    gc_thread_start(vmCurrentContext);
 
-    // Since we are calling into java function, we need a java stack frame
-    stack_frame_start(NULL, 1, 0);
-
-    // Call `java.lang.System#initializeSystemClass`
-    main_call_initializeSystemClass(vmCurrentContext);
-
-    bc_aconst_null();
-    entrance(vmCurrentContext);
-
-    stack_frame_end();
+    start_main(vmCurrentContext, entrance);
+    if (exception_occurred(vmCurrentContext)) {
+        fprintf(stderr, "Unhandled exception");
+        abort();
+    }
 
     // Shutdown VM
 //    gc_thread_shutdown(vmCurrentContext);
