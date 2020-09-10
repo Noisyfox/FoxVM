@@ -9,6 +9,7 @@
 #include "vm_gc.h"
 #include "vm_classloader.h"
 #include "vm_field.h"
+#include "vm_exception.h"
 
 static VMSpinLock g_jniMethodLock = OPA_INT_T_INITIALIZER(0);
 
@@ -147,9 +148,7 @@ void* native_bind_method(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method) {
     spin_lock_exit(&g_jniMethodLock);
 
     if (!nativePtr) {
-        // TODO: throw UnsatisfiedLinkError instead.
-        assert(!"Unable to find native method");
-        exit(-5);
+        exception_set_UnsatisfiedLinkError(vmCurrentContext, method, "Unable to find native method");
     }
 
     return nativePtr;
@@ -275,7 +274,7 @@ static jfieldID GetStaticFieldID(JNIEnv *env, jclass cls, const char *name, cons
     ResolvedField *field = native_get_field(env, cls, name, sig);
     if (field != NULL) {
         // Make sure it's static field
-        if ((field->info.accessFlags & FIELD_ACC_STATIC) != FIELD_ACC_STATIC) {
+        if (!field_is_static(field)) {
             // TODO: Throw NoSuchFieldError instead
             field = NULL;
         }
@@ -288,7 +287,7 @@ static jfieldID GetFieldID(JNIEnv *env, jclass cls, const char *name, const char
     ResolvedField *field = native_get_field(env, cls, name, sig);
     if (field != NULL) {
         // Make sure it's instance field
-        if ((field->info.accessFlags & FIELD_ACC_STATIC) == FIELD_ACC_STATIC) {
+        if (field_is_static(field)) {
             // TODO: Throw NoSuchFieldError instead
             field = NULL;
         }
@@ -302,7 +301,7 @@ static void SetStaticObjectField(JNIEnv* env, jclass cls, jfieldID fieldID, jobj
     assert(fieldID != NULL);
     ResolvedField *field = (ResolvedField *) fieldID;
     // Make sure it's static field
-    assert((field->info.accessFlags & FIELD_ACC_STATIC) == FIELD_ACC_STATIC);
+    assert(field_is_static(field));
 
     get_thread_context();
     native_exit_jni(vmCurrentContext);

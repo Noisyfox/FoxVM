@@ -7,6 +7,10 @@
 
 #include "vm_base.h"
 
+static inline JAVA_BOOLEAN method_is_static(MethodInfo *method) {
+    return (method->accessFlags & METHOD_ACC_STATIC) == METHOD_ACC_STATIC;
+}
+
 MethodInfo *method_find(JavaClassInfo *clazz, C_CSTR name, C_CSTR desc);
 
 #endif //FOXVM_VM_METHOD_H

@@ -735,6 +735,7 @@ class ClassWriter(
 
             cWriter.write(
                 """
+                    |        exception_not_handled();
                     |    exception_block_end();
                     |""".trimMargin()
             )
@@ -745,6 +746,7 @@ class ClassWriter(
                     |
                     |    // Empty exception frame for freeing the lock of synchronized method
                     |    exception_frame_start();
+                    |        exception_not_handled();
                     |    exception_block_end();
                     |""".trimMargin()
             )
@@ -1365,6 +1367,7 @@ class ClassWriter(
                     |
                     |    // Empty exception frame for freeing the lock of synchronized method
                     |    exception_frame_start();
+                    |        exception_not_handled();
                     |    exception_block_end();
                     |""".trimMargin()
             )

@@ -30,9 +30,23 @@ cached_class(java_lang_ThreadGroup);
 cached_class(java_io_Serializable);
 cached_class(java_lang_Runtime);
 
-cached_class(java_lang_ClassNotFoundException);
-cached_class(java_lang_NoClassDefFoundError);
+// Errors
 cached_class(java_lang_Error);
+cached_class(java_lang_NoClassDefFoundError);
+cached_class(java_lang_NoSuchFieldError);
+cached_class(java_lang_NoSuchMethodError);
+cached_class(java_lang_IncompatibleClassChangeError);
+cached_class(java_lang_UnsatisfiedLinkError);
+cached_class(java_lang_InstantiationError);
+
+// Exceptions
+cached_class(java_lang_Throwable);
+cached_class(java_lang_RuntimeException);
+cached_class(java_lang_NullPointerException);
+cached_class(java_lang_ArrayIndexOutOfBoundsException);
+cached_class(java_lang_ClassNotFoundException);
+cached_class(java_lang_NegativeArraySizeException);
+cached_class(java_lang_InstantiationException);
 
 #undef cached_class
 

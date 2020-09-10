@@ -74,6 +74,13 @@ void stack_frame_push(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame);
 /** Pop the top of the call stack frame */
 void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT);
 
+/**
+ * Pop all stack frames that are deeper than current one,
+ * make current one the top frame. This is used at exception handler to
+ * fix the stack frame.
+ */
+void stack_frame_pop_deeper(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame);
+
 /** Init the stack frame of current method */
 void stack_frame_init_java(JavaStackFrame *frame, VMStackSlot *slot_base, uint16_t max_stack, uint16_t max_locals);
 

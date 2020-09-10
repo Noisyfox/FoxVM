@@ -64,3 +64,8 @@ void stack_frame_pop(VM_PARAM_CURRENT_CONTEXT) {
     curr->prev = NULL;
     curr->next = NULL;
 }
+
+void stack_frame_pop_deeper(VM_PARAM_CURRENT_CONTEXT, VMStackFrame *frame) {
+    frame->next = &vmCurrentContext->frameRoot.baseFrame;
+    vmCurrentContext->frameRoot.baseFrame.prev = frame;
+}

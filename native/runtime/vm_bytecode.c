@@ -13,6 +13,9 @@
 #include "vm_native.h"
 #include "vm_class.h"
 
+#define RETURNV exception_raise_if_occurred(vmCurrentContext); return
+#define RETURN(result) exception_raise_if_occurred(vmCurrentContext); return result
+
 #define JAVA_TYPE_a JAVA_ARRAY
 #define JAVA_TYPE_o JAVA_OBJECT
 #define JAVA_TYPE_z JAVA_BOOLEAN
@@ -798,7 +801,9 @@ JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_
 }
 
 JAVA_OBJECT bc_ldc_string_const(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_index) {
-    return string_get_constant(vmCurrentContext, constant_index);
+    JAVA_OBJECT result = string_get_constant(vmCurrentContext, constant_index);
+
+    RETURN(result);
 }
 
 void *bc_resolve_native(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method) {
@@ -809,7 +814,9 @@ void *bc_resolve_native(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method) {
         return nativePtr;
     }
 
-    return native_bind_method(vmCurrentContext, method);
+    nativePtr = native_bind_method(vmCurrentContext, method);
+
+    RETURN(nativePtr);
 }
 
 JAVA_BOOLEAN bc_instance_of(VMOperandStack *stack, JavaClassInfo *info) {

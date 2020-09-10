@@ -498,14 +498,11 @@ JAVA_VOID bc_cast_a(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, C_CSTR desc
 #define bc_checkcast_a(array_desc) bc_cast_a(vmCurrentContext, OP_STACK, array_desc)
 
 // athrow instruction
-#define bc_athrow() do {                                                    \
-    assert(vmCurrentContext->exception == JAVA_NULL);                       \
-    assert(STACK_FRAME.baseFrame.exceptionHandler);                         \
-    JAVA_OBJECT _ex;                                                        \
-    bc_read_stack_top(OP_STACK, &_ex, VM_TYPE_OBJECT);                      \
-    assert(_ex);                                                            \
-    vmCurrentContext->exception = _ex;                                      \
-    longjmp(STACK_FRAME.baseFrame.exceptionHandler->jmpTarget, EX_VAL);     \
+#define bc_athrow() do {                                \
+    JAVA_OBJECT _ex;                                    \
+    bc_read_stack_top(OP_STACK, &_ex, VM_TYPE_OBJECT);  \
+    exception_set(vmCurrentContext, _ex);               \
+    exception_raise(vmCurrentContext);                  \
 } while(0)
 
 // FoxVM specific instructions

@@ -46,9 +46,23 @@ cached_class(java_lang_ThreadGroup);
 cached_class(java_io_Serializable);
 cached_class(java_lang_Runtime);
 
-cached_class(java_lang_ClassNotFoundException);
-cached_class(java_lang_NoClassDefFoundError);
+// Errors
 cached_class(java_lang_Error);
+cached_class(java_lang_NoClassDefFoundError);
+cached_class(java_lang_NoSuchFieldError);
+cached_class(java_lang_NoSuchMethodError);
+cached_class(java_lang_IncompatibleClassChangeError);
+cached_class(java_lang_UnsatisfiedLinkError);
+cached_class(java_lang_InstantiationError);
+
+// Exceptions
+cached_class(java_lang_Throwable);
+cached_class(java_lang_RuntimeException);
+cached_class(java_lang_NullPointerException);
+cached_class(java_lang_ArrayIndexOutOfBoundsException);
+cached_class(java_lang_ClassNotFoundException);
+cached_class(java_lang_NegativeArraySizeException);
+cached_class(java_lang_InstantiationException);
 
 #undef cached_class
 
@@ -508,9 +522,21 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     cache_class(java_lang_ThreadGroup, "java/lang/ThreadGroup");
     cache_class(java_lang_Runtime, "java/lang/Runtime");
 
-    cache_class(java_lang_ClassNotFoundException, "java/lang/ClassNotFoundException");
-    cache_class(java_lang_NoClassDefFoundError, "java/lang/NoClassDefFoundError");
     cache_class(java_lang_Error, "java/lang/Error");
+    cache_class(java_lang_NoClassDefFoundError, "java/lang/NoClassDefFoundError");
+    cache_class(java_lang_NoSuchFieldError, "java/lang/NoSuchFieldError");
+    cache_class(java_lang_NoSuchMethodError, "java/lang/NoSuchMethodError");
+    cache_class(java_lang_IncompatibleClassChangeError, "java/lang/IncompatibleClassChangeError");
+    cache_class(java_lang_UnsatisfiedLinkError, "java/lang/UnsatisfiedLinkError");
+    cache_class(java_lang_InstantiationError, "java/lang/InstantiationError");
+
+    cache_class(java_lang_Throwable, "java/lang/Throwable");
+    cache_class(java_lang_RuntimeException, "java/lang/RuntimeException");
+    cache_class(java_lang_NullPointerException, "java/lang/NullPointerException");
+    cache_class(java_lang_ArrayIndexOutOfBoundsException, "java/lang/ArrayIndexOutOfBoundsException");
+    cache_class(java_lang_ClassNotFoundException, "java/lang/ClassNotFoundException");
+    cache_class(java_lang_NegativeArraySizeException, "java/lang/NegativeArraySizeException");
+    cache_class(java_lang_InstantiationException, "java/lang/InstantiationException");
 
     return JAVA_TRUE;
 }

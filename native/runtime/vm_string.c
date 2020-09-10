@@ -118,6 +118,9 @@ static JAVA_VOID string_utf8_to_unicode(C_CSTR utf8_str, JAVA_ARRAY char_array) 
 
 JAVA_OBJECT string_create_utf8(VM_PARAM_CURRENT_CONTEXT, C_CSTR utf8) {
     stack_frame_start(NULL, 4, 2);
+    exception_frame_start();
+        exception_suppressed(JAVA_NULL);
+    exception_block_end();
 
     JAVA_INT requiredCharCount = string_unicode_length_of(utf8);
     // Allocate a char[] that can contains the unicode string
