@@ -11,4 +11,6 @@ JAVA_BOOLEAN class_assignable_desc(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *s, C
 
 JAVA_BOOLEAN class_assignable(JavaClassInfo *s, JavaClassInfo *t);
 
+JAVA_CLASS class_get_native_class(JAVA_OBJECT classObj);
+
 #endif //FOXVM_VM_CLASS_H

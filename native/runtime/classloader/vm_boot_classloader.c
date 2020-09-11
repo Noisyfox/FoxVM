@@ -12,6 +12,7 @@
 #include "vm_bytecode.h"
 #include "vm_array.h"
 #include "vm_method.h"
+#include "vm_field.h"
 
 extern JavaClassInfo *foxvm_class_infos_rt[];
 
@@ -65,6 +66,8 @@ cached_class(java_lang_NegativeArraySizeException);
 cached_class(java_lang_InstantiationException);
 
 #undef cached_class
+
+FieldInfo *g_field_java_lang_Class_fvmNativeType = NULL;
 
 static JAVA_VOID resolve_handler_primitive(JAVA_CLASS c) {
     c->interfaceCount = 0;
@@ -486,6 +489,7 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
         fprintf(stderr, "Bootstrap Classloader: unable to find method java.lang.Class.<init>(Ljava/lang/Object;)V\n");
         return JAVA_FALSE;
     }
+    g_field_java_lang_Class_fvmNativeType = &field_find(g_class_java_lang_Class, "fvmNativeType", "Ljava/lang/Object;")->info;
     // Fix some fields that depends on the java/lang/Object and java/lang/Class
     #define fix_class(c) do {                                                   \
         c->classInstance->clazz = g_class_java_lang_Class;                      \

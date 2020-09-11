@@ -51,6 +51,7 @@ cached_class(java_lang_InstantiationException);
 #undef cached_class
 
 extern MethodInfo g_array_methodInfo_5Mclone_R9Pjava_lang6CObject;
+extern FieldInfo *g_field_java_lang_Class_fvmNativeType;
 
 JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT);
 

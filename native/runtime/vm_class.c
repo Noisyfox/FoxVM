@@ -7,6 +7,7 @@
 #include "vm_stack.h"
 #include "classloader/vm_boot_classloader.h"
 #include "vm_array.h"
+#include "vm_memory.h"
 
 JAVA_BOOLEAN class_is_interface(JavaClassInfo *c) {
     return (c->accessFlags & CLASS_ACC_INTERFACE) == CLASS_ACC_INTERFACE;
@@ -97,4 +98,8 @@ JAVA_BOOLEAN class_assignable(JavaClassInfo *s, JavaClassInfo *t) {
 
         return JAVA_FALSE;
     }
+}
+
+JAVA_CLASS class_get_native_class(JAVA_OBJECT classObj) {
+    return (JAVA_CLASS) *((JAVA_OBJECT *) ptr_inc(classObj, g_field_java_lang_Class_fvmNativeType->offset));
 }

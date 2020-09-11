@@ -37,6 +37,9 @@ struct _JavaArray {
     JAVA_INT length;
 };
 
+/** Returns the offset of the first element. */
+size_t array_header_size(BasicType t);
+
 /** Returns the address of the first element. */
 void *array_base(JAVA_ARRAY a, BasicType t);
 

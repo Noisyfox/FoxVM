@@ -46,7 +46,7 @@ public final class Unsafe {
     private static native void registerNatives();
     static {
         // registerNatives();
-        sun.reflect.Reflection.registerMethodsToFilter(Unsafe.class, "getUnsafe");
+        // sun.reflect.Reflection.registerMethodsToFilter(Unsafe.class, "getUnsafe");
     }
 
     private Unsafe() {}
