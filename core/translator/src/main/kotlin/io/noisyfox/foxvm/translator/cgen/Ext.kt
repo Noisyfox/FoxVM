@@ -3,6 +3,7 @@ package io.noisyfox.foxvm.translator.cgen
 import io.noisyfox.foxvm.bytecode.asCString
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.FieldInfo
+import io.noisyfox.foxvm.bytecode.clazz.IVTableItem
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedFieldInfo
 import io.noisyfox.foxvm.bytecode.resolver.mangleClassName
@@ -301,6 +302,17 @@ val ClassInfo.cNameVTable: String
     }
 
 /**
+ * The C reference name to the given [ClassInfo.ivtable],
+ * or [CNull] if this class does not implement any interface method
+ */
+val ClassInfo.cNameIVTable: String
+    get() = if (ivtable.isEmpty()) {
+        CNull
+    } else {
+        "ivtable${cIdentifier}"
+    }
+
+/**
  * The C function name of the class resolve handler.
  */
 val ClassInfo.cNameResolveHandler: String
@@ -391,3 +403,7 @@ val FieldInfo.typeSuffix: String
         Type.OBJECT -> "_o"
         else -> throw IllegalArgumentException("Unknown type ${sort}.")
     }
+
+fun IVTableItem.cNameMethodIndex(clazz: ClassInfo): String {
+    return "ivtableMethodIndex${clazz.cIdentifier}_${declaringInterface.cIdentifier}"
+}

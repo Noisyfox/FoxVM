@@ -232,6 +232,18 @@ typedef struct {
     void *code; // Pointer to the function
 } VTableItem;
 
+typedef struct {
+    uint16_t methodIndex; // The index in `declaringInterface->methods` field
+    uint16_t vtableIndex; // The index in current class's vtable
+} IVTableMethodIndex;
+
+typedef struct {
+    JavaClassInfo* declaringInterface;
+
+    uint16_t indexCount;
+    IVTableMethodIndex* methodIndexes;
+} IVTableItem;
+
 typedef enum {
     CLASS_ACC_PUBLIC = 0x0001,
     CLASS_ACC_FINAL = 0x0010,
@@ -277,6 +289,9 @@ struct _JavaClassInfo {
 
     uint16_t vtableCount;
     VTableItem *vtable;
+
+    uint16_t ivtableCount;
+    IVTableItem *ivtable;
 
     JavaMethodRetVoid clinit;
 

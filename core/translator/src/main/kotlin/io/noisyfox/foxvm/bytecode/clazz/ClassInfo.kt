@@ -17,7 +17,8 @@ data class ClassInfo(
     val methods: MutableList<MethodInfo> = mutableListOf(),
     val preResolvedStaticFields: MutableList<PreResolvedFieldInfo> = mutableListOf(),
     val preResolvedInstanceFields: MutableList<PreResolvedFieldInfo> = mutableListOf(),
-    val vtable: MutableList<MethodInfo> = mutableListOf()
+    val vtable: MutableList<MethodInfo> = mutableListOf(),
+    val ivtable: MutableList<IVTableItem> = mutableListOf()
 ) {
 
     val isEnum: Boolean = (thisClass.access and Opcodes.ACC_ENUM) == Opcodes.ACC_ENUM

@@ -90,7 +90,7 @@ JavaClassInfo g_classInfo_primitive_##desc = {                              \
     .fieldCount = 0,                                                        \
     .fields = NULL,                                                         \
     .methodCount = 0,                                                       \
-    .methods = 0,                                                           \
+    .methods = NULL,                                                        \
                                                                             \
     .resolveHandler = resolve_handler_primitive,                            \
     .classSize = sizeof(JavaClass),                                         \
@@ -100,6 +100,11 @@ JavaClassInfo g_classInfo_primitive_##desc = {                              \
     .preResolvedStaticFields = NULL,                                        \
     .preResolvedInstanceFieldCount = 0,                                     \
     .preResolvedInstanceFields = NULL,                                      \
+                                                                            \
+    .vtableCount = 0,                                                       \
+    .vtable = NULL,                                                         \
+    .ivtableCount = 0,                                                      \
+    .ivtable = NULL,                                                        \
                                                                             \
     .clinit = NULL,                                                         \
     .finalizer = NULL,                                                      \
@@ -217,6 +222,9 @@ static JavaClassInfo g_classInfo_array_prototype = {
 
         .vtableCount = VTABLE_COUNT_java_lang_object,
         .vtable = g_array_vtable,
+
+        .ivtableCount = 0,
+        .ivtable = NULL,
 
         .clinit = NULL,
         .finalizer = NULL,

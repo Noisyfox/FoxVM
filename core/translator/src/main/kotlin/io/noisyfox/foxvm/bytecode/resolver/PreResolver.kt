@@ -5,6 +5,8 @@ import io.noisyfox.foxvm.bytecode.asCIdentifier
 import io.noisyfox.foxvm.bytecode.clazz.ClassInfo
 import io.noisyfox.foxvm.bytecode.clazz.Clazz
 import io.noisyfox.foxvm.bytecode.clazz.FieldInfo
+import io.noisyfox.foxvm.bytecode.clazz.IVTableItem
+import io.noisyfox.foxvm.bytecode.clazz.IVTableMethodIndex
 import io.noisyfox.foxvm.bytecode.clazz.MethodInfo
 import io.noisyfox.foxvm.bytecode.clazz.PreResolvedFieldInfo
 import io.noisyfox.foxvm.bytecode.visitor.ClassHandler
@@ -347,6 +349,41 @@ private class PreResolverClassVisitor(
                     if (childMethod != superMethod && !(childMethod overrides superMethod)) {
                         throw RuntimeException("Item in $info vtable does not override item at the same place in parent vtable")
                     }
+                }
+            }
+        }
+
+        // Resolve ivtable
+        if (!info.isInterface) {
+            val superinterfaces = info.allSuperClasses().map {
+                it.requireClassInfo()
+            }.filter {
+                it.isInterface
+            }
+
+            superinterfaces.forEach { superinterface ->
+                val methodImpls = mutableListOf<IVTableMethodIndex>()
+                // See if current class declares any method that overrides methods from superinterface
+                info.vtable.withIndex().filter { it.value.declaringClass == info }.forEach { (i, m) ->
+                    val overriddenM = superinterface.methods.withIndex().filter { m overrides it.value }
+                    when (overriddenM.size) {
+                        0 -> {
+                        }
+                        1 -> {
+                            methodImpls.add(
+                                IVTableMethodIndex(
+                                    methodIndex = overriddenM.single().index,
+                                    vtableIndex = i
+                                )
+                            )
+                        }
+                        else -> throw VerifyError("Method $m overrides multiple methods from interface $superinterface :$overriddenM")
+                    }
+                }
+
+                if (methodImpls.isNotEmpty()) {
+                    methodImpls.sortBy { it.methodIndex }
+                    info.ivtable.add(IVTableItem(declaringInterface = superinterface, methodIndexes = methodImpls))
                 }
             }
         }

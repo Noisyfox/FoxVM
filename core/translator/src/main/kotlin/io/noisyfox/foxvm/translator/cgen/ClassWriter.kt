@@ -507,6 +507,73 @@ class ClassWriter(
             )
         }
 
+        // Write IVTable
+        if (info.ivtable.isNotEmpty()) {
+            cWriter.write(
+                """
+                    |// IVTable of this class
+                    |""".trimMargin()
+            )
+
+            // Write method indexes first
+            info.ivtable.forEach { ivti ->
+                cWriter.write(
+                    """
+                    |static IVTableMethodIndex ${ivti.cNameMethodIndex(info)}[] = {
+                    |""".trimMargin()
+                )
+
+                ivti.methodIndexes.forEach { mi ->
+                    val m = ivti.declaringInterface.methods[mi.methodIndex]
+
+                    cWriter.write(
+                        """
+                    |    { // $m
+                    |        .methodIndex = ${mi.methodIndex},
+                    |        .vtableIndex = ${mi.vtableIndex},
+                    |    },
+                    |""".trimMargin()
+                    )
+                }
+
+                cWriter.write(
+                    """
+                    |};
+                    |
+                    |""".trimMargin()
+                )
+            }
+
+            // Then write ivtable
+            cWriter.write(
+                """
+                    |static IVTableItem ${info.cNameIVTable}[] = {
+                    |""".trimMargin()
+            )
+
+            info.ivtable.forEach { ivti ->
+                // Add dependency
+                cWriter.addDependency(ivti.declaringInterface)
+
+                cWriter.write(
+                    """
+                    |    { // ${ivti.declaringInterface}
+                    |        .declaringInterface = &${ivti.declaringInterface.cName},
+                    |        .indexCount = ${ivti.methodIndexes.size},
+                    |        .methodIndexes = ${ivti.cNameMethodIndex(info)},
+                    |    },
+                    |""".trimMargin()
+                )
+            }
+
+            cWriter.write(
+                """
+                    |};
+                    |
+                    |""".trimMargin()
+            )
+        }
+
         // Write class info
         cWriter.write(
             """
@@ -537,6 +604,9 @@ class ClassWriter(
                     |
                     |    .vtableCount = ${info.vtable.size},
                     |    .vtable = ${info.cNameVTable},
+                    |
+                    |    .ivtableCount = ${info.ivtable.size},
+                    |    .ivtable = ${info.cNameIVTable},
                     |
                     |    .clinit = ${info.clinit?.cFunctionName ?: CNull},
                     |
