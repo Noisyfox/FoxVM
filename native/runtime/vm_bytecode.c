@@ -789,6 +789,66 @@ void *bc_vtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, uint16_t 
     return info->vtable[vtable_index].code;
 }
 
+static int32_t bc_ivtable_do_lookup(JavaClassInfo* clazz, JavaClassInfo* interface_type, uint16_t method_index) {
+    for (uint16_t i = 0; i < clazz->ivtableCount; i++) {
+        IVTableItem *ivti = &clazz->ivtable[i];
+
+        if (ivti->declaringInterface != interface_type) {
+            continue;
+        }
+
+        // Look at the method index
+        for (uint16_t j = 0; j < ivti->indexCount; j++) {
+            IVTableMethodIndex *mi = &ivti->methodIndexes[j];
+            if (mi->methodIndex == method_index) {
+                return mi->vtableIndex;
+            }
+        }
+
+        break;
+    }
+
+    // Try superclass
+    if (clazz->superClass) {
+        return bc_ivtable_do_lookup(clazz->superClass, interface_type, method_index);
+    }
+
+    // Not found
+    return -1;
+}
+
+/**
+ * Get the function ptr from the given interface at the given index in the ivtable of the objectref in stack.
+  *
+  * @param argument_count argument count, including the implicitly passed `objectref`
+  */
+void *bc_ivtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, JavaClassInfo* interface_type, uint16_t method_index) {
+    assert(argument_count >= 1);
+
+    VMStackSlot *objectRef = stack->top - argument_count;
+    assert(objectRef >= stack->slots);
+    assert(objectRef->type == VM_SLOT_OBJECT);
+
+    JAVA_OBJECT object = objectRef->data.o;
+    assert(object != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    JavaClassInfo *info = obj_get_class(object)->info;
+    int32_t vtableIndex = bc_ivtable_do_lookup(info, interface_type, method_index);
+    if (vtableIndex >= 0) {
+        return info->vtable[vtableIndex].code;
+    }
+
+    // Then see if the interface method is not abstract
+    MethodInfo *im = interface_type->methods[method_index];
+    if (im->code) {
+        return im->code;
+    }
+
+    // TODO: throw AbstractMethodError instead.
+    fprintf(stderr, "bc_ivtable_lookup failed: AbstractMethodError\n");
+    abort();
+}
+
 JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_CSTR class_name) {
     // ldc won't cause the resolved class to be initialized
     JAVA_CLASS clazz = classloader_get_class_by_name(vmCurrentContext, frame->baseFrame.thisClass->classLoader, class_name);

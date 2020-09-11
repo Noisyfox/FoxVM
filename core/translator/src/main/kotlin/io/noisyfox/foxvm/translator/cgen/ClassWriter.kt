@@ -1259,6 +1259,23 @@ class ClassWriter(
                                 if (resolvedMethod.isPrivate) {
                                     throw IncompatibleClassChangeError("$resolvedMethod is a private method")
                                 }
+
+                                if (resolvedMethod.declaringClass.thisClass.className == Clazz.CLASS_JAVA_LANG_OBJECT) {
+                                    TODO()
+                                } else if(!resolvedMethod.declaringClass.isInterface) {
+                                    throw IncompatibleClassChangeError("$resolvedMethod is not a interface method")
+                                } else {
+                                    cWriter.addDependency(resolvedMethod.declaringClass)
+                                    val methodIndex = resolvedMethod.declaringClass.methods.indexOf(resolvedMethod)
+                                    require(methodIndex >= 0)
+                                    val targetMethodArgumentCount = resolvedMethod.descriptor.argumentTypes.size + 1 // implicitly passed this
+                                    cWriter.write(
+                                        """
+                    |    // invokeinterface ${inst.owner}.${inst.name}${inst.desc}
+                    |    bc_invoke_interface${resolvedMethod.invokeSuffix}($targetMethodArgumentCount, &${resolvedMethod.declaringClass.cName}, $methodIndex);
+                    |""".trimMargin()
+                                    )
+                                }
                             }
                             else -> throw IllegalArgumentException("Unexpected opcode ${inst.opcode}")
                         }
