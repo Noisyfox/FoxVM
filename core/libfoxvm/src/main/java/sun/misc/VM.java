@@ -422,7 +422,7 @@ public class VM {
     }
 
     static {
-        initialize();
+        // initialize();
     }
     private native static void initialize();
 }

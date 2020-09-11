@@ -29,6 +29,8 @@ import java.lang.reflect.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import dalvik.annotation.optimization.FastNative;
+
 /** Common utility routines used by both java.lang and
     java.lang.reflect */
 
@@ -56,6 +58,7 @@ public class Reflection {
         ignoring frames associated with java.lang.reflect.Method.invoke()
         and its implementation. */
     @CallerSensitive
+    @FastNative
     public static native Class<?> getCallerClass();
 
     /**

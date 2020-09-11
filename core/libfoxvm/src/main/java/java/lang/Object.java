@@ -62,6 +62,7 @@ public class Object {
      *         class of this object.
      * @jls 15.8.2 Class Literals
      */
+    @FastNative
     public final native Class<?> getClass();
 
     /**

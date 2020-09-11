@@ -7,6 +7,7 @@ set(SOURCE_FILES_RT_CORE
         java_lang_Thread.c
         java_lang_Throwable.c
         sun_misc_Unsafe.c
+        sun_reflect_Reflection.c
         )
 
 

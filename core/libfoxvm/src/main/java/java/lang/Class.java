@@ -54,6 +54,8 @@ import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Objects;
+
+import dalvik.annotation.optimization.FastNative;
 import sun.misc.Unsafe;
 import sun.reflect.CallerSensitive;
 import sun.reflect.Reflection;
@@ -691,6 +693,7 @@ public final class Class<T> implements java.io.Serializable,
     }
 
     // Package-private to allow ClassLoader access
+    @FastNative
     native ClassLoader getClassLoader0();// { return classLoader; }
 
     // Initialized in JVM not by private constructor
