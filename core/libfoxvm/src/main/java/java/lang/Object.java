@@ -25,6 +25,8 @@
 
 package java.lang;
 
+import dalvik.annotation.optimization.FastNative;
+
 /**
  * Class {@code Object} is the root of the class hierarchy.
  * Every class has {@code Object} as a superclass. All objects,
@@ -97,6 +99,7 @@ public class Object {
      * @see     java.lang.Object#equals(java.lang.Object)
      * @see     java.lang.System#identityHashCode
      */
+    @FastNative
     public native int hashCode();
 
     /**

@@ -39,6 +39,17 @@ data class MethodInfo(
 
     val isNative: Boolean = (access and Opcodes.ACC_NATIVE) == Opcodes.ACC_NATIVE
 
+    val isFastNative: Boolean
+        get() {
+            if (!isNative || methodNode.invisibleAnnotations == null) {
+                return false
+            }
+
+            return methodNode.invisibleAnnotations.any {
+                it.desc == ANNOTATION_FAST_NATIVE
+            }
+        }
+
     val isConcrete: Boolean = !(isAbstract || isNative)
 
     /** Static, private and constructor methods are not virtual */
@@ -113,5 +124,7 @@ data class MethodInfo(
         const val INIT = "<init>"
         const val CLINIT = "<clinit>"
         const val FINALIZE = "finalize"
+
+        const val ANNOTATION_FAST_NATIVE = "Ldalvik/annotation/optimization/FastNative;"
     }
 }

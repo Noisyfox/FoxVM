@@ -351,11 +351,27 @@ val MethodInfo.cFunctionName: String
     }
 
 /**
+ * The C function name of the method's fast native target.
+ */
+val MethodInfo.cFunctionNameFastNative: String
+    get() {
+        return "method_fastNative_${declaringClass.cIdentifier}_${this.cIdentifier}${this.descriptor.toCMethodSignature()}"
+    }
+
+/**
  * The C function declaration of the method.
  */
 val MethodInfo.cFunctionDeclaration: String
     get() {
         return "${this.descriptor.returnType.toCBaseTypeName()} ${this.cFunctionName}(VM_PARAM_CURRENT_CONTEXT)"
+    }
+
+/**
+ * The C function declaration of the method's fast native target.
+ */
+val MethodInfo.cFunctionDeclarationFastNative: String
+    get() {
+        return "${this.descriptor.returnType.toCBaseTypeName()} ${this.cFunctionNameFastNative}(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative* methodInfo)"
     }
 
 /**

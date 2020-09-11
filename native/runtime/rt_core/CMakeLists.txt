@@ -1,5 +1,6 @@
 set(SOURCE_FILES_RT_CORE
         java_lang_Class.c
+        java_lang_Object.c
         java_lang_Float.c
         java_lang_Double.c
         java_lang_System.c

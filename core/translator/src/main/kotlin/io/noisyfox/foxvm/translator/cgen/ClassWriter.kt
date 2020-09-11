@@ -712,7 +712,13 @@ class ClassWriter(
 
                 when {
                     it.isConcrete -> writeMethodImpl(cWriter, info, it)
-                    it.isNative -> writeNativeMethodBridge(cWriter, info, it)
+                    it.isNative -> {
+                        if(it.isFastNative) {
+                            writeFastNativeMethodBridge(cWriter, info, it)
+                        } else {
+                            writeNativeMethodBridge(cWriter, info, it)
+                        }
+                    }
                     else -> LOGGER.error(
                         "Unable to generate method impl for {}.{}{}: unexpected method type",
                         clazz.className,
@@ -1417,6 +1423,38 @@ class ClassWriter(
                     |    }
                     |""".trimMargin()
         )
+    }
+
+    private fun writeFastNativeMethodBridge(cWriter: CWriter, clazzInfo: ClassInfo, method: MethodInfo) {
+        val clazz = clazzInfo.thisClass
+
+        // Write the declaration of the target method
+        cWriter.write(
+            """
+                    |// Fast native method bridge for ${clazz.className}.${method.name}${method.descriptor}
+                    |${method.cFunctionDeclarationFastNative};
+                    |""".trimMargin()
+        )
+
+        if (method.descriptor.returnType.sort == Type.VOID) {
+            cWriter.write(
+                """
+                    |${method.cFunctionDeclaration} {
+                    |    ${method.cFunctionNameFastNative}(vmCurrentContext, &${method.cName});
+                    |}
+                    |
+                    |""".trimMargin()
+            )
+        } else {
+            cWriter.write(
+                """
+                    |${method.cFunctionDeclaration} {
+                    |    return ${method.cFunctionNameFastNative}(vmCurrentContext, &${method.cName});
+                    |}
+                    |
+                    |""".trimMargin()
+            )
+        }
     }
 
     private fun writeNativeMethodBridge(cWriter: CWriter, clazzInfo: ClassInfo, method: MethodInfo) {
