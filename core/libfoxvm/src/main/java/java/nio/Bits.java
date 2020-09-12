@@ -626,10 +626,10 @@ class Bits {                            // package-private
     // A user-settable upper limit on the maximum amount of allocatable
     // direct buffer memory.  This value may be changed during VM
     // initialization if it is launched with "-XX:MaxDirectMemorySize=<size>".
-    private static volatile long maxMemory = VM.maxDirectMemory();
+/*    private static volatile long maxMemory = VM.maxDirectMemory();
     private static final AtomicLong reservedMemory = new AtomicLong();
     private static final AtomicLong totalCapacity = new AtomicLong();
-    private static final AtomicLong count = new AtomicLong();
+    private static final AtomicLong count = new AtomicLong();*/
     private static volatile boolean memoryLimitSet = false;
     // max. number of sleeps during try-reserving with exponentially
     // increasing delay before throwing OutOfMemoryError:
@@ -641,8 +641,8 @@ class Bits {                            // package-private
     // freed.  They allow the user to control the amount of direct memory
     // which a process may access.  All sizes are specified in bytes.
     static void reserveMemory(long size, int cap) {
-
-        if (!memoryLimitSet && VM.isBooted()) {
+        throw new RuntimeException("Not implemented");
+/*        if (!memoryLimitSet && VM.isBooted()) {
             maxMemory = VM.maxDirectMemory();
             memoryLimitSet = true;
         }
@@ -698,15 +698,16 @@ class Bits {                            // package-private
                 // don't swallow interrupts
                 Thread.currentThread().interrupt();
             }
-        }
+        }*/
     }
 
     private static boolean tryReserveMemory(long size, int cap) {
 
+        throw new RuntimeException("Not implemented");
         // -XX:MaxDirectMemorySize limits the total capacity rather than the
         // actual memory usage, which will differ when buffers are page
         // aligned.
-        long totalCap;
+/*        long totalCap;
         while (cap <= maxMemory - (totalCap = totalCapacity.get())) {
             if (totalCapacity.compareAndSet(totalCap, totalCap + cap)) {
                 reservedMemory.addAndGet(size);
@@ -715,15 +716,16 @@ class Bits {                            // package-private
             }
         }
 
-        return false;
+        return false;*/
     }
 
 
     static void unreserveMemory(long size, int cap) {
-        long cnt = count.decrementAndGet();
+        throw new RuntimeException("Not implemented");
+/*        long cnt = count.decrementAndGet();
         long reservedMem = reservedMemory.addAndGet(-size);
         long totalCap = totalCapacity.addAndGet(-cap);
-        assert cnt >= 0 && reservedMem >= 0 && totalCap >= 0;
+        assert cnt >= 0 && reservedMem >= 0 && totalCap >= 0;*/
     }
 
     // BEGIN FoxVM-removed: Remove support for java.lang.management.

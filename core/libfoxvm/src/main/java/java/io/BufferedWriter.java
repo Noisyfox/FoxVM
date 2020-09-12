@@ -76,7 +76,7 @@ public class BufferedWriter extends Writer {
      * Line separator string.  This is the value of the line.separator
      * property at the moment that the stream was created.
      */
-    private String lineSeparator;
+    private String lineSeparator = "\r\n";
 
     /**
      * Creates a buffered character-output stream that uses a default-sized
@@ -106,8 +106,8 @@ public class BufferedWriter extends Writer {
         nChars = sz;
         nextChar = 0;
 
-        lineSeparator = java.security.AccessController.doPrivileged(
-            new sun.security.action.GetPropertyAction("line.separator"));
+        // lineSeparator = java.security.AccessController.doPrivileged(
+        //     new sun.security.action.GetPropertyAction("line.separator"));
     }
 
     /** Checks to make sure that the stream has not been closed */

@@ -11,6 +11,7 @@ sourceSets {
             srcDirs 'src/main/java'
             srcDirs 'src/android/java'
             srcDirs 'src/solaris/java'
+            srcDirs 'src/app/java'
         }
     }
 }

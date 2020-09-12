@@ -1246,7 +1246,7 @@ public final class System {
         // loadLibrary("zip");
 
         // Setup Java signal handlers for HUP, TERM, and INT (where available).
-        Terminator.setup();
+        // Terminator.setup();
 
         // Initialize any miscellenous operating system settings that need to be
         // set for the class libraries. Currently this is no-op everywhere except

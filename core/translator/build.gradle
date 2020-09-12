@@ -58,6 +58,7 @@ task devRt(type: Exec) {
     group = "foxvm"
     description = "Translate the libfoxvm to native/dev_rt"
     commandLine "java", "-jar", shadowJar.archiveFile.get(),
+            "-t",
             "-i", project(":core:libfoxvm").sourceSets.main.output.classesDirs.asPath,
             "-o", rootProject.file('native/dev_rt/').absolutePath
 }

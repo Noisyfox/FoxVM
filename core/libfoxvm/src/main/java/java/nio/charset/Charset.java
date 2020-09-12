@@ -381,8 +381,9 @@ public abstract class Charset
     }
 
     // Thread-local gate to prevent recursive provider lookups
-    private static ThreadLocal<ThreadLocal<?>> gate =
-            new ThreadLocal<ThreadLocal<?>>();
+    // FoxVM-removed: Not used yet
+    // private static ThreadLocal<ThreadLocal<?>> gate =
+    //         new ThreadLocal<ThreadLocal<?>>();
 
     private static Charset lookupViaProviders(final String charsetName) {
 
@@ -397,7 +398,8 @@ public abstract class Charset
         if (!sun.misc.VM.isBooted())
             return null;
 
-        if (gate.get() != null)
+        // FoxVM-removed: Not used yet
+/*        if (gate.get() != null)
             // Avoid recursive provider lookups
             return null;
         try {
@@ -419,7 +421,8 @@ public abstract class Charset
 
         } finally {
             gate.set(null);
-        }
+        }*/
+        return null;
     }
 
     /* The extended set of charsets */
@@ -605,7 +608,7 @@ public abstract class Charset
         if (defaultCharset == null) {
             synchronized (Charset.class) {
                 String csn = AccessController.doPrivileged(
-                    new GetPropertyAction("file.encoding"));
+                    new GetPropertyAction("file.encoding", "ascii"));
                 Charset cs = lookup(csn);
                 if (cs != null)
                     defaultCharset = cs;
