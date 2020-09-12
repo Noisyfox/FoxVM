@@ -39,7 +39,8 @@ typedef struct _NativeStackFrame {
     __nativeFrame.baseFrame.exceptionHandler = NULL
 
 #define native_stack_frame_end() \
-    native_frame_pop(vmCurrentContext)
+    native_frame_pop(vmCurrentContext); \
+    exception_raise_if_occurred(vmCurrentContext)
 
 JAVA_BOOLEAN native_init();
 
