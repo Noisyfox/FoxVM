@@ -271,20 +271,7 @@ static ResolvedField *native_get_field(JNIEnv *env, jclass cls, const char *name
     return field;
 }
 
-static jfieldID GetStaticFieldID(JNIEnv *env, jclass cls, const char *name, const char *sig) {
-    ResolvedField *field = native_get_field(env, cls, name, sig);
-    if (field != NULL) {
-        // Make sure it's static field
-        if (!field_is_static(field)) {
-            // TODO: Throw NoSuchFieldError instead
-            field = NULL;
-        }
-    }
-
-    return (jfieldID) field;
-}
-
-static jfieldID GetFieldID(JNIEnv *env, jclass cls, const char *name, const char *sig) {
+static jfieldID JNICALL GetFieldID(JNIEnv *env, jclass cls, const char *name, const char *sig) {
     ResolvedField *field = native_get_field(env, cls, name, sig);
     if (field != NULL) {
         // Make sure it's instance field
@@ -297,7 +284,65 @@ static jfieldID GetFieldID(JNIEnv *env, jclass cls, const char *name, const char
     return (jfieldID) field;
 }
 
-static void SetStaticObjectField(JNIEnv* env, jclass cls, jfieldID fieldID, jobject value) {
+static jobject JNICALL GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID) {
+    assert(fieldID != NULL);
+    ResolvedField *field = (ResolvedField *) fieldID;
+    // Make sure it's instance field
+    assert(!field_is_static(field));
+
+    get_thread_context();
+    native_exit_jni(vmCurrentContext);
+
+    JAVA_OBJECT object = native_dereference(vmCurrentContext, obj);
+    if (object == JAVA_NULL) {
+        // TODO: throw NullPointerException instead.
+        abort();
+    }
+
+    JAVA_OBJECT resultObj = *((JAVA_OBJECT *) ptr_inc(object, field->info.offset));
+    jobject result = native_get_local_ref(vmCurrentContext, resultObj);
+
+    native_enter_jni(vmCurrentContext);
+
+    return result;
+}
+
+static jint JNICALL GetIntField(JNIEnv *env, jobject obj, jfieldID fieldID) {
+    assert(fieldID != NULL);
+    ResolvedField *field = (ResolvedField *) fieldID;
+    // Make sure it's instance field
+    assert(!field_is_static(field));
+
+    get_thread_context();
+    native_exit_jni(vmCurrentContext);
+
+    JAVA_OBJECT object = native_dereference(vmCurrentContext, obj);
+    if (object == JAVA_NULL) {
+        // TODO: throw NullPointerException instead.
+        abort();
+    }
+
+    jint result = *((JAVA_INT *) ptr_inc(object, field->info.offset));
+
+    native_enter_jni(vmCurrentContext);
+
+    return result;
+}
+
+static jfieldID JNICALL GetStaticFieldID(JNIEnv *env, jclass cls, const char *name, const char *sig) {
+    ResolvedField *field = native_get_field(env, cls, name, sig);
+    if (field != NULL) {
+        // Make sure it's static field
+        if (!field_is_static(field)) {
+            // TODO: Throw NoSuchFieldError instead
+            field = NULL;
+        }
+    }
+
+    return (jfieldID) field;
+}
+
+static void JNICALL SetStaticObjectField(JNIEnv* env, jclass cls, jfieldID fieldID, jobject value) {
     assert(cls != NULL);
     assert(fieldID != NULL);
     ResolvedField *field = (ResolvedField *) fieldID;
@@ -323,6 +368,8 @@ static struct JNINativeInterface jni = {
         .reserved2 = NULL,
         .reserved3 = NULL,
         .GetFieldID = GetFieldID,
+        .GetObjectField = GetObjectField,
+        .GetIntField = GetIntField,
         .GetStaticFieldID = GetStaticFieldID,
         .SetStaticObjectField = SetStaticObjectField,
 };
