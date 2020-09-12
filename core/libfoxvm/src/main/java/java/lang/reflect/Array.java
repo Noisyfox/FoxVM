@@ -25,6 +25,8 @@
 
 package java.lang.reflect;
 
+import java.util.Objects;
+
 /**
  * The {@code Array} class provides static methods to dynamically create and
  * access Java arrays.
@@ -111,6 +113,13 @@ class Array {
         return multiNewArray(componentType, dimensions);
     }
 
+    private static void checkArray(Object array) throws IllegalArgumentException {
+        Objects.requireNonNull(array, "array == null");
+        if (!array.getClass().isArray()) {
+            throw new IllegalArgumentException(array.getClass().getName() + " is not an array");
+        }
+    }
+
     /**
      * Returns the length of the specified array object, as an {@code int}.
      *
@@ -119,8 +128,13 @@ class Array {
      * @exception IllegalArgumentException if the object argument is not
      * an array
      */
-    public static native int getLength(Object array)
-        throws IllegalArgumentException;
+    public static int getLength(Object array) throws IllegalArgumentException {
+        checkArray(array);
+
+        return getLength0(array);
+    }
+
+    private static native int getLength0(Object array);
 
     /**
      * Returns the value of the indexed component in the specified

@@ -25,7 +25,9 @@
 package java.lang;
 
 import java.io.*;
+import java.lang.reflect.Array;
 import java.util.Properties;
+import java.util.Objects;
 import java.nio.channels.Channel;
 import java.nio.channels.spi.SelectorProvider;
 import sun.nio.ch.Interruptible;
@@ -489,9 +491,54 @@ public final class System {
      * @exception  NullPointerException if either <code>src</code> or
      *               <code>dest</code> is <code>null</code>.
      */
-    public static native void arraycopy(Object src,  int  srcPos,
-                                        Object dest, int destPos,
-                                        int length);
+    public static void arraycopy(Object src,  int  srcPos,
+                                 Object dest, int destPos,
+                                 int length) {
+        Objects.requireNonNull(src, "src == null");
+        Objects.requireNonNull(dest, "dest == null");
+
+        Class<?> srcType = src.getClass();
+        Class<?> destType = dest.getClass();
+        if (!srcType.isArray()) {
+            throw new ArrayStoreException("source type " + srcType.getName() + " is not an array");
+        }
+        if (!destType.isArray()) {
+            throw new ArrayStoreException("destination type " + destType.getName() + " is not an array");
+        }
+
+        Class<?> srcComponentType = srcType.getComponentType();
+        Class<?> destComponentType = destType.getComponentType();
+        if (srcComponentType.isPrimitive()) {
+            if(srcComponentType != destComponentType) {
+                throw new ArrayStoreException("Incompatible array types: " + srcType.getCanonicalName() + ", " + destType.getCanonicalName());
+            }
+            arraycopyBoundsCheck(src, srcPos, dest, destPos, length);
+            if(length > 0) {
+                arraycopyPrimitive(src, srcPos, dest, destPos, length);
+            }
+        } else {
+            if(destComponentType.isPrimitive()) {
+                throw new ArrayStoreException("Incompatible array types: " + srcType.getCanonicalName() + ", " + destType.getCanonicalName());
+            }
+            arraycopyBoundsCheck(src, srcPos, dest, destPos, length);
+        }
+    }
+
+    private static void arraycopyBoundsCheck(Object src,  int  srcPos,
+                                             Object dest, int destPos,
+                                             int length) {
+        int srcLen = Array.getLength(src);
+        int destLen = Array.getLength(dest);
+        if (srcPos < 0 || destPos < 0 || length < 0 || srcPos > srcLen - length || destPos > destLen - length) {
+            throw new ArrayIndexOutOfBoundsException("src.length=" + srcLen + " srcPos=" + srcPos +
+                    " dest.length=" + destLen + " destPos=" + destPos +
+                    " length=" + length);
+        }
+    }
+
+    private static native void arraycopyPrimitive(Object src,  int  srcPos,
+                                                  Object dest, int destPos,
+                                                  int length);
 
     /**
      * Returns the same hash code for the given object as

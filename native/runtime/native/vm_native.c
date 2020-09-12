@@ -148,6 +148,7 @@ void* native_bind_method(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method) {
     spin_lock_exit(&g_jniMethodLock);
 
     if (!nativePtr) {
+        fprintf(stderr, "Unable to find native method\n");
         exception_set_UnsatisfiedLinkError(vmCurrentContext, method, "Unable to find native method");
     }
 
