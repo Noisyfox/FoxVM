@@ -10,6 +10,8 @@
 #include "vm_classloader.h"
 #include "vm_field.h"
 #include "vm_exception.h"
+#include "vm_array.h"
+#include <string.h>
 
 static VMSpinLock g_jniMethodLock = OPA_INT_T_INITIALIZER(0);
 
@@ -362,6 +364,42 @@ static void JNICALL SetStaticObjectField(JNIEnv* env, jclass cls, jfieldID field
     native_enter_jni(vmCurrentContext);
 }
 
+static jsize JNICALL GetArrayLength(JNIEnv *env, jarray array) {
+    get_thread_context();
+    native_exit_jni(vmCurrentContext);
+
+    // TODO: check type and null
+    JAVA_ARRAY arrayObj = (JAVA_ARRAY) native_dereference(vmCurrentContext, array);
+    if (arrayObj == (JAVA_ARRAY) JAVA_NULL) {
+        // TODO: throw NullPointerException instead.
+        abort();
+    }
+    jint length = arrayObj->length;
+
+    native_enter_jni(vmCurrentContext);
+
+    return length;
+}
+
+static void JNICALL GetByteArrayRegion(JNIEnv *env, jbyteArray array, jsize start, jsize len, jbyte *buf) {
+    get_thread_context();
+    native_exit_jni(vmCurrentContext);
+
+    // TODO: check type and null
+    JAVA_ARRAY arrayObj = (JAVA_ARRAY) native_dereference(vmCurrentContext, array);
+    if (arrayObj == (JAVA_ARRAY) JAVA_NULL) {
+        // TODO: throw NullPointerException instead.
+        abort();
+    }
+
+    // TODO: check bounds
+
+    void *src = array_element_at(arrayObj, VM_TYPE_BYTE, start);
+    memcpy(buf, src, len * type_size(VM_TYPE_BYTE));
+
+    native_enter_jni(vmCurrentContext);
+}
+
 static struct JNINativeInterface jni = {
         .reserved0 = NULL,
         .reserved1 = NULL,
@@ -372,4 +410,6 @@ static struct JNINativeInterface jni = {
         .GetIntField = GetIntField,
         .GetStaticFieldID = GetStaticFieldID,
         .SetStaticObjectField = SetStaticObjectField,
+        .GetArrayLength = GetArrayLength,
+        .GetByteArrayRegion = GetByteArrayRegion,
 };
