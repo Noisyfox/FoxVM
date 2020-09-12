@@ -453,7 +453,9 @@ JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldTy
 #define bc_do_array_load(field_type)                        \
     JAVA_##field_type value;                                \
     bc_array_load(OP_STACK, &value, VM_TYPE_##field_type)
-#define bc_caload() do {bc_do_array_load(CHAR);   stack_push_int(value);   } while(0)
+// For caload the char value is zero-extended to an int value, so here we need a unsigned cast,
+// otherwise it will be sign-extended.
+#define bc_caload() do {bc_do_array_load(CHAR);   stack_push_int((JAVA_UCHAR)value);   } while(0)
 #define bc_baload() do {bc_do_array_load(BYTE);   stack_push_int(value);   } while(0)
 #define bc_saload() do {bc_do_array_load(SHORT);  stack_push_int(value);   } while(0)
 #define bc_iaload() do {bc_do_array_load(INT);    stack_push_int(value);   } while(0)

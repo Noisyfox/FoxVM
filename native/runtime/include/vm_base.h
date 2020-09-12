@@ -58,6 +58,7 @@ typedef JAVA_OBJECT     (*JavaMethodRetObject)   (VM_PARAM_CURRENT_CONTEXT);
 // Additional Java primary types
 typedef uint8_t     JAVA_UBYTE;
 typedef uint16_t    JAVA_USHORT;
+typedef uint16_t    JAVA_UCHAR;
 typedef uint32_t    JAVA_UINT;
 typedef uint64_t    JAVA_ULONG;
 
