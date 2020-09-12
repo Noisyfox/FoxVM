@@ -1,6 +1,7 @@
 package io.noisyfox.foxvm.bytecode.clazz
 
 import io.noisyfox.foxvm.bytecode.isReference
+import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 
 data class FieldInfo(
@@ -14,6 +15,8 @@ data class FieldInfo(
 ) : ClassMember {
 
     val isReference: Boolean = descriptor.isReference()
+
+    val isVolatile: Boolean = (access and Opcodes.ACC_VOLATILE) == Opcodes.ACC_VOLATILE
 
     override fun toString(): String {
         return "${declaringClass.thisClass.className}.${name}:${descriptor}"

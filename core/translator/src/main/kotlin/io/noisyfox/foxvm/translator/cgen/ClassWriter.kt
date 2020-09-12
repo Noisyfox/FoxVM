@@ -138,13 +138,13 @@ class ClassWriter(
         }
 
         // Write static field data storage
-        headerWriter.write(
-            """
+        if (info.preResolvedStaticFields.isNotEmpty()) {
+            headerWriter.write(
+                """
                     |
                     |    // Start of static field storage
                     |""".trimMargin()
-        )
-        if (info.preResolvedStaticFields.isNotEmpty()) {
+            )
             info.preResolvedStaticFields.forEach {
                 headerWriter.write(
                     """
@@ -167,12 +167,16 @@ class ClassWriter(
                     |// Object definition
                     |typedef struct _${info.cObjectName} {
                     |    JavaObjectBase baseObject;
-                    |
-                    |    // Start of instance field storage
                     |""".trimMargin()
         )
 
         if (info.preResolvedInstanceFields.isNotEmpty()) {
+            headerWriter.write(
+                """
+                    |
+                    |    // Start of instance field storage
+                    |""".trimMargin()
+            )
             info.preResolvedInstanceFields.forEach {
                 headerWriter.write(
                     """

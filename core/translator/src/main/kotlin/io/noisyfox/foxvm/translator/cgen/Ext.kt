@@ -332,7 +332,11 @@ val PreResolvedFieldInfo.cName: String
  * The C type name for storing the given field
  */
 val PreResolvedFieldInfo.cStorageType: String
-    get() = field.descriptor.toCBaseTypeName()
+    get() = if (field.isVolatile) {
+        "volatile ${field.descriptor.toCBaseTypeName()}"
+    } else {
+        field.descriptor.toCBaseTypeName()
+    }
 
 /**
  * The C method info structure name of the method.
