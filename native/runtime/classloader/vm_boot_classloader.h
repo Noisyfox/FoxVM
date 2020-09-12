@@ -44,6 +44,7 @@ cached_class(java_lang_Throwable);
 cached_class(java_lang_RuntimeException);
 cached_class(java_lang_NullPointerException);
 cached_class(java_lang_ArrayIndexOutOfBoundsException);
+cached_class(java_lang_ArrayStoreException);
 cached_class(java_lang_ClassNotFoundException);
 cached_class(java_lang_NegativeArraySizeException);
 cached_class(java_lang_InstantiationException);

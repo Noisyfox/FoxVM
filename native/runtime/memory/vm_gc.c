@@ -843,5 +843,7 @@ void *heap_alloc_uncollectable(size_t size) {
 }
 
 void heap_free_uncollectable(void* ptr) {
-    mem_aligned_free(ptr);
+    if(ptr) {
+        mem_aligned_free(ptr);
+    }
 }

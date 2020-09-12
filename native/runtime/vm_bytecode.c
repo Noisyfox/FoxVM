@@ -13,7 +13,7 @@
 #include "vm_native.h"
 #include "vm_class.h"
 
-#define RETURNV exception_raise_if_occurred(vmCurrentContext); return
+#define RETURNV() exception_raise_if_occurred(vmCurrentContext); return
 #define RETURN(result) exception_raise_if_occurred(vmCurrentContext); return result
 
 #define JAVA_TYPE_a JAVA_ARRAY
@@ -627,7 +627,7 @@ JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldTy
     arrayRef->type = VM_SLOT_INVALID;
 }
 
-JAVA_VOID bc_array_store(VMOperandStack *stack, BasicType fieldType) {
+JAVA_VOID bc_array_store(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, BasicType fieldType) {
     VMStackSlot *value = stack->top - 1;
     VMStackSlot *index = stack->top - 2;
     VMStackSlot *arrayRef = stack->top - 3;
@@ -685,6 +685,20 @@ JAVA_VOID bc_array_store(VMOperandStack *stack, BasicType fieldType) {
         case VM_TYPE_OBJECT:
             assert(arrayType == VM_TYPE_OBJECT || arrayType == VM_TYPE_ARRAY);
             assert(value->type == VM_SLOT_OBJECT);
+
+            if(value->data.o) {
+                // ..., if arrayref is not null and the actual type of
+                // value is not assignment compatible (JLS §5.2) with the actual
+                // type of the components of the array, aastore throws an
+                // ArrayStoreException.
+                JavaClassInfo *valueTypeInfo = obj_get_class(value->data.o)->info;
+                JavaClassInfo *componentTypeInfo = ((JavaArrayClass *) obj_get_class(&array->baseObject))->componentType->info;
+                if (!class_assignable(valueTypeInfo, componentTypeInfo)) {
+                    exception_set_ArrayStoreException(vmCurrentContext, obj_get_class(&array->baseObject)->info, valueTypeInfo);
+                    RETURNV();
+                }
+            }
+
             *((JAVA_OBJECT *) element) = value->data.o;
             break;
         case VM_TYPE_BOOLEAN:

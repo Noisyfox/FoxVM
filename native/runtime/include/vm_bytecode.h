@@ -462,15 +462,15 @@ JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldTy
 #define bc_daload() do {bc_do_array_load(DOUBLE); stack_push_double(value);} while(0)
 #define bc_aaload() do {bc_do_array_load(OBJECT); stack_push_object(value);} while(0)
 
-JAVA_VOID bc_array_store(VMOperandStack *stack, BasicType fieldType);
-#define bc_castore() bc_array_store(OP_STACK, VM_TYPE_CHAR)
-#define bc_bastore() bc_array_store(OP_STACK, VM_TYPE_BYTE)
-#define bc_sastore() bc_array_store(OP_STACK, VM_TYPE_SHORT)
-#define bc_iastore() bc_array_store(OP_STACK, VM_TYPE_INT)
-#define bc_fastore() bc_array_store(OP_STACK, VM_TYPE_FLOAT)
-#define bc_lastore() bc_array_store(OP_STACK, VM_TYPE_LONG)
-#define bc_dastore() bc_array_store(OP_STACK, VM_TYPE_DOUBLE)
-#define bc_aastore() bc_array_store(OP_STACK, VM_TYPE_OBJECT)
+JAVA_VOID bc_array_store(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, BasicType fieldType);
+#define bc_castore() bc_array_store(vmCurrentContext, OP_STACK, VM_TYPE_CHAR)
+#define bc_bastore() bc_array_store(vmCurrentContext, OP_STACK, VM_TYPE_BYTE)
+#define bc_sastore() bc_array_store(vmCurrentContext, OP_STACK, VM_TYPE_SHORT)
+#define bc_iastore() bc_array_store(vmCurrentContext, OP_STACK, VM_TYPE_INT)
+#define bc_fastore() bc_array_store(vmCurrentContext, OP_STACK, VM_TYPE_FLOAT)
+#define bc_lastore() bc_array_store(vmCurrentContext, OP_STACK, VM_TYPE_LONG)
+#define bc_dastore() bc_array_store(vmCurrentContext, OP_STACK, VM_TYPE_DOUBLE)
+#define bc_aastore() bc_array_store(vmCurrentContext, OP_STACK, VM_TYPE_OBJECT)
 
 // Monitor instructions
 JAVA_VOID bc_monitor_enter(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack);

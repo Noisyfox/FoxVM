@@ -8,6 +8,8 @@
 #include "classloader/vm_boot_classloader.h"
 #include "vm_array.h"
 #include "vm_memory.h"
+#include "vm_gc.h"
+#include <string.h>
 
 JAVA_BOOLEAN class_is_interface(JavaClassInfo *c) {
     return (c->accessFlags & CLASS_ACC_INTERFACE) == CLASS_ACC_INTERFACE;
@@ -102,4 +104,66 @@ JAVA_BOOLEAN class_assignable(JavaClassInfo *s, JavaClassInfo *t) {
 
 JAVA_CLASS class_get_native_class(JAVA_OBJECT classObj) {
     return (JAVA_CLASS) *((JAVA_OBJECT *) ptr_inc(classObj, g_field_java_lang_Class_fvmNativeType->offset));
+}
+
+C_CSTR class_pretty_descriptor(C_CSTR descriptor) {
+    // Count the number of '['s to get the dimensionality.
+    C_CSTR c = descriptor;
+    size_t dim = 0;
+    while (*c == TYPE_DESC_ARRAY) {
+        dim++;
+        c++;
+    }
+
+    // Reference or primitive?
+    if (*c == TYPE_DESC_REFERENCE) {
+        // "[[La/b/C;" -> "a.b.C[][]".
+        c++;  // Skip the 'L'.
+    } else {
+        // "[[B" -> "byte[][]".
+        // To make life easier, we make primitives look like unqualified
+        // reference types.
+        switch (*c) {
+            case TYPE_DESC_BYTE:    c = "byte;"; break;
+            case TYPE_DESC_CHAR:    c = "char;"; break;
+            case TYPE_DESC_DOUBLE:  c = "double;"; break;
+            case TYPE_DESC_FLOAT:   c = "float;"; break;
+            case TYPE_DESC_INT:     c = "int;"; break;
+            case TYPE_DESC_LONG:    c = "long;"; break;
+            case TYPE_DESC_SHORT:   c = "short;"; break;
+            case TYPE_DESC_BOOLEAN: c = "boolean;"; break;
+            case TYPE_DESC_VOID:    c = "void;"; break;  // Used when decoding return types.
+            default: {
+                // Make a copy of the descriptor
+                size_t len = strlen(descriptor);
+                C_STR result = heap_alloc_uncollectable((len + 1) * sizeof(char));
+                if (result) {
+                    strcpy(result, descriptor);
+                }
+                return result;
+            }
+        }
+    }
+
+    // At this point, 'c' is a string of the form "fully/qualified/Type;"
+    // or "primitive;". Rewrite the type with '.' instead of '/':
+    C_STR result = heap_alloc_uncollectable((strlen(c) + dim * 2 + 1) * sizeof(char));
+    if (!result) {
+        return NULL;
+    }
+    C_CSTR p = c;
+    size_t index = 0;
+    while (*p != ';' && *p != '\0') {
+        char ch = *p++;
+        if (ch == '/') {
+            ch = '.';
+        }
+        result[index++] = ch;
+    }
+    // ...and replace the semicolon with 'dim' "[]" pairs:
+    for (size_t i = 0; i < dim; ++i) {
+        result[index++] = '[';
+        result[index++] = ']';
+    }
+    return result;
 }

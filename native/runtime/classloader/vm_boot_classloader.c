@@ -61,6 +61,7 @@ cached_class(java_lang_Throwable);
 cached_class(java_lang_RuntimeException);
 cached_class(java_lang_NullPointerException);
 cached_class(java_lang_ArrayIndexOutOfBoundsException);
+cached_class(java_lang_ArrayStoreException);
 cached_class(java_lang_ClassNotFoundException);
 cached_class(java_lang_NegativeArraySizeException);
 cached_class(java_lang_InstantiationException);
@@ -546,6 +547,7 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     cache_class(java_lang_RuntimeException, "java/lang/RuntimeException");
     cache_class(java_lang_NullPointerException, "java/lang/NullPointerException");
     cache_class(java_lang_ArrayIndexOutOfBoundsException, "java/lang/ArrayIndexOutOfBoundsException");
+    cache_class(java_lang_ArrayStoreException, "java/lang/ArrayStoreException");
     cache_class(java_lang_ClassNotFoundException, "java/lang/ClassNotFoundException");
     cache_class(java_lang_NegativeArraySizeException, "java/lang/NegativeArraySizeException");
     cache_class(java_lang_InstantiationException, "java/lang/InstantiationException");
