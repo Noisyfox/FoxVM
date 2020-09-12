@@ -48,6 +48,7 @@ cached_class(java_lang_ArrayStoreException);
 cached_class(java_lang_ClassNotFoundException);
 cached_class(java_lang_NegativeArraySizeException);
 cached_class(java_lang_InstantiationException);
+cached_class(java_lang_IllegalArgumentException);
 
 #undef cached_class
 

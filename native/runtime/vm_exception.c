@@ -158,3 +158,7 @@ JAVA_VOID exception_set_ArrayStoreException(VM_PARAM_CURRENT_CONTEXT, JavaClassI
     heap_free_uncollectable((void *) arrayTypeName);
     heap_free_uncollectable((void *) elementTypeName);
 }
+
+JAVA_VOID exception_set_IllegalArgumentException(VM_PARAM_CURRENT_CONTEXT, C_CSTR message) {
+    exception_set_new(vmCurrentContext, g_classInfo_java_lang_IllegalArgumentException, message);
+}

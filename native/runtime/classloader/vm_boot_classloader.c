@@ -65,6 +65,7 @@ cached_class(java_lang_ArrayStoreException);
 cached_class(java_lang_ClassNotFoundException);
 cached_class(java_lang_NegativeArraySizeException);
 cached_class(java_lang_InstantiationException);
+cached_class(java_lang_IllegalArgumentException);
 
 #undef cached_class
 
@@ -551,6 +552,7 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     cache_class(java_lang_ClassNotFoundException, "java/lang/ClassNotFoundException");
     cache_class(java_lang_NegativeArraySizeException, "java/lang/NegativeArraySizeException");
     cache_class(java_lang_InstantiationException, "java/lang/InstantiationException");
+    cache_class(java_lang_IllegalArgumentException, "java/lang/IllegalArgumentException");
 
     return JAVA_TRUE;
 }
