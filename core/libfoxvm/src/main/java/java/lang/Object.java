@@ -296,6 +296,7 @@ public class Object {
      * @see        java.lang.Object#notify()
      * @see        java.lang.Object#wait()
      */
+    @FastNative
     public final native void notifyAll();
 
     /**

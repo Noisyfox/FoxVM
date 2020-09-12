@@ -38,3 +38,13 @@ JAVA_INT method_fastNative_9Pjava_lang6CObject_8MhashCode_RI(VM_PARAM_CURRENT_CO
 
     return h;
 }
+
+JAVA_VOID method_fastNative_9Pjava_lang6CObject_9MnotifyAll(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *methodInfo) {
+    stack_frame_start(&methodInfo->method, 0, 1);
+    bc_prepare_arguments(1);
+    bc_check_objectref();
+
+    monitor_notify_all(vmCurrentContext, &local_of(0));
+
+    stack_frame_end();
+}
