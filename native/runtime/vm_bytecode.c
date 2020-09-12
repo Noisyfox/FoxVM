@@ -595,7 +595,7 @@ JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldTy
             *((JAVA_DOUBLE *) valueOut) = *((JAVA_DOUBLE *) element);
             break;
         case VM_TYPE_BYTE:
-            assert(arrayType == VM_TYPE_CHAR || arrayType == VM_TYPE_BOOLEAN);
+            assert(arrayType == VM_TYPE_BYTE || arrayType == VM_TYPE_BOOLEAN);
             *((JAVA_BYTE *) valueOut) = *((JAVA_BYTE *) element);
             break;
         case VM_TYPE_SHORT:
@@ -663,7 +663,7 @@ JAVA_VOID bc_array_store(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, BasicT
             *((JAVA_DOUBLE *) element) = value->data.d;
             break;
         case VM_TYPE_BYTE:
-            assert(arrayType == VM_TYPE_CHAR || arrayType == VM_TYPE_BOOLEAN);
+            assert(arrayType == VM_TYPE_BYTE || arrayType == VM_TYPE_BOOLEAN);
             assert(value->type == VM_SLOT_INT);
             *((JAVA_BYTE *) element) = value->data.i;
             break;
