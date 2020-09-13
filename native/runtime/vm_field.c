@@ -3,11 +3,12 @@
 //
 
 #include "vm_field.h"
+#include "vm_string.h"
 #include <string.h>
 
 static inline JAVA_BOOLEAN field_matches(ResolvedField *field, C_CSTR name, C_CSTR desc) {
     FieldInfo *info = &field->info;
-    if (strcmp(info->name, name) == 0 && strcmp(info->descriptor, desc) == 0) {
+    if (strcmp(string_get_constant_utf8(info->name), name) == 0 && strcmp(string_get_constant_utf8(info->descriptor), desc) == 0) {
         return JAVA_TRUE;
     }
 

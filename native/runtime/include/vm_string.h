@@ -7,7 +7,17 @@
 
 #include "vm_base.h"
 
+// Index of pre-defined string constants in the generated constant pool
+// Must be sync with [io.noisyfox.foxvm.translator.cgen.StringConstantPool]
+#define STRING_CONSTANT_NULL -1
+#define STRING_CONSTANT_INDEX_INIT 0 /* "<init>" */
+#define STRING_CONSTANT_INDEX_CLINIT 1 /* "<clinit>" */
+#define STRING_CONSTANT_INDEX_CLONE 2 /* "clone" */
+#define STRING_CONSTANT_INDEX_CLONE_DESCRIPTOR 3 /* "()Ljava/lang/Object;" */
+
 extern FieldInfo *g_field_java_lang_String_value;
+
+C_CSTR string_get_constant_utf8(JAVA_INT constant_index);
 
 JAVA_OBJECT string_get_constant(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_index);
 

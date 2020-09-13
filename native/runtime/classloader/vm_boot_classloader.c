@@ -168,9 +168,9 @@ static JavaClassInfo g_classInfo_array_prototype;
 // Methods of arrays
 MethodInfo g_array_methodInfo_5Mclone_R9Pjava_lang6CObject = {
         .accessFlags = METHOD_ACC_PUBLIC | METHOD_ACC_FINAL,
-        .name = "clone",
-        .descriptor = "()Ljava/lang/Object;",
-        .signature = NULL,
+        .name = STRING_CONSTANT_INDEX_CLONE,
+        .descriptor = STRING_CONSTANT_INDEX_CLONE_DESCRIPTOR,
+        .signature = STRING_CONSTANT_NULL,
         .declaringClass = &g_classInfo_array_prototype,
         .code = g_array_5Mclone_R9Pjava_lang6CObject,
 };
@@ -454,10 +454,9 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     for (int i = 0; i < VTABLE_COUNT_java_lang_object; i++) {
         VTableItem *item = &g_array_vtable[i];
         assert(item->declaringClass == NULL);
-        // Get the name of the method
+        // Check the name of the method
         MethodInfo *method = g_classInfo_java_lang_Object->methods[item->methodIndex];
-        C_CSTR methodName = method->name;
-        if (strcmp("clone", methodName) == 0) {
+        if (method->name == STRING_CONSTANT_INDEX_CLONE) {
             assert(arrayCloneUpdated == JAVA_FALSE);
             // Update the clone method
             // make sure to match [g_array_methods]

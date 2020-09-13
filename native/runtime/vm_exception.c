@@ -139,7 +139,7 @@ JAVA_VOID exception_set_IncompatibleClassChangeError(VM_PARAM_CURRENT_CONTEXT, C
 
 JAVA_VOID exception_set_UnsatisfiedLinkError(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method, C_CSTR message) {
     exception_set_newf(vmCurrentContext, g_classInfo_java_lang_UnsatisfiedLinkError,
-                       "Unable to find native method %s%s: %s", method->method.name, method->method.descriptor, message);
+                       "Unable to find native method %s%s: %s", string_get_constant_utf8(method->method.name), string_get_constant_utf8(method->method.descriptor), message);
 }
 
 JAVA_VOID exception_set_NullPointerException(VM_PARAM_CURRENT_CONTEXT, C_CSTR variableName) {

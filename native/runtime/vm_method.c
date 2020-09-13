@@ -3,12 +3,13 @@
 //
 
 #include "vm_method.h"
+#include "vm_string.h"
 #include <string.h>
 
 MethodInfo *method_find(JavaClassInfo *clazz, C_CSTR name, C_CSTR desc) {
     for (uint16_t i = 0; i < clazz->methodCount; i++) {
         MethodInfo *m = clazz->methods[i];
-        if (strcmp(m->name, name) == 0 && strcmp(m->descriptor, desc) == 0) {
+        if (strcmp(string_get_constant_utf8(m->name), name) == 0 && strcmp(string_get_constant_utf8(m->descriptor), desc) == 0) {
             return m;
         }
     }

@@ -104,7 +104,7 @@ JAVA_BOOLEAN classloader_init_class(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS clazz) 
     for(uint16_t i = 0; i < clazz->staticFieldCount; i++) {
         ResolvedField *f = &clazz->staticFields[i];
         JAVA_INT index = f->info.defaultConstantIndex;
-        if (index >= 0) {
+        if (index > STRING_CONSTANT_NULL) {
             JAVA_OBJECT str = string_get_constant(vmCurrentContext, index);
             JAVA_OBJECT *fieldPtr = ptr_inc(clazz, f->info.offset);
             *fieldPtr = str;

@@ -153,9 +153,24 @@ JAVA_OBJECT string_create_utf8(VM_PARAM_CURRENT_CONTEXT, C_CSTR utf8) {
     return objRef;
 }
 
-JAVA_OBJECT string_get_constant(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_index) {
-    assert(constant_index >= 0);
+C_CSTR string_get_constant_utf8(JAVA_INT constant_index) {
+    assert(constant_index >= STRING_CONSTANT_NULL);
     assert(constant_index < foxvm_constant_pool_rt_count);
+
+    if (constant_index == STRING_CONSTANT_NULL) {
+        return NULL;
+    }
+
+    return foxvm_constant_pool_rt[constant_index];
+}
+
+JAVA_OBJECT string_get_constant(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_index) {
+    assert(constant_index >= STRING_CONSTANT_NULL);
+    assert(constant_index < foxvm_constant_pool_rt_count);
+
+    if (constant_index == STRING_CONSTANT_NULL) {
+        return JAVA_NULL;
+    }
 
     {
         // First we check if the constant instance has been created

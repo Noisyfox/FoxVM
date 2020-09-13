@@ -168,9 +168,9 @@ typedef enum {
 /** Java .class field_info */
 typedef struct {
     uint16_t accessFlags;
-    C_CSTR name; // UTF-8 string of the field name
-    C_CSTR descriptor; // Type descriptor of this field
-    C_CSTR signature; // Signature of this field if it is generic type, or `NULL`
+    JAVA_INT name; // Index of UTF-8 string of the field name in the constant pool
+    JAVA_INT descriptor; // Index of type descriptor of this field in the constant pool
+    JAVA_INT signature; // Index of signature of this field if it is generic type in the constant pool, or `STRING_CONSTANT_NULL`
 
     // TODO: Add field attributes
 
@@ -209,9 +209,9 @@ typedef enum {
 /** Java .class method_info */
 typedef struct {
     uint16_t accessFlags;
-    C_CSTR name; // UTF-8 string of the method name
-    C_CSTR descriptor; // Type descriptor of this method
-    C_CSTR signature; // Signature of this method if it contains generic type, or `NULL`
+    JAVA_INT name; // Index of UTF-8 string of the method name in the constant pool
+    JAVA_INT descriptor; // Index of type descriptor of this method in the constant pool
+    JAVA_INT signature; // Index of signature of this method if it contains generic type, or `STRING_CONSTANT_NULL`
 
     JavaClassInfo *declaringClass; // The class that declares this method
 

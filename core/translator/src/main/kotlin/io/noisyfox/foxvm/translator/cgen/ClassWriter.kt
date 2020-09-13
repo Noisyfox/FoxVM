@@ -238,6 +238,7 @@ class ClassWriter(
             """
                     |#include "vm_thread.h"
                     |#include "vm_bytecode.h"
+                    |#include "vm_string.h"
                     |
                     |""".trimMargin()
         )
@@ -289,6 +290,12 @@ class ClassWriter(
             )
         }
 
+        fun String?.constantID(): String = if(this == null) {
+            "STRING_CONSTANT_NULL"
+        } else {
+            constantPool.addConstant(this).toString()
+        }
+
         // Write field info
         if (info.fields.isNotEmpty()) {
             cWriter.write(
@@ -307,24 +314,24 @@ class ClassWriter(
                     "offsetof(${info.cObjectName}, ${resolvedInstanceFieldInfo.cName})"
                 }
 
-                val defaultIndex = if (f.isStatic && f.defaultValue is String) {
+                val defaultStringVal: String? = if (f.isStatic && f.defaultValue is String) {
                     if(f.descriptor.internalName != Clazz.CLASS_JAVA_LANG_STRING) {
                         throw IncompatibleClassChangeError("Non-string field $f cannot have string default value")
                     }
-                    constantPool.addConstant(f.defaultValue)
+                    f.defaultValue
                 } else {
-                    -1
+                    null
                 }
 
                 cWriter.write(
                     """
                     |    {
                     |        .accessFlags = ${AccFlag.translateFieldAcc(f.access)},
-                    |        .name = "${f.name.asCString()}",
-                    |        .descriptor = "${f.descriptor.toString().asCString()}",
-                    |        .signature = ${f.signature.toCString()},
+                    |        .name = ${f.name.constantID()}, // "${f.name.asCString()}"
+                    |        .descriptor = ${f.descriptor.toString().constantID()}, // "${f.descriptor.toString().asCString()}"
+                    |        .signature = ${f.signature.constantID()}, // ${f.signature.toCString()}
                     |        .offset = $offset,
-                    |        .defaultConstantIndex = $defaultIndex,
+                    |        .defaultConstantIndex = ${defaultStringVal.constantID()},
                     |    },
                     |""".trimMargin()
                 )
@@ -358,9 +365,9 @@ class ClassWriter(
                     |static MethodInfoNative ${it.cName} = {
                     |        .method = {
                     |                .accessFlags = ${AccFlag.translateMethodAcc(it.access)},
-                    |                .name = "${it.name.asCString()}",
-                    |                .descriptor = "${it.descriptor.toString().asCString()}",
-                    |                .signature = ${it.signature.toCString()},
+                    |                .name = ${it.name.constantID()}, // "${it.name.asCString()}"
+                    |                .descriptor = ${it.descriptor.toString().constantID()}, // "${it.descriptor.toString().asCString()}"
+                    |                .signature = ${it.signature.constantID()}, // ${it.signature.toCString()}
                     |                .declaringClass = &${info.cName},
                     |                .code = $codeRef,
                     |        },
@@ -375,9 +382,9 @@ class ClassWriter(
                         """
                     |static MethodInfo ${it.cName} = {
                     |        .accessFlags = ${AccFlag.translateMethodAcc(it.access)},
-                    |        .name = "${it.name.asCString()}",
-                    |        .descriptor = "${it.descriptor.toString().asCString()}",
-                    |        .signature = ${it.signature.toCString()},
+                    |        .name = ${it.name.constantID()}, // "${it.name.asCString()}"
+                    |        .descriptor = ${it.descriptor.toString().constantID()}, // "${it.descriptor.toString().asCString()}"
+                    |        .signature = ${it.signature.constantID()}, // ${it.signature.toCString()}
                     |        .declaringClass = &${info.cName},
                     |        .code = $codeRef,
                     |};
