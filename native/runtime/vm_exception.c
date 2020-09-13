@@ -142,6 +142,10 @@ JAVA_VOID exception_set_UnsatisfiedLinkError(VM_PARAM_CURRENT_CONTEXT, MethodInf
                        "Unable to find native method %s%s: %s", method->method.name, method->method.descriptor, message);
 }
 
+JAVA_VOID exception_set_NullPointerException(VM_PARAM_CURRENT_CONTEXT, C_CSTR variableName) {
+    exception_set_newf(vmCurrentContext, g_classInfo_java_lang_NullPointerException, "%s == null", variableName);
+}
+
 JAVA_VOID exception_set_ArrayStoreException(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *arrayType, JavaClassInfo *elementType) {
     C_CSTR arrayTypeName = class_pretty_descriptor(arrayType->thisClass);
     C_CSTR elementTypeName = class_pretty_descriptor(elementType->thisClass);

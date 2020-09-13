@@ -12,6 +12,7 @@
 #include "vm_exception.h"
 #include "vm_array.h"
 #include <string.h>
+#include "vm_string.h"
 
 static VMSpinLock g_jniMethodLock = OPA_INT_T_INITIALIZER(0);
 
@@ -277,7 +278,7 @@ static jfieldID JNICALL GetFieldID(JNIEnv *env, jclass cls, const char *name, co
     ResolvedField *field = native_get_field(env, cls, name, sig);
     if (field != NULL) {
         // Make sure it's instance field
-        if (field_is_static(field)) {
+        if (field_is_static(&field->info)) {
             // TODO: Throw NoSuchFieldError instead
             field = NULL;
         }
@@ -290,7 +291,7 @@ static jobject JNICALL GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID
     assert(fieldID != NULL);
     ResolvedField *field = (ResolvedField *) fieldID;
     // Make sure it's instance field
-    assert(!field_is_static(field));
+    assert(!field_is_static(&field->info));
 
     get_thread_context();
     native_exit_jni(vmCurrentContext);
@@ -313,7 +314,7 @@ static jint JNICALL GetIntField(JNIEnv *env, jobject obj, jfieldID fieldID) {
     assert(fieldID != NULL);
     ResolvedField *field = (ResolvedField *) fieldID;
     // Make sure it's instance field
-    assert(!field_is_static(field));
+    assert(!field_is_static(&field->info));
 
     get_thread_context();
     native_exit_jni(vmCurrentContext);
@@ -335,7 +336,7 @@ static jfieldID JNICALL GetStaticFieldID(JNIEnv *env, jclass cls, const char *na
     ResolvedField *field = native_get_field(env, cls, name, sig);
     if (field != NULL) {
         // Make sure it's static field
-        if (!field_is_static(field)) {
+        if (!field_is_static(&field->info)) {
             // TODO: Throw NoSuchFieldError instead
             field = NULL;
         }
@@ -349,7 +350,7 @@ static void JNICALL SetStaticObjectField(JNIEnv* env, jclass cls, jfieldID field
     assert(fieldID != NULL);
     ResolvedField *field = (ResolvedField *) fieldID;
     // Make sure it's static field
-    assert(field_is_static(field));
+    assert(field_is_static(&field->info));
 
     get_thread_context();
     native_exit_jni(vmCurrentContext);
@@ -362,6 +363,47 @@ static void JNICALL SetStaticObjectField(JNIEnv* env, jclass cls, jfieldID field
     *((JAVA_OBJECT *) ptr_inc(clazz, field->info.offset)) = obj;
 
     native_enter_jni(vmCurrentContext);
+}
+
+static jsize JNICALL GetStringUTFLength(JNIEnv *env, jstring string) {
+    get_thread_context();
+    native_exit_jni(vmCurrentContext);
+
+    jsize result = 0;
+    JAVA_OBJECT strObj = native_dereference(vmCurrentContext, string);
+    if (strObj == JAVA_NULL) {
+        exception_set_NullPointerException(vmCurrentContext, "string");
+    } else {
+        result = string_utf8_length_of(vmCurrentContext, strObj);
+    }
+
+    native_enter_jni(vmCurrentContext);
+
+    return result;
+}
+
+static const char* JNICALL GetStringUTFChars(JNIEnv *env, jstring string, jboolean *isCopy) {
+    get_thread_context();
+    native_exit_jni(vmCurrentContext);
+
+    C_CSTR result = NULL;
+    JAVA_OBJECT strObj = native_dereference(vmCurrentContext, string);
+    if (strObj == JAVA_NULL) {
+        exception_set_NullPointerException(vmCurrentContext, "string");
+    } else {
+        result = string_utf8_of(vmCurrentContext, strObj);
+        if (isCopy && !exception_occurred(vmCurrentContext)) {
+            *isCopy = JNI_TRUE;
+        }
+    }
+
+    native_enter_jni(vmCurrentContext);
+
+    return result;
+}
+
+void JNICALL ReleaseStringUTFChars(JNIEnv *env, jstring string, const char* utf) {
+    heap_free_uncollectable((void *) utf);
 }
 
 static jsize JNICALL GetArrayLength(JNIEnv *env, jarray array) {
@@ -410,6 +452,9 @@ static struct JNINativeInterface jni = {
         .GetIntField = GetIntField,
         .GetStaticFieldID = GetStaticFieldID,
         .SetStaticObjectField = SetStaticObjectField,
+        .GetStringUTFLength = GetStringUTFLength,
+        .GetStringUTFChars = GetStringUTFChars,
+        .ReleaseStringUTFChars = ReleaseStringUTFChars,
         .GetArrayLength = GetArrayLength,
         .GetByteArrayRegion = GetByteArrayRegion,
 };

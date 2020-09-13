@@ -7,12 +7,15 @@
 #include "classloader/vm_boot_classloader.h"
 #include "vm_bytecode.h"
 #include "vm_array.h"
+#include "vm_gc.h"
 #include <stdio.h>
 
 extern JAVA_INT foxvm_constant_pool_rt_count;
 extern C_CSTR foxvm_constant_pool_rt[];
 extern JAVA_LONG foxvm_constant_pool_rt_init_thread[];
 extern JAVA_OBJECT foxvm_constant_pool_rt_obj[];
+
+FieldInfo *g_field_java_lang_String_value = NULL;
 
 // A private constructor that does not make a copy of the array. Used internally bu the VM.
 // java/lang/String.<init>([CZ)V
@@ -224,4 +227,102 @@ JAVA_OBJECT string_get_constant(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_inde
 
     stack_frame_end();
     return objRef;
+}
+
+JAVA_ARRAY string_get_value_array(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT str) {
+    if (str == JAVA_NULL) {
+        exception_set_NullPointerException(vmCurrentContext, "str");
+        return (JAVA_ARRAY) JAVA_NULL;
+    }
+
+    if (obj_get_class(str)->info != g_classInfo_java_lang_String) {
+        exception_set_IllegalArgumentException(vmCurrentContext, "str is not an instance of java/lang/String");
+        return (JAVA_ARRAY) JAVA_NULL;
+    }
+
+    return *((JAVA_ARRAY *) ptr_inc(str, g_field_java_lang_String_value->offset));
+}
+
+static JAVA_INT string_utf8_length(const JAVA_CHAR* base, JAVA_INT length) {
+    JAVA_INT result = 0;
+    for(JAVA_INT i = 0; i < length; i++) {
+        JAVA_CHAR c = base[i];
+        if ((0x0001 <= c) && (c <= 0x007F)) result += 1;
+        else if (c <= 0x07FF) result += 2;
+        else result += 3;
+    }
+    return result;
+}
+
+JAVA_INT string_utf8_length_of(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT str) {
+    JAVA_ARRAY valueArray = string_get_value_array(vmCurrentContext, str);
+    if (exception_occurred(vmCurrentContext)) {
+        return 0;
+    }
+
+    if(valueArray == (JAVA_ARRAY)JAVA_NULL) {
+        return 0;
+    }
+
+    JAVA_INT arrayLength = valueArray->length;
+    JAVA_CHAR* base = array_base(valueArray, VM_TYPE_CHAR);
+
+    return string_utf8_length(base, arrayLength);
+}
+
+// Writes a jchar a utf8 and returns the end
+static u_char* utf8_write(u_char* base, jchar ch) {
+    if ((ch != 0) && (ch <=0x7f)) {
+        base[0] = (u_char) ch;
+        return base + 1;
+    }
+
+    if (ch <= 0x7FF) {
+        /* 11 bits or less. */
+        unsigned char high_five = ch >> 6;
+        unsigned char low_six = ch & 0x3F;
+        base[0] = high_five | 0xC0; /* 110xxxxx */
+        base[1] = low_six | 0x80;   /* 10xxxxxx */
+        return base + 2;
+    }
+    /* possibly full 16 bits. */
+    char high_four = ch >> 12;
+    char mid_six = (ch >> 6) & 0x3F;
+    char low_six = ch & 0x3f;
+    base[0] = high_four | 0xE0; /* 1110xxxx */
+    base[1] = mid_six | 0x80;   /* 10xxxxxx */
+    base[2] = low_six | 0x80;   /* 10xxxxxx */
+    return base + 3;
+}
+
+C_STR string_utf8_of(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT str) {
+    JAVA_ARRAY valueArray = string_get_value_array(vmCurrentContext, str);
+    if (exception_occurred(vmCurrentContext)) {
+        return 0;
+    }
+
+    JAVA_CHAR *base = NULL;
+    JAVA_INT utf8Length = 0;
+    if (valueArray != NULL) {
+        base = array_base(valueArray, VM_TYPE_CHAR);
+        utf8Length = string_utf8_length(base, valueArray->length);
+    }
+
+    u_char *result = heap_alloc_uncollectable(sizeof(u_char) * (utf8Length + 1));
+    if (!result) {
+        // TODO: throw OOM
+        fprintf(stderr, "Unable to alloc str with length %d\n", utf8Length + 1);
+        abort();
+    }
+
+    u_char *p = result;
+    for (JAVA_INT i = 0; i < utf8Length; i++) {
+        p = utf8_write(p, base[i]);
+    }
+    *p = '\0';
+    if (p != &result[utf8Length]) {
+        fprintf(stderr, "utf8 length prediction incorrect\n");
+        abort();
+    }
+    return (C_STR) result;
 }

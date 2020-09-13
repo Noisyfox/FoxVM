@@ -13,6 +13,7 @@
 #include "vm_array.h"
 #include "vm_method.h"
 #include "vm_field.h"
+#include "vm_string.h"
 
 extern JavaClassInfo *foxvm_class_infos_rt[];
 
@@ -553,6 +554,9 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     cache_class(java_lang_NegativeArraySizeException, "java/lang/NegativeArraySizeException");
     cache_class(java_lang_InstantiationException, "java/lang/InstantiationException");
     cache_class(java_lang_IllegalArgumentException, "java/lang/IllegalArgumentException");
+
+    // Init offsets of some basic Java classes
+    g_field_java_lang_String_value = &field_find(g_class_java_lang_String, "value", "[C")->info;
 
     return JAVA_TRUE;
 }
