@@ -115,7 +115,7 @@ JavaClassInfo g_classInfo_primitive_##desc = {                              \
     .clinit = NULL,                                                         \
     .finalizer = NULL,                                                      \
 };                                                                          \
-static JAVA_CLASS g_class_primitive_##desc = NULL
+JAVA_CLASS g_class_primitive_##desc = NULL
 
 def_prim_class(Z);
 def_prim_class(B);

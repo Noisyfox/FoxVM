@@ -7,9 +7,27 @@
 #include "vm_bytecode.h"
 #include "vm_class.h"
 #include "vm_array.h"
+#include "vm_primitive.h"
 
 JNIEXPORT jclass JNICALL Java_java_lang_Class_getPrimitiveClass(VM_PARAM_CURRENT_CONTEXT, jclass cls, jstring name) {
-    return NULL;
+    C_CSTR utfName = vmCurrentContext->jni->GetStringUTFChars(&vmCurrentContext->jni, name, NULL);
+    if (exception_occurred(vmCurrentContext) || utfName == NULL) {
+        return NULL;
+    }
+
+    native_exit_jni(vmCurrentContext);
+
+    jclass result = NULL;
+    JAVA_CLASS clazz = primitive_of_name(utfName);
+    if (clazz != NULL) {
+        result = native_get_local_ref(vmCurrentContext, clazz->classInstance);
+    }
+
+    native_enter_jni(vmCurrentContext);
+
+    vmCurrentContext->jni->ReleaseStringUTFChars(&vmCurrentContext->jni, name, utfName);
+
+    return result;
 }
 
 JAVA_OBJECT method_fastNative_9Pjava_lang5CClass_15MgetClassLoader0_R9Pjava_lang11CClassLoader(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative* methodInfo) {

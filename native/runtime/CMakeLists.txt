@@ -13,6 +13,7 @@ set(SOURCE_FILES_RUNTIME
         vm_base.c
         vm_array.c
         vm_class.c
+        vm_primitive.c
         vm_exception.c
         vm_stack.c
         vm_field.c
