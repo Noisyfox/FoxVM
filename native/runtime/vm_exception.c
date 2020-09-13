@@ -146,6 +146,10 @@ JAVA_VOID exception_set_NullPointerException(VM_PARAM_CURRENT_CONTEXT, C_CSTR va
     exception_set_newf(vmCurrentContext, g_classInfo_java_lang_NullPointerException, "%s == null", variableName);
 }
 
+JAVA_VOID exception_set_NegativeArraySizeException(VM_PARAM_CURRENT_CONTEXT, JAVA_INT length) {
+    exception_set_newf(vmCurrentContext, g_classInfo_java_lang_NegativeArraySizeException, "%d is not a valid array size", length);
+}
+
 JAVA_VOID exception_set_ArrayStoreException(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *arrayType, JavaClassInfo *elementType) {
     C_CSTR arrayTypeName = class_pretty_descriptor(arrayType->thisClass);
     C_CSTR elementTypeName = class_pretty_descriptor(elementType->thisClass);

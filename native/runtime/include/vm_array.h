@@ -70,4 +70,10 @@ static inline BasicType array_type_of(C_CSTR desc) {
     return t;
 }
 
+/**
+ * Create an array of given length and given descriptor.
+ * @param desc the descriptor of the final array, not the component
+ */
+JAVA_ARRAY array_new(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc, JAVA_INT length);
+
 #endif //FOXVM_VM_ARRAYS_H

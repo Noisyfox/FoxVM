@@ -6,7 +6,10 @@
 #include "vm_array.h"
 #include "vm_memory.h"
 #include "vm_bytecode.h"
+#include "vm_classloader.h"
 #include "classloader/vm_boot_classloader.h"
+#include "vm_gc.h"
+#include <stdio.h>
 
 // Check whether an element of am array with the given type must be
 // aligned 0 mod 8.
@@ -56,4 +59,37 @@ JAVA_OBJECT g_array_5Mclone_R9Pjava_lang6CObject(VM_PARAM_CURRENT_CONTEXT) {
 
     stack_frame_end();
     return JAVA_NULL;
+}
+
+JAVA_ARRAY array_new(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc, JAVA_INT length) {
+    assert(desc);
+    assert(desc[0] == TYPE_DESC_ARRAY);
+
+    JAVA_CLASS clazz = classloader_get_class_by_name_init(vmCurrentContext,
+                                                          stack_frame_top(vmCurrentContext)->thisClass->classLoader,
+                                                          desc);
+    if (exception_occurred(vmCurrentContext)) {
+        return (JAVA_ARRAY) JAVA_NULL;
+    }
+    assert(clazz); // TODO: remove this once I figure out how to safely throw exception in classloader
+
+    if (length < 0) {
+        exception_set_NegativeArraySizeException(vmCurrentContext, length);
+        return (JAVA_ARRAY) JAVA_NULL;
+    }
+
+    BasicType elementType = array_type_of(desc);
+    size_t objectSize = array_size_of_type(elementType, length);
+
+    JAVA_ARRAY array = heap_alloc(vmCurrentContext, objectSize);
+    if (!array) {
+        fprintf(stderr, "Unable to alloc array %s with length %d\n", desc, length);
+        // TODO: throw OOM exception
+        abort();
+    }
+
+    array->baseObject.clazz = clazz;
+    array->length = length;
+
+    return array;
 }

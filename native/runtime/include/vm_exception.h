@@ -57,6 +57,7 @@ JAVA_VOID exception_set_UnsatisfiedLinkError(VM_PARAM_CURRENT_CONTEXT, MethodInf
 
 JAVA_VOID exception_set_NullPointerException(VM_PARAM_CURRENT_CONTEXT, C_CSTR variableName);
 JAVA_VOID exception_set_ArrayStoreException(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *arrayType, JavaClassInfo *elementType);
+JAVA_VOID exception_set_NegativeArraySizeException(VM_PARAM_CURRENT_CONTEXT, JAVA_INT length);
 JAVA_VOID exception_set_IllegalArgumentException(VM_PARAM_CURRENT_CONTEXT, C_CSTR message);
 
 #define EX_VAL 1

@@ -507,11 +507,6 @@ JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, Java
 }
 
 JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_CSTR desc) {
-    assert(desc[0] == TYPE_DESC_ARRAY);
-
-    JAVA_CLASS clazz = classloader_get_class_by_name_init(vmCurrentContext, frame->baseFrame.thisClass->classLoader, desc);
-    assert(clazz != (JAVA_CLASS) JAVA_NULL);
-
     VMOperandStack *stack = &frame->operandStack;
     VMStackSlot *value = stack->top - 1;
 
@@ -522,22 +517,8 @@ JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_CSTR 
     stack->top = value;
     value->type = VM_SLOT_INVALID;
 
-    JAVA_INT count = value->data.i;
-    assert(count >= 0); // TODO: throw NegativeArraySizeException.
-
-    BasicType elementType = array_type_of(desc);
-    size_t objectSize = array_size_of_type(elementType, count);
-
-    JAVA_ARRAY array = heap_alloc(vmCurrentContext, objectSize);
-    if (!array) {
-        fprintf(stderr, "Unable to alloc array %s with count %d\n", desc, count);
-        // TODO: throw OOM exception
-        exit(-1);
-        return (JAVA_ARRAY) JAVA_NULL;
-    }
-
-    array->baseObject.clazz = clazz;
-    array->length = count;
+    JAVA_ARRAY array = array_new(vmCurrentContext, desc, value->data.i);
+    exception_raise_if_occurred(vmCurrentContext);
 
     return array;
 }

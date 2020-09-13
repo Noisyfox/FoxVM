@@ -11,6 +11,10 @@ static inline JAVA_BOOLEAN class_is_interface(JavaClassInfo *c) {
     return (c->accessFlags & CLASS_ACC_INTERFACE) == CLASS_ACC_INTERFACE;
 }
 
+static inline JAVA_BOOLEAN class_is_array(JavaClassInfo *c) {
+    return c->thisClass[0] == TYPE_DESC_ARRAY;
+}
+
 JAVA_BOOLEAN class_assignable_desc(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *s, C_CSTR t);
 
 JAVA_BOOLEAN class_assignable(JavaClassInfo *s, JavaClassInfo *t);

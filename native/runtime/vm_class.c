@@ -11,10 +11,6 @@
 #include "vm_gc.h"
 #include <string.h>
 
-static JAVA_BOOLEAN class_is_array(JavaClassInfo *c) {
-    return c->thisClass[0] == TYPE_DESC_ARRAY;
-}
-
 JAVA_BOOLEAN class_assignable_desc(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *s, C_CSTR t) {
     VMStackFrame *frame = stack_frame_top(vmCurrentContext);
     JAVA_OBJECT classLoader = frame->thisClass ? frame->thisClass->classLoader : JAVA_NULL;
