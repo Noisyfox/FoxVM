@@ -11,10 +11,6 @@
 #include "vm_gc.h"
 #include <string.h>
 
-static JAVA_BOOLEAN class_is_interface(JavaClassInfo *c) {
-    return (c->accessFlags & CLASS_ACC_INTERFACE) == CLASS_ACC_INTERFACE;
-}
-
 static JAVA_BOOLEAN class_is_array(JavaClassInfo *c) {
     return c->thisClass[0] == TYPE_DESC_ARRAY;
 }

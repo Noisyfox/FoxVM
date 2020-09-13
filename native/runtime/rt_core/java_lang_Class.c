@@ -108,6 +108,18 @@ JAVA_OBJECT method_fastNative_9Pjava_lang5CClass_15MgetClassLoader0_R9Pjava_lang
     return clazz->classLoader;
 }
 
+JNIEXPORT jboolean JNICALL Java_java_lang_Class_isInterface(VM_PARAM_CURRENT_CONTEXT, jobject thiz) {
+    native_exit_jni(vmCurrentContext);
+
+    JAVA_OBJECT classObj = native_dereference(vmCurrentContext, thiz);
+    JAVA_CLASS clazz = class_get_native_class(classObj);
+    JAVA_BOOLEAN isInterface = !clazz->isPrimitive && class_is_interface(clazz->info);
+
+    native_enter_jni(vmCurrentContext);
+
+    return isInterface;
+}
+
 JNIEXPORT jboolean JNICALL Java_java_lang_Class_isArray(VM_PARAM_CURRENT_CONTEXT, jobject thiz) {
     native_exit_jni(vmCurrentContext);
 
