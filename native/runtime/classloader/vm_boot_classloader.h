@@ -11,6 +11,7 @@
 extern JavaClassInfo *g_classInfo_##var; \
 extern JAVA_CLASS     g_class_##var
 
+// Base classes
 cached_class(java_lang_Object);
 cached_class(java_lang_Class);
 cached_class(java_lang_ClassLoader);
@@ -50,6 +51,10 @@ cached_class(java_lang_NegativeArraySizeException);
 cached_class(java_lang_InstantiationException);
 cached_class(java_lang_IllegalArgumentException);
 
+// Reflections
+cached_class(java_lang_reflect_Constructor);
+cached_class(java_lang_reflect_Method);
+
 #undef cached_class
 
 extern MethodInfo g_array_methodInfo_5Mclone_R9Pjava_lang6CObject;
@@ -60,5 +65,7 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT);
 JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *classInfo);
 
 JAVA_CLASS cl_bootstrap_find_class(VM_PARAM_CURRENT_CONTEXT, C_CSTR className);
+
+JAVA_CLASS cl_bootstrap_find_class_by_descriptor(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc);
 
 #endif //FOXVM_VM_BOOT_CLASSLOADER_H

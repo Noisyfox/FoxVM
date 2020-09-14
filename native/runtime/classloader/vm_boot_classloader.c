@@ -29,6 +29,7 @@ static VMStackSlot g_bootstrapArrayClassLock = {0};
 JavaClassInfo *g_classInfo_##var = NULL; \
 JAVA_CLASS     g_class_##var = NULL
 
+// Base classes
 cached_class(java_lang_Object);
 cached_class(java_lang_Class);
 cached_class(java_lang_ClassLoader);
@@ -67,6 +68,10 @@ cached_class(java_lang_ClassNotFoundException);
 cached_class(java_lang_NegativeArraySizeException);
 cached_class(java_lang_InstantiationException);
 cached_class(java_lang_IllegalArgumentException);
+
+// Reflections
+cached_class(java_lang_reflect_Constructor);
+cached_class(java_lang_reflect_Method);
 
 #undef cached_class
 
@@ -558,6 +563,9 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     cache_class(java_lang_InstantiationException, "java/lang/InstantiationException");
     cache_class(java_lang_IllegalArgumentException, "java/lang/IllegalArgumentException");
 
+    cache_class(java_lang_reflect_Constructor, "java/lang/reflect/Constructor");
+    cache_class(java_lang_reflect_Method, "java/lang/reflect/Method");
+
     // Init offsets of some basic Java classes
     g_field_java_lang_String_value = &field_find(g_class_java_lang_String, "value", "[C")->info;
 
@@ -667,7 +675,7 @@ JAVA_CLASS cl_bootstrap_find_class_by_info(VM_PARAM_CURRENT_CONTEXT, JavaClassIn
     return thisClass;
 }
 
-static JAVA_CLASS cl_bootstrap_find_class_by_descriptor(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc) {
+JAVA_CLASS cl_bootstrap_find_class_by_descriptor(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc) {
     switch (desc[0]) {
         case TYPE_DESC_BOOLEAN: return g_class_primitive_Z;
         case TYPE_DESC_BYTE:    return g_class_primitive_B;

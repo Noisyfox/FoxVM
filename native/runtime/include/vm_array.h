@@ -76,4 +76,6 @@ static inline BasicType array_type_of(C_CSTR desc) {
  */
 JAVA_ARRAY array_new(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc, JAVA_INT length);
 
+JAVA_VOID array_set_object(VM_PARAM_CURRENT_CONTEXT, JAVA_ARRAY array, JAVA_INT index, JAVA_OBJECT obj);
+
 #endif //FOXVM_VM_ARRAYS_H

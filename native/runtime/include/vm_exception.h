@@ -100,7 +100,7 @@ JAVA_VOID exception_set_IllegalArgumentException(VM_PARAM_CURRENT_CONTEXT, C_CST
     }                                           \
 } while(0)
 
-#define exception_suppressedv() do {              \
+#define exception_suppressedv() do {            \
     exception_not_handled() {                   \
         exception_set(vmCurrentContext, ex);    \
         stack_frame_end();                      \

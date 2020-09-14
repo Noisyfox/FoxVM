@@ -56,6 +56,7 @@ import java.lang.annotation.AnnotationFormatError;
  */
 public final class Method extends Executable {
     private Class<?>            clazz;
+    // In FoxVM this field stores the method index in the corresponding `JavaClassInfo.methods`
     private int                 slot;
     // This is guaranteed to be interned by the VM in the 1.4
     // reflection implementation

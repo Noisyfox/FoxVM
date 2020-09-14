@@ -9,7 +9,9 @@
 #include "vm_classloader.h"
 #include "classloader/vm_boot_classloader.h"
 #include "vm_gc.h"
+#include "vm_class.h"
 #include <stdio.h>
+#include <string.h>
 
 // Check whether an element of am array with the given type must be
 // aligned 0 mod 8.
@@ -46,6 +48,29 @@ size_t array_size_of_type(BasicType t, size_t length) {
     return align_size_up(array_header_size(t) + type_size(t) * length, SIZE_ALIGNMENT);
 }
 
+static JAVA_ARRAY array_clone(VM_PARAM_CURRENT_CONTEXT, JAVA_ARRAY array) {
+    JAVA_CLASS c = obj_get_class((JAVA_OBJECT) array);
+    JAVA_INT length = array->length;
+    C_CSTR desc = c->info->thisClass;
+    BasicType elementType = array_type_of(desc);
+
+    native_scoped {
+        // Store the original
+        native_handler_new(h_orig, array);
+        // Create new one
+        native_handler_new(h_cloned, array_new(vmCurrentContext, desc, length));
+        // Copy the array
+        JAVA_ARRAY orig = (JAVA_ARRAY) native_dereference(vmCurrentContext, h_orig);
+        JAVA_ARRAY cloned = (JAVA_ARRAY) native_dereference(vmCurrentContext, h_cloned);
+        size_t size = type_size(elementType) * length;
+        memcpy(array_base(cloned, elementType), array_base(orig, elementType), size);
+
+        result = h_cloned;
+    } native_scope_end();
+
+    return (JAVA_ARRAY) javaResult;
+}
+
 /**
  * Impl of array.clone() method
  */
@@ -54,11 +79,12 @@ JAVA_OBJECT g_array_5Mclone_R9Pjava_lang6CObject(VM_PARAM_CURRENT_CONTEXT) {
     bc_prepare_arguments(1);
     bc_check_objectref();
 
-    // TODO
-    assert(!"Not implemented");
+    JAVA_ARRAY cloned = array_clone(vmCurrentContext, (JAVA_ARRAY) local_of(0).data.o);
+    exception_raise_if_occurred(vmCurrentContext);
 
     stack_frame_end();
-    return JAVA_NULL;
+
+    return (JAVA_OBJECT) cloned;
 }
 
 JAVA_ARRAY array_new(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc, JAVA_INT length) {
@@ -92,4 +118,32 @@ JAVA_ARRAY array_new(VM_PARAM_CURRENT_CONTEXT, C_CSTR desc, JAVA_INT length) {
     array->length = length;
 
     return array;
+}
+
+JAVA_VOID array_set_object(VM_PARAM_CURRENT_CONTEXT, JAVA_ARRAY array, JAVA_INT index, JAVA_OBJECT obj) {
+    assert(index >= 0); // TODO: throw ArrayIndexOutOfBoundsException instead
+    assert(index < array->length); // TODO: throw ArrayIndexOutOfBoundsException instead
+
+    BasicType arrayType = array_type_of(obj_get_class(&array->baseObject)->info->thisClass);
+
+    if (arrayType != VM_TYPE_OBJECT && arrayType != VM_TYPE_ARRAY) {
+        fprintf(stderr, "Cannot store object in an array of primitive type\n");
+        abort();
+    }
+
+    if (obj) {
+        // ..., if arrayref is not null and the actual type of
+        // value is not assignment compatible (JLS §5.2) with the actual
+        // type of the components of the array, aastore throws an
+        // ArrayStoreException.
+        JavaClassInfo *valueTypeInfo = obj_get_class(obj)->info;
+        JavaClassInfo *componentTypeInfo = ((JavaArrayClass *) obj_get_class(&array->baseObject))->componentType->info;
+        if (!class_assignable(valueTypeInfo, componentTypeInfo)) {
+            exception_set_ArrayStoreException(vmCurrentContext, obj_get_class(&array->baseObject)->info, valueTypeInfo);
+            return;
+        }
+    }
+
+    JAVA_OBJECT *element = array_element_at(array, arrayType, index);
+    *element = obj;
 }

@@ -289,3 +289,12 @@ JAVA_BOOLEAN classloader_prepare_fields(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS thi
 
     return JAVA_TRUE;
 }
+
+JAVA_CLASS classloader_get_class_by_desc(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT classloader, C_CSTR desc) {
+    JAVA_CLASS c = NULL;
+    if (classloader == NULL) {
+        c = cl_bootstrap_find_class_by_descriptor(vmCurrentContext, desc);
+    }
+
+    return c;
+}

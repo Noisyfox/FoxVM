@@ -9,6 +9,8 @@
 #include "vm_array.h"
 #include "vm_primitive.h"
 #include "vm_classloader.h"
+#include "vm_method.h"
+#include "vm_reflection.h"
 #include <string.h>
 #include <stdio.h>
 
@@ -160,4 +162,60 @@ JNIEXPORT jboolean JNICALL Java_java_lang_Class_isPrimitive(VM_PARAM_CURRENT_CON
     native_enter_jni(vmCurrentContext);
 
     return isPrimitive;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_java_lang_Class_getDeclaredConstructors0(VM_PARAM_CURRENT_CONTEXT, jobject thiz, jboolean publicOnly) {
+    native_exit_jni(vmCurrentContext);
+
+    JAVA_OBJECT classObj = native_dereference(vmCurrentContext, thiz);
+    JAVA_CLASS clazz = class_get_native_class(classObj);
+    JavaClassInfo *info = clazz->info;
+
+    jobjectArray result = NULL;
+    if (clazz->isPrimitive || class_is_array(info)) {
+        // Return empty array
+        native_handler_new(h_r, array_new(vmCurrentContext, "[Ljava/lang/reflect/Constructor;", 0));
+        result = h_r;
+    } else {
+        // Count the required constructors
+        int num = 0;
+        for (uint16_t i = 0; i < info->methodCount; i++) {
+            MethodInfo *m = info->methods[i];
+            if (!method_is_static(m) && method_is_object_initializer(m)) {
+                if (!publicOnly || method_is_public(m)) {
+                    num++;
+                }
+            }
+        }
+
+        // Allocate result
+        native_handler_new(h_r, array_new(vmCurrentContext, "[Ljava/lang/reflect/Constructor;", num));
+
+        int index = 0;
+        for (uint16_t i = 0; i < info->methodCount; i++) {
+            MethodInfo *m = info->methods[i];
+            if (!method_is_static(m) && method_is_object_initializer(m)) {
+                if (!publicOnly || method_is_public(m)) {
+                    // Create the constructor instance
+                    JAVA_OBJECT constructor = reflection_method_new_constructor(vmCurrentContext, clazz, i);
+                    native_check_exception();
+
+                    // Store the instance
+                    JAVA_ARRAY r = (JAVA_ARRAY) native_dereference(vmCurrentContext, h_r);
+                    native_check_exception();
+                    array_set_object(vmCurrentContext, r, index, constructor);
+                    native_check_exception();
+
+                    index++;
+                }
+            }
+        }
+
+        result = h_r;
+    }
+
+native_end:
+
+    native_enter_jni(vmCurrentContext);
+    return result;
 }

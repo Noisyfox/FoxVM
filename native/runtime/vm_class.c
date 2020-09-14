@@ -10,6 +10,7 @@
 #include "vm_memory.h"
 #include "vm_gc.h"
 #include <string.h>
+#include <stdio.h>
 
 JAVA_BOOLEAN class_assignable_desc(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *s, C_CSTR t) {
     VMStackFrame *frame = stack_frame_top(vmCurrentContext);
@@ -92,6 +93,19 @@ JAVA_BOOLEAN class_assignable(JavaClassInfo *s, JavaClassInfo *t) {
 
         return JAVA_FALSE;
     }
+}
+
+JAVA_OBJECT class_alloc_instance(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS cls) {
+    JavaClassInfo *info = cls->info;
+    JAVA_OBJECT obj = heap_alloc(vmCurrentContext, info->instanceSize);
+    if (!obj) {
+        fprintf(stderr, "Unable to create instance of class %s \n", info->thisClass);
+        // TODO: throw OOM exception
+        abort();
+    }
+    obj->clazz = cls;
+
+    return obj;
 }
 
 JAVA_CLASS class_get_native_class(JAVA_OBJECT classObj) {

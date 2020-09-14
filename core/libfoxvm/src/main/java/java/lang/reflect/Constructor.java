@@ -55,6 +55,7 @@ import java.lang.annotation.AnnotationFormatError;
  */
 public final class Constructor<T> extends Executable {
     private Class<T>            clazz;
+    // In FoxVM this field stores the method index in the corresponding `JavaClassInfo.methods`
     private int                 slot;
     private Class<?>[]          parameterTypes;
     private Class<?>[]          exceptionTypes;

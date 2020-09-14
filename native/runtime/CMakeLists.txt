@@ -20,6 +20,7 @@ set(SOURCE_FILES_RUNTIME
         vm_bytecode.c
         vm_string.c
         vm_method.c
+        vm_reflection.c
 
         thread/vm_thread.c
 

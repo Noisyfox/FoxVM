@@ -19,6 +19,8 @@ JAVA_BOOLEAN class_assignable_desc(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *s, C
 
 JAVA_BOOLEAN class_assignable(JavaClassInfo *s, JavaClassInfo *t);
 
+JAVA_OBJECT class_alloc_instance(VM_PARAM_CURRENT_CONTEXT, JAVA_CLASS cls);
+
 JAVA_CLASS class_get_native_class(JAVA_OBJECT classObj);
 
 /**

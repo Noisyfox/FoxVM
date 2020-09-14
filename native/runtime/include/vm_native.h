@@ -42,6 +42,42 @@ typedef struct _NativeStackFrame {
     native_frame_pop(vmCurrentContext); \
     exception_raise_if_occurred(vmCurrentContext)
 
+// Helper macros for using native handler in a non-jni native function
+
+// Start a native scope. A local variable called `result` will be created
+// which you can store a native handler to as the result of this scope.
+#define native_scoped                   \
+    native_stack_frame_start(10);       \
+    JAVA_OBJECT javaResult = JAVA_NULL; \
+    jobject result = NULL;              \
+    do
+
+// End the scope. The result handler will be dereferenced automatically
+// if no exception occurred inside the scope, and is stored in the local
+// variable `javaResult`.
+#define native_scope_end()                                          \
+    while (0);                                                      \
+    native_end:                                                     \
+    if (!exception_occurred(vmCurrentContext)) {                    \
+        javaResult = native_dereference(vmCurrentContext, result);  \
+    }                                                               \
+    native_frame_pop(vmCurrentContext)
+
+#define native_check_exception() \
+    if (exception_occurred(vmCurrentContext)) goto native_end
+
+#define native_handler_of(var, expression)                  \
+    {                                                       \
+        JAVA_OBJECT _tmp = (JAVA_OBJECT)(expression);       \
+        native_check_exception();                           \
+        var = native_get_local_ref(vmCurrentContext, _tmp); \
+    }                                                       \
+    native_check_exception()
+
+#define native_handler_new(var, expression)                 \
+    jobject var = NULL;                                     \
+    native_handler_of(var, expression)
+
 JAVA_BOOLEAN native_init();
 
 /** Init the thread root stack frame */

@@ -2696,31 +2696,31 @@ public final class Class<T> implements java.io.Serializable,
     // Returns an array of "root" constructors. These Constructor
     // objects must NOT be propagated to the outside world, but must
     // instead be copied via ReflectionFactory.copyConstructor.
-    // private Constructor<T>[] privateGetDeclaredConstructors(boolean publicOnly) {
-    //     checkInitted();
-    //     Constructor<T>[] res;
-    //     ReflectionData<T> rd = reflectionData();
-    //     if (rd != null) {
-    //         res = publicOnly ? rd.publicConstructors : rd.declaredConstructors;
-    //         if (res != null) return res;
-    //     }
-    //     // No cached value available; request value from VM
-    //     if (isInterface()) {
-    //         @SuppressWarnings("unchecked")
-    //         Constructor<T>[] temporaryRes = (Constructor<T>[]) new Constructor<?>[0];
-    //         res = temporaryRes;
-    //     } else {
-    //         res = getDeclaredConstructors0(publicOnly);
-    //     }
-    //     if (rd != null) {
-    //         if (publicOnly) {
-    //             rd.publicConstructors = res;
-    //         } else {
-    //             rd.declaredConstructors = res;
-    //         }
-    //     }
-    //     return res;
-    // }
+    private Constructor<T>[] privateGetDeclaredConstructors(boolean publicOnly) {
+        // checkInitted();
+        Constructor<T>[] res;
+/*        ReflectionData<T> rd = reflectionData();
+        if (rd != null) {
+            res = publicOnly ? rd.publicConstructors : rd.declaredConstructors;
+            if (res != null) return res;
+        }*/
+        // No cached value available; request value from VM
+        if (isInterface()) {
+            @SuppressWarnings("unchecked")
+            Constructor<T>[] temporaryRes = (Constructor<T>[]) new Constructor<?>[0];
+            res = temporaryRes;
+        } else {
+            res = getDeclaredConstructors0(publicOnly);
+        }
+/*        if (rd != null) {
+            if (publicOnly) {
+                rd.publicConstructors = res;
+            } else {
+                rd.declaredConstructors = res;
+            }
+        }*/
+        return res;
+    }
 
     //
     //
@@ -3114,43 +3114,44 @@ public final class Class<T> implements java.io.Serializable,
     private Constructor<T> getConstructor0(Class<?>[] parameterTypes,
                                         int which) throws NoSuchMethodException
     {
-/*        Constructor<T>[] constructors = privateGetDeclaredConstructors((which == Member.PUBLIC));
+        Constructor<T>[] constructors = privateGetDeclaredConstructors((which == Member.PUBLIC));
         for (Constructor<T> constructor : constructors) {
             if (arrayContentsEq(parameterTypes,
                                 constructor.getParameterTypes())) {
-                return getReflectionFactory().copyConstructor(constructor);
+                // FoxVM-changed: we don't use method cache (yet), no need for a copy
+                // return getReflectionFactory().copyConstructor(constructor);
+                return constructor;
             }
         }
-        throw new NoSuchMethodException(getName() + ".<init>" + argumentTypesToString(parameterTypes));*/
-        throw new RuntimeException("Not implemented");
+        throw new NoSuchMethodException(getName() + ".<init>" + argumentTypesToString(parameterTypes));
     }
 
-    // //
-    // // Other helpers and base implementation
-    // //
     //
-    // private static boolean arrayContentsEq(Object[] a1, Object[] a2) {
-    //     if (a1 == null) {
-    //         return a2 == null || a2.length == 0;
-    //     }
+    // Other helpers and base implementation
     //
-    //     if (a2 == null) {
-    //         return a1.length == 0;
-    //     }
-    //
-    //     if (a1.length != a2.length) {
-    //         return false;
-    //     }
-    //
-    //     for (int i = 0; i < a1.length; i++) {
-    //         if (a1[i] != a2[i]) {
-    //             return false;
-    //         }
-    //     }
-    //
-    //     return true;
-    // }
-    //
+
+    private static boolean arrayContentsEq(Object[] a1, Object[] a2) {
+        if (a1 == null) {
+            return a2 == null || a2.length == 0;
+        }
+
+        if (a2 == null) {
+            return a1.length == 0;
+        }
+
+        if (a1.length != a2.length) {
+            return false;
+        }
+
+        for (int i = 0; i < a1.length; i++) {
+            if (a1[i] != a2[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     // private static Field[] copyFields(Field[] arg) {
     //     Field[] out = new Field[arg.length];
     //     ReflectionFactory fact = getReflectionFactory();
@@ -3180,24 +3181,24 @@ public final class Class<T> implements java.io.Serializable,
     //
     // private native Field[]       getDeclaredFields0(boolean publicOnly);
     // private native Method[]      getDeclaredMethods0(boolean publicOnly);
-    // private native Constructor<T>[] getDeclaredConstructors0(boolean publicOnly);
+    private native Constructor<T>[] getDeclaredConstructors0(boolean publicOnly);
     // private native Class<?>[]   getDeclaredClasses0();
-    //
-    // private static String        argumentTypesToString(Class<?>[] argTypes) {
-    //     StringBuilder buf = new StringBuilder();
-    //     buf.append("(");
-    //     if (argTypes != null) {
-    //         for (int i = 0; i < argTypes.length; i++) {
-    //             if (i > 0) {
-    //                 buf.append(", ");
-    //             }
-    //             Class<?> c = argTypes[i];
-    //             buf.append((c == null) ? "null" : c.getName());
-    //         }
-    //     }
-    //     buf.append(")");
-    //     return buf.toString();
-    // }
+
+    private static String        argumentTypesToString(Class<?>[] argTypes) {
+        StringBuilder buf = new StringBuilder();
+        buf.append("(");
+        if (argTypes != null) {
+            for (int i = 0; i < argTypes.length; i++) {
+                if (i > 0) {
+                    buf.append(", ");
+                }
+                Class<?> c = argTypes[i];
+                buf.append((c == null) ? "null" : c.getName());
+            }
+        }
+        buf.append(")");
+        return buf.toString();
+    }
 
     /** use serialVersionUID from JDK 1.1 for interoperability */
     private static final long serialVersionUID = 3206093459760846163L;

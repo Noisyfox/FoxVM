@@ -667,20 +667,8 @@ JAVA_VOID bc_array_store(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, BasicT
             assert(arrayType == VM_TYPE_OBJECT || arrayType == VM_TYPE_ARRAY);
             assert(value->type == VM_SLOT_OBJECT);
 
-            if(value->data.o) {
-                // ..., if arrayref is not null and the actual type of
-                // value is not assignment compatible (JLS §5.2) with the actual
-                // type of the components of the array, aastore throws an
-                // ArrayStoreException.
-                JavaClassInfo *valueTypeInfo = obj_get_class(value->data.o)->info;
-                JavaClassInfo *componentTypeInfo = ((JavaArrayClass *) obj_get_class(&array->baseObject))->componentType->info;
-                if (!class_assignable(valueTypeInfo, componentTypeInfo)) {
-                    exception_set_ArrayStoreException(vmCurrentContext, obj_get_class(&array->baseObject)->info, valueTypeInfo);
-                    RETURNV();
-                }
-            }
-
-            *((JAVA_OBJECT *) element) = value->data.o;
+            array_set_object(vmCurrentContext, array, i, value->data.o);
+            exception_raise_if_occurred(vmCurrentContext);
             break;
         case VM_TYPE_BOOLEAN:
         case VM_TYPE_ARRAY:
@@ -702,16 +690,9 @@ JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, 
 
     assert(!clazz->isPrimitive);
 
-    JAVA_OBJECT obj = heap_alloc(vmCurrentContext, clazz->info->instanceSize);
-    if (!obj) {
-        fprintf(stderr, "Unable to create instance of class %s \n", info->thisClass);
-        // TODO: throw OOM exception
-        exit(-1);
-        return JAVA_NULL;
-    }
-    obj->clazz = clazz;
+    JAVA_OBJECT obj = class_alloc_instance(vmCurrentContext, clazz);
 
-    return obj;
+    RETURN(obj);
 }
 
 JAVA_VOID bc_monitor_enter(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack) {
