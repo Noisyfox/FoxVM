@@ -87,7 +87,7 @@ static JAVA_VOID resolve_handler_primitive(JAVA_CLASS c) {
 
 #define def_prim_class(desc)                                                \
 JavaClassInfo g_classInfo_primitive_##desc = {                              \
-    .accessFlags = CLASS_ACC_PUBLIC | CLASS_ACC_FINAL | CLASS_ACC_SUPER,    \
+    .accessFlags = CLASS_ACC_ABSTRACT | CLASS_ACC_FINAL | CLASS_ACC_PUBLIC, \
     .thisClass = #desc,                                                     \
     .signature = NULL,                                                      \
     .superClass = NULL,                                                     \
@@ -206,7 +206,7 @@ static JAVA_VOID resolve_handler_array(JAVA_CLASS c) {
 
 // The prototype of all array class infos
 static JavaClassInfo g_classInfo_array_prototype = {
-        .accessFlags = CLASS_ACC_PUBLIC | CLASS_ACC_FINAL,
+        .accessFlags = CLASS_ACC_ABSTRACT | CLASS_ACC_FINAL | CLASS_ACC_PUBLIC,
         .thisClass = "[",
         .signature = NULL,
         .superClass = NULL, // Assigned in [cl_bootstrap_init]
