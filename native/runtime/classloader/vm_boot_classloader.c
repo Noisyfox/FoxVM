@@ -265,7 +265,11 @@ static JavaClassInfo *cl_bootstrap_class_info_lookup_by_descriptor(C_CSTR desc) 
     JavaClassInfo *currentInfo = *cursor;
     while (currentInfo != NULL) {
         // Compare the class name
-        if (strncmp(desc, currentInfo->thisClass, len) == 0) {
+        if (strncmp(desc, currentInfo->thisClass, len) == 0
+            // Make sure the class name has the same length, since strncmp will match if
+            // [desc] is the prefix of the actual name, for example,
+            //   strncmp("class1", "class12", 6) == 0
+            && currentInfo->thisClass[len] == '\0') {
             return currentInfo;
         }
 
