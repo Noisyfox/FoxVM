@@ -14,6 +14,7 @@
 #include "vm_method.h"
 #include "vm_field.h"
 #include "vm_string.h"
+#include "vm_primitive.h"
 
 extern JavaClassInfo *foxvm_class_infos_rt[];
 
@@ -76,63 +77,6 @@ cached_class(java_lang_reflect_Method);
 #undef cached_class
 
 FieldInfo *g_field_java_lang_Class_fvmNativeType = NULL;
-
-static JAVA_VOID resolve_handler_primitive(JAVA_CLASS c) {
-    c->interfaceCount = 0;
-    c->interfaces = NULL;
-
-    c->staticFieldCount = 0;
-    c->staticFields = NULL;
-    c->hasStaticReference = JAVA_FALSE;
-
-    c->fieldCount = 0;
-    c->fields = NULL;
-    c->hasReference = JAVA_FALSE;
-}
-
-#define def_prim_class(desc)                                                \
-JavaClassInfo g_classInfo_primitive_##desc = {                              \
-    .accessFlags = CLASS_ACC_ABSTRACT | CLASS_ACC_FINAL | CLASS_ACC_PUBLIC, \
-    .thisClass = #desc,                                                     \
-    .signature = NULL,                                                      \
-    .superClass = NULL,                                                     \
-    .interfaceCount = 0,                                                    \
-    .interfaces = NULL,                                                     \
-    .fieldCount = 0,                                                        \
-    .fields = NULL,                                                         \
-    .methodCount = 0,                                                       \
-    .methods = NULL,                                                        \
-                                                                            \
-    .resolveHandler = resolve_handler_primitive,                            \
-    .classSize = sizeof(JavaClass),                                         \
-    .instanceSize = 0,                                                      \
-                                                                            \
-    .preResolvedStaticFieldCount = 0,                                       \
-    .preResolvedStaticFields = NULL,                                        \
-    .preResolvedInstanceFieldCount = 0,                                     \
-    .preResolvedInstanceFields = NULL,                                      \
-                                                                            \
-    .vtableCount = 0,                                                       \
-    .vtable = NULL,                                                         \
-    .ivtableCount = 0,                                                      \
-    .ivtable = NULL,                                                        \
-                                                                            \
-    .clinit = NULL,                                                         \
-    .finalizer = NULL,                                                      \
-};                                                                          \
-JAVA_CLASS g_class_primitive_##desc = NULL
-
-def_prim_class(Z);
-def_prim_class(B);
-def_prim_class(C);
-def_prim_class(S);
-def_prim_class(I);
-def_prim_class(J);
-def_prim_class(F);
-def_prim_class(D);
-def_prim_class(V);
-
-#undef def_prim_class
 
 JavaClass* g_class_array_Z = NULL;
 JavaClass* g_class_array_B = NULL;
