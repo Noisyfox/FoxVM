@@ -18,36 +18,37 @@ static JAVA_VOID resolve_handler_primitive(JAVA_CLASS c) {
     c->hasReference = JAVA_FALSE;
 }
 
-#define def_prim_class(desc)                                                \
-JavaClassInfo g_classInfo_primitive_##desc = {                              \
-    .accessFlags = CLASS_ACC_ABSTRACT | CLASS_ACC_FINAL | CLASS_ACC_PUBLIC, \
-    .thisClass = #desc,                                                     \
-    .signature = NULL,                                                      \
-    .superClass = NULL,                                                     \
-    .interfaceCount = 0,                                                    \
-    .interfaces = NULL,                                                     \
-    .fieldCount = 0,                                                        \
-    .fields = NULL,                                                         \
-    .methodCount = 0,                                                       \
-    .methods = NULL,                                                        \
-                                                                            \
-    .resolveHandler = resolve_handler_primitive,                            \
-    .classSize = sizeof(JavaClass),                                         \
-    .instanceSize = 0,                                                      \
-                                                                            \
-    .preResolvedStaticFieldCount = 0,                                       \
-    .preResolvedStaticFields = NULL,                                        \
-    .preResolvedInstanceFieldCount = 0,                                     \
-    .preResolvedInstanceFields = NULL,                                      \
-                                                                            \
-    .vtableCount = 0,                                                       \
-    .vtable = NULL,                                                         \
-    .ivtableCount = 0,                                                      \
-    .ivtable = NULL,                                                        \
-                                                                            \
-    .clinit = NULL,                                                         \
-    .finalizer = NULL,                                                      \
-};                                                                          \
+#define def_prim_class(desc)                                                    \
+JavaClassInfo g_classInfo_primitive_##desc = {                                  \
+    .accessFlags = CLASS_ACC_ABSTRACT | CLASS_ACC_FINAL | CLASS_ACC_PUBLIC,     \
+    .modifierFlags = CLASS_ACC_ABSTRACT | CLASS_ACC_FINAL | CLASS_ACC_PUBLIC,   \
+    .thisClass = #desc,                                                         \
+    .signature = NULL,                                                          \
+    .superClass = NULL,                                                         \
+    .interfaceCount = 0,                                                        \
+    .interfaces = NULL,                                                         \
+    .fieldCount = 0,                                                            \
+    .fields = NULL,                                                             \
+    .methodCount = 0,                                                           \
+    .methods = NULL,                                                            \
+                                                                                \
+    .resolveHandler = resolve_handler_primitive,                                \
+    .classSize = sizeof(JavaClass),                                             \
+    .instanceSize = 0,                                                          \
+                                                                                \
+    .preResolvedStaticFieldCount = 0,                                           \
+    .preResolvedStaticFields = NULL,                                            \
+    .preResolvedInstanceFieldCount = 0,                                         \
+    .preResolvedInstanceFields = NULL,                                          \
+                                                                                \
+    .vtableCount = 0,                                                           \
+    .vtable = NULL,                                                             \
+    .ivtableCount = 0,                                                          \
+    .ivtable = NULL,                                                            \
+                                                                                \
+    .clinit = NULL,                                                             \
+    .finalizer = NULL,                                                          \
+};                                                                              \
 JAVA_CLASS g_class_primitive_##desc = NULL
 
 def_prim_class(Z);

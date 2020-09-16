@@ -151,11 +151,23 @@ static JAVA_VOID resolve_handler_array(JAVA_CLASS c) {
 
     // Fix the info ref
     c->info = &clazz->classInfo;
+
+    // Update the modifier
+    // The modifier for an objectArray is the same as its element (see ObjArrayKlass::compute_modifier_flags() in
+    // openjdk hotspot\src\share\vm\oops\objArrayKlass.cpp),
+    // and the modifier for a primitive array is ACC_ABSTRACT | ACC_FINAL | ACC_PUBLIC
+    // (see ArrayKlass::compute_modifier_flags in openjdk hotspot\src\share\vm\oops\arrayKlass.cpp),
+    // which happens to be the same as the primitive classes.
+    // So here we just copy the modifier from it's element.
+    c->info->modifierFlags = (clazz->componentType->info->modifierFlags
+                              & (CLASS_ACC_PUBLIC | CLASS_ACC_PRIVATE | CLASS_ACC_PROTECTED)
+                              | (CLASS_ACC_ABSTRACT | CLASS_ACC_FINAL));
 }
 
 // The prototype of all array class infos
 static JavaClassInfo g_classInfo_array_prototype = {
         .accessFlags = CLASS_ACC_ABSTRACT | CLASS_ACC_FINAL | CLASS_ACC_PUBLIC,
+        .modifierFlags = CLASS_ACC_ABSTRACT | CLASS_ACC_FINAL | CLASS_ACC_PUBLIC,
         .thisClass = "[",
         .signature = NULL,
         .superClass = NULL, // Assigned in [cl_bootstrap_init]
