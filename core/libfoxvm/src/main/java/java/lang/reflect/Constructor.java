@@ -25,7 +25,9 @@
 
 package java.lang.reflect;
 
+import libcore.util.EmptyArray;
 import sun.reflect.CallerSensitive;
+import sun.reflect.Reflection;
 import sun.reflect.generics.repository.ConstructorRepository;
 import sun.reflect.generics.factory.CoreReflectionFactory;
 import sun.reflect.generics.factory.GenericsFactory;
@@ -404,7 +406,7 @@ public final class Constructor<T> extends Executable {
         throws InstantiationException, IllegalAccessException,
                IllegalArgumentException, InvocationTargetException
     {
-/*        if (!override) {
+        if (!override) {
             if (!Reflection.quickCheckMemberAccess(clazz, modifiers)) {
                 Class<?> caller = Reflection.getCallerClass();
                 checkAccess(caller, clazz, null, modifiers);
@@ -412,15 +414,37 @@ public final class Constructor<T> extends Executable {
         }
         if ((clazz.getModifiers() & Modifier.ENUM) != 0)
             throw new IllegalArgumentException("Cannot reflectively create enum objects");
-        ConstructorAccessor ca = constructorAccessor;   // read volatile
+
+        // FoxVM-changed: Move extra checks from ReflectionFactory.newConstructorAccessor() to here
+/*        ConstructorAccessor ca = constructorAccessor;   // read volatile
         if (ca == null) {
             ca = acquireConstructorAccessor();
+        }*/
+        if (Modifier.isAbstract(clazz.getModifiers())) {
+            throw new InstantiationException();
         }
+        if (clazz == Class.class) {
+            throw new InstantiationException("Can not instantiate java.lang.Class");
+        }
+
+        if (initargs == null) {
+            initargs = EmptyArray.OBJECT;
+        }
+        // Check argument length
+        if (initargs.length != parameterTypes.length) {
+            throw new IllegalArgumentException("Argument number mismatch, want " + parameterTypes.length + ", got " + initargs.length + " instead");
+        }
+
         @SuppressWarnings("unchecked")
-        T inst = (T) ca.newInstance(initargs);
-        return inst;*/
-        throw new RuntimeException("Not implemented");
+        // FoxVM-changed: do not use ConstructorAccessor
+        // T inst = (T) ca.newInstance(initargs);
+        T inst = (T) newInstance0(initargs);
+        return inst;
     }
+
+    private native Object newInstance0(Object[] args) throws InstantiationException,
+            IllegalArgumentException,
+            InvocationTargetException;
 
     /**
      * {@inheritDoc}

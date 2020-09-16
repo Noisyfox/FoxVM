@@ -27,6 +27,8 @@ package java.lang.reflect;
 
 import java.lang.annotation.Annotation;
 
+import sun.reflect.Reflection;
+
 /**
  * The AccessibleObject class is the base class for Field, Method and
  * Constructor objects.  It provides the ability to flag a reflected
@@ -249,7 +251,6 @@ public class AccessibleObject implements AnnotatedElement {
     }
 
 
-    // BEGIN FoxVM-removed: Not used.
     // Shared access checking logic.
 
     // For non-public members or members in package-private classes,
@@ -267,7 +268,7 @@ public class AccessibleObject implements AnnotatedElement {
     // The cache can be either null (empty cache), a 2-array of {caller,target},
     // or a caller (with target implicitly equal to this.clazz).
     // In the 2-array case, the target is always different from the clazz.
-/*    volatile Object securityCheckCache;
+    volatile Object securityCheckCache;
 
     void checkAccess(Class<?> caller, Class<?> clazz, Object obj, int modifiers)
         throws IllegalAccessException
@@ -316,6 +317,5 @@ public class AccessibleObject implements AnnotatedElement {
         // guarantees that the initializing stores for the cache
         // elements will occur before the volatile write.
         securityCheckCache = cache;         // write volatile
-    }*/
-    // END FoxVM-removed: Not used.
+    }
 }
