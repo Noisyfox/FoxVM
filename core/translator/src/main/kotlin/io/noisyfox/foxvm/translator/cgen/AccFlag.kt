@@ -9,6 +9,9 @@ object AccFlag {
 
     private val classFlags = mapOf(
         Opcodes.ACC_PUBLIC to "CLASS_ACC_PUBLIC",
+        Opcodes.ACC_PRIVATE to "CLASS_ACC_PRIVATE",
+        Opcodes.ACC_PROTECTED to "CLASS_ACC_PROTECTED",
+        Opcodes.ACC_STATIC to "CLASS_ACC_STATIC",
         Opcodes.ACC_FINAL to "CLASS_ACC_FINAL",
         Opcodes.ACC_SUPER to "CLASS_ACC_SUPER",
         Opcodes.ACC_INTERFACE to "CLASS_ACC_INTERFACE",

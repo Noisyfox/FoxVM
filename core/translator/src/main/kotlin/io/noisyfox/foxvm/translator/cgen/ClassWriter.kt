@@ -591,6 +591,7 @@ class ClassWriter(
                     |// Class info
                     |JavaClassInfo ${info.cName} = {
                     |    .accessFlags = ${AccFlag.translateClassAcc(clazz.access)},
+                    |    .modifierFlags = ${AccFlag.translateClassAcc(info.modifier)},
                     |    .thisClass = "${clazz.className.asCString()}",
                     |    .signature = ${info.signature.toCString()},
                     |    .superClass = ${info.cSuperClass},

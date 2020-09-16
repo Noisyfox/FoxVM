@@ -89,6 +89,7 @@ private class PreResolverClassVisitor(
             thisClass = clazz,
             cIdentifier = mangleClassName(clazz.className),
             version = version,
+            modifier = access, // Set the modifier to the same as access initially
             signature = signature,
             // 3. If C has a direct superclass, the symbolic reference from C to its direct superclass
             //    is resolved using the algorithm of §5.4.3.1.
@@ -213,10 +214,21 @@ private class PreResolverClassVisitor(
         return JSRInlinerAdapter(method.methodNode, access, name, descriptor, signature, exceptions)
     }
 
+    override fun visitInnerClass(name: String, outerName: String?, innerName: String?, access: Int) {
+        if (name == clazz.className) {
+            // This is a member class, so the class's modifier came from the inner class attribute
+            // See `InstanceKlass::compute_modifier_flags()` in openjdk hotspot\src\share\vm\oops\instanceKlass.cpp.
+            clazz.requireClassInfo().modifier = access
+        }
+    }
+
     override fun visitEnd() {
-        // Do pre-resolving
         val info = clazz.requireClassInfo()
 
+        // Final touch of the modifier: remove the ACC_SUPER bit
+        info.modifier = info.modifier and (Opcodes.ACC_SUPER.inv())
+
+        // Do pre-resolving
         val instanceFields = mutableListOf<PreResolvedFieldInfo>()
 
         info.fields.forEachIndexed { i, f ->

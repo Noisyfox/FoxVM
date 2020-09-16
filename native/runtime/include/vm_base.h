@@ -247,6 +247,9 @@ typedef struct {
 
 typedef enum {
     CLASS_ACC_PUBLIC = 0x0001,
+    CLASS_ACC_PRIVATE = 0x0002,
+    CLASS_ACC_PROTECTED = 0x0004,
+    CLASS_ACC_STATIC = 0x0008,
     CLASS_ACC_FINAL = 0x0010,
     CLASS_ACC_SUPER = 0x0020,
     CLASS_ACC_INTERFACE = 0x0200,
@@ -261,6 +264,7 @@ typedef JAVA_VOID (*ClassResolveHandler)(JAVA_CLASS c);
 /** Stores info of a Java .class file */
 struct _JavaClassInfo {
     uint16_t accessFlags;
+    uint16_t modifierFlags;
     C_CSTR thisClass; // UTF-8 string of the fully qualified name of this class
     C_CSTR signature; // Signature of this class if it is generic type, or `NULL`
     JavaClassInfo *superClass; // The parent class

@@ -10,6 +10,7 @@ data class ClassInfo(
     val thisClass: Clazz,
     val cIdentifier: String,
     val version: Int,
+    var modifier: Int,
     val signature: String?,
     val superClass: Clazz?,
     val interfaces: List<Clazz>,
