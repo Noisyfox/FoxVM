@@ -644,8 +644,26 @@ public final class Class<T> implements java.io.Serializable,
      */
     public String getName() {
         String name = this.name;
-        if (name == null)
-            this.name = name = getName0();
+        if (name == null) {
+            String internalName = getName0();
+            if (isPrimitive()) {
+                switch (internalName.charAt(0)) {
+                    case 'Z': name = "boolean"; break;
+                    case 'B': name = "byte";    break;
+                    case 'S': name = "short";   break;
+                    case 'C': name = "char";    break;
+                    case 'I': name = "int";     break;
+                    case 'J': name = "long";    break;
+                    case 'F': name = "float";   break;
+                    case 'D': name = "double";  break;
+                    case 'V': name = "void";    break;
+                }
+            } else {
+                // TODO: intern()
+                name = internalName.replace('/', '.');
+            }
+            this.name = name;
+        }
         return name;
     }
 

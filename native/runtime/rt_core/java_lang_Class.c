@@ -14,6 +14,24 @@
 #include <string.h>
 #include <stdio.h>
 
+JNIEXPORT jstring JNICALL Java_java_lang_Class_getName0(VM_PARAM_CURRENT_CONTEXT, jclass cls) {
+    native_exit_jni(vmCurrentContext);
+
+    jstring h_result = NULL;
+
+    JAVA_OBJECT classObj = native_dereference(vmCurrentContext, cls);
+    native_check_exception();
+
+    JAVA_CLASS clazz = class_get_native_class(classObj);
+    C_CSTR classNameUtf8 = clazz->info->thisClass;
+
+    native_handler_of(h_result, string_create_utf8(vmCurrentContext, classNameUtf8));
+
+native_end:
+    native_enter_jni(vmCurrentContext);
+    return h_result;
+}
+
 static C_STR java_lang_Class_getClassInternalName(VM_PARAM_CURRENT_CONTEXT, jstring name) {
     C_CSTR utfName = vmCurrentContext->jni->GetStringUTFChars(&vmCurrentContext->jni, name, NULL);
     if (exception_occurred(vmCurrentContext) || utfName == NULL) {
