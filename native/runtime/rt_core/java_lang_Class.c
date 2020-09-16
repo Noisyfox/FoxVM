@@ -32,6 +32,21 @@ native_end:
     return h_result;
 }
 
+JNIEXPORT jint JNICALL Java_java_lang_Class_getModifiers(VM_PARAM_CURRENT_CONTEXT, jclass cls) {
+    native_exit_jni(vmCurrentContext);
+
+    jint result = 0;
+    JAVA_OBJECT classObj = native_dereference(vmCurrentContext, cls);
+    native_check_exception();
+
+    JAVA_CLASS clazz = class_get_native_class(classObj);
+    result = clazz->info->modifierFlags;
+
+native_end:
+    native_enter_jni(vmCurrentContext);
+    return result;
+}
+
 static C_STR java_lang_Class_getClassInternalName(VM_PARAM_CURRENT_CONTEXT, jstring name) {
     C_CSTR utfName = vmCurrentContext->jni->GetStringUTFChars(&vmCurrentContext->jni, name, NULL);
     if (exception_occurred(vmCurrentContext) || utfName == NULL) {
