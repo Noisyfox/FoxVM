@@ -13,6 +13,15 @@
 #include <stdio.h>
 #include <string.h>
 
+JavaClass* g_class_array_Z = NULL;
+JavaClass* g_class_array_B = NULL;
+JavaClass* g_class_array_C = NULL;
+JavaClass* g_class_array_S = NULL;
+JavaClass* g_class_array_I = NULL;
+JavaClass* g_class_array_J = NULL;
+JavaClass* g_class_array_F = NULL;
+JavaClass* g_class_array_D = NULL;
+
 // Check whether an element of am array with the given type must be
 // aligned 0 mod 8.
 static inline JAVA_BOOLEAN array_element_alignment(BasicType t) {

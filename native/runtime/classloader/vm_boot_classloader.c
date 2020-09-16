@@ -77,16 +77,6 @@ cached_class(java_lang_reflect_Method);
 #undef cached_class
 
 FieldInfo *g_field_java_lang_Class_fvmNativeType = NULL;
-
-JavaClass* g_class_array_Z = NULL;
-JavaClass* g_class_array_B = NULL;
-JavaClass* g_class_array_C = NULL;
-JavaClass* g_class_array_S = NULL;
-JavaClass* g_class_array_I = NULL;
-JavaClass* g_class_array_J = NULL;
-JavaClass* g_class_array_F = NULL;
-JavaClass* g_class_array_D = NULL;
-
 static MethodInfo *java_lang_Class_init = NULL;
 
 typedef struct {
