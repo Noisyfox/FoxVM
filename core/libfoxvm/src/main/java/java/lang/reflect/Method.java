@@ -79,7 +79,7 @@ public final class Method extends Executable {
     //
     // If this branching structure would ever contain cycles, deadlocks can
     // occur in annotation code.
-    private Method              root;
+    // private Method              root;
 
     // Generics infrastructure
     private String getGenericSignature() {return signature;}
@@ -102,22 +102,28 @@ public final class Method extends Executable {
         return genericInfo; //return cached repository
     }
 
+    /*
+     * FoxVM-changed: Created by VM directly,
+     * This constructor is not used and prevents the default constructor being
+     * generated.
+     */
+    private Method(){}
     /**
      * Package-private constructor used by ReflectAccess to enable
      * instantiation of these objects in Java code from the java.lang
      * package via sun.reflect.LangReflectAccess.
      */
-    Method(Class<?> declaringClass,
+/*    Method(Class<?> declaringClass,
            String name,
            Class<?>[] parameterTypes,
            Class<?> returnType,
            Class<?>[] checkedExceptions,
            int modifiers,
            int slot,
-           String signature/*,
+           String signature*//*,
            byte[] annotations,
            byte[] parameterAnnotations,
-           byte[] annotationDefault*/) {
+           byte[] annotationDefault*//*) {
         this.clazz = declaringClass;
         this.name = name;
         this.parameterTypes = parameterTypes;
@@ -129,14 +135,14 @@ public final class Method extends Executable {
         // this.annotations = annotations;
         // this.parameterAnnotations = parameterAnnotations;
         // this.annotationDefault = annotationDefault;
-    }
+    }*/
 
     /**
      * Package-private routine (exposed to java.lang.Class via
      * ReflectAccess) which returns a copy of this Method. The copy's
      * "root" field points to this Method.
      */
-    Method copy() {
+/*    Method copy() {
         // This routine enables sharing of MethodAccessor objects
         // among Method objects which refer to the same underlying
         // method in the VM. (All of this contortion is only necessary
@@ -148,21 +154,21 @@ public final class Method extends Executable {
             throw new IllegalArgumentException("Can not copy a non-root Method");
 
         Method res = new Method(clazz, name, parameterTypes, returnType,
-                                exceptionTypes, modifiers, slot, signature/*,
-                                annotations, parameterAnnotations, annotationDefault*/);
+                                exceptionTypes, modifiers, slot, signature*//*,
+                                annotations, parameterAnnotations, annotationDefault*//*);
         res.root = this;
         // Might as well eagerly propagate this if already present
         // res.methodAccessor = methodAccessor;
         return res;
-    }
+    }*/
 
     /**
      * Used by Excecutable for annotation sharing.
      */
-    @Override
+/*    @Override
     Executable getRoot() {
         return root;
-    }
+    }*/
 
     @Override
     boolean hasGenericInformation() {

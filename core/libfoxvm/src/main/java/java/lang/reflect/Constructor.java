@@ -96,29 +96,36 @@ public final class Constructor<T> extends Executable {
     //
     // If this branching structure would ever contain cycles, deadlocks can
     // occur in annotation code.
-    private Constructor<T>      root;
+    // private Constructor<T>      root;
 
     /**
      * Used by Excecutable for annotation sharing.
      */
-    @Override
+/*    @Override
     Executable getRoot() {
         return root;
-    }
+    }*/
 
+    /*
+     * FoxVM-changed: Created by VM directly,
+     * This constructor is not used and prevents the default constructor being
+     * generated.
+     */
+    private Constructor(){}
     /**
      * Package-private constructor used by ReflectAccess to enable
      * instantiation of these objects in Java code from the java.lang
      * package via sun.reflect.LangReflectAccess.
      */
-    Constructor(Class<T> declaringClass,
+    // FoxVM-removed
+/*    Constructor(Class<T> declaringClass,
                 Class<?>[] parameterTypes,
                 Class<?>[] checkedExceptions,
                 int modifiers,
                 int slot,
-                String signature/*,
+                String signature*//*,
                 byte[] annotations,
-                byte[] parameterAnnotations*/) {
+                byte[] parameterAnnotations*//*) {
         this.clazz = declaringClass;
         this.parameterTypes = parameterTypes;
         this.exceptionTypes = checkedExceptions;
@@ -127,14 +134,14 @@ public final class Constructor<T> extends Executable {
         this.signature = signature;
         // this.annotations = annotations;
         // this.parameterAnnotations = parameterAnnotations;
-    }
+    }*/
 
     /**
      * Package-private routine (exposed to java.lang.Class via
      * ReflectAccess) which returns a copy of this Constructor. The copy's
      * "root" field points to this Constructor.
      */
-    Constructor<T> copy() {
+/*    Constructor<T> copy() {
         // This routine enables sharing of ConstructorAccessor objects
         // among Constructor objects which refer to the same underlying
         // method in the VM. (All of this contortion is only necessary
@@ -148,14 +155,14 @@ public final class Constructor<T> extends Executable {
         Constructor<T> res = new Constructor<>(clazz,
                                                parameterTypes,
                                                exceptionTypes, modifiers, slot,
-                                               signature/*,
+                                               signature*//*,
                                                annotations,
-                                               parameterAnnotations*/);
+                                               parameterAnnotations*//*);
         res.root = this;
         // Might as well eagerly propagate this if already present
         // res.constructorAccessor = constructorAccessor;
         return res;
-    }
+    }*/
 
     @Override
     boolean hasGenericInformation() {

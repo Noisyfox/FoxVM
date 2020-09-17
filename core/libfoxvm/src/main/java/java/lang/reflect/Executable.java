@@ -53,7 +53,8 @@ public abstract class Executable extends AccessibleObject
     /**
      * Accessor method to allow code sharing
      */
-    abstract Executable getRoot();
+    // FoxVM-removed: No code sharing. The logic is impl in native code directly.
+    // abstract Executable getRoot();
 
     /**
      * Does the Executable have generic information.
