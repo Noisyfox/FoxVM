@@ -50,6 +50,7 @@ cached_class(java_lang_ClassNotFoundException);
 cached_class(java_lang_NegativeArraySizeException);
 cached_class(java_lang_InstantiationException);
 cached_class(java_lang_IllegalArgumentException);
+cached_class(java_lang_ClassCastException);
 
 // Reflections
 cached_class(java_lang_reflect_Constructor);

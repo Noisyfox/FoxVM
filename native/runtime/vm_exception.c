@@ -170,3 +170,20 @@ JAVA_VOID exception_set_ArrayStoreException(VM_PARAM_CURRENT_CONTEXT, JavaClassI
 JAVA_VOID exception_set_IllegalArgumentException(VM_PARAM_CURRENT_CONTEXT, C_CSTR message) {
     exception_set_new(vmCurrentContext, g_classInfo_java_lang_IllegalArgumentException, message);
 }
+
+JAVA_VOID exception_set_ClassCastException(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *expectedType, JavaClassInfo *actualType) {
+    C_CSTR expectedTypeName = class_pretty_descriptor(expectedType->thisClass);
+    C_CSTR actualTypeName = class_pretty_descriptor(actualType->thisClass);
+    if (!expectedTypeName || !actualTypeName) {
+        heap_free_uncollectable((void *) expectedTypeName);
+        heap_free_uncollectable((void *) actualTypeName);
+        // TODO: throw OOM?
+        return;
+    }
+
+    exception_set_newf(vmCurrentContext, g_classInfo_java_lang_ClassCastException,
+                       "%s cannot be cast to type %s", actualTypeName, expectedTypeName);
+
+    heap_free_uncollectable((void *) expectedTypeName);
+    heap_free_uncollectable((void *) actualTypeName);
+}

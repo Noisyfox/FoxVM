@@ -8,6 +8,7 @@
 #include "vm_classloader.h"
 #include "vm_method.h"
 #include "vm_reflection.h"
+#include "vm_primitive.h"
 #include <stdio.h>
 
 static void main_call_initializeSystemClass(VM_PARAM_CURRENT_CONTEXT) {
@@ -85,6 +86,7 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
 
     // Init reflection after the type system is initialized
     reflection_init(vmCurrentContext);
+    primitive_init(vmCurrentContext);
 
     start_main(vmCurrentContext, entrance);
     if (exception_occurred(vmCurrentContext)) {

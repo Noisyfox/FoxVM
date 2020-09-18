@@ -6,6 +6,7 @@ set(SOURCE_FILES_RT_CORE
         java_lang_System.c
         java_lang_Thread.c
         java_lang_Throwable.c
+        java_lang_reflect_Constructor.c
         java_lang_reflect_Array.c
         sun_misc_Unsafe.c
         sun_reflect_Reflection.c

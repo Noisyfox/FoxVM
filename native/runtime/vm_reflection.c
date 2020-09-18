@@ -113,3 +113,12 @@ JAVA_OBJECT reflection_method_new_constructor(VM_PARAM_CURRENT_CONTEXT, JAVA_CLA
 
     return javaResult;
 }
+
+JAVA_CLASS reflection_constructor_get_declaring_class(JAVA_OBJECT cst) {
+    JAVA_OBJECT classObj = *((JAVA_OBJECT *) ptr_inc(cst, g_field_java_lang_reflect_Constructor_clazz->info.offset));
+    return class_get_native_class(classObj);
+}
+
+JAVA_INT reflection_constructor_get_slot(JAVA_OBJECT cst) {
+    return *((JAVA_INT *) ptr_inc(cst, g_field_java_lang_reflect_Constructor_slot->info.offset));
+}

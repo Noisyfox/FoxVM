@@ -69,6 +69,7 @@ cached_class(java_lang_ClassNotFoundException);
 cached_class(java_lang_NegativeArraySizeException);
 cached_class(java_lang_InstantiationException);
 cached_class(java_lang_IllegalArgumentException);
+cached_class(java_lang_ClassCastException);
 
 // Reflections
 cached_class(java_lang_reflect_Constructor);
@@ -508,6 +509,7 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     cache_class(java_lang_NegativeArraySizeException, "java/lang/NegativeArraySizeException");
     cache_class(java_lang_InstantiationException, "java/lang/InstantiationException");
     cache_class(java_lang_IllegalArgumentException, "java/lang/IllegalArgumentException");
+    cache_class(java_lang_ClassCastException, "java/lang/ClassCastException");
 
     cache_class(java_lang_reflect_Constructor, "java/lang/reflect/Constructor");
     cache_class(java_lang_reflect_Method, "java/lang/reflect/Method");
