@@ -320,7 +320,7 @@ JAVA_OBJECT bc_create_instance(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, 
 // invokeXXXX instructions
 #define bc_invoke_special(fp)                          ((JavaMethodRetVoid)    fp)(vmCurrentContext)
 #define bc_invoke_special_z(fp) do {JAVA_BOOLEAN ret = ((JavaMethodRetBoolean) fp)(vmCurrentContext); stack_push_int(ret);                } while(0)
-#define bc_invoke_special_c(fp) do {JAVA_CHAR    ret = ((JavaMethodRetChar)    fp)(vmCurrentContext); stack_push_int(ret);                } while(0)
+#define bc_invoke_special_c(fp) do {JAVA_CHAR    ret = ((JavaMethodRetChar)    fp)(vmCurrentContext); stack_push_int((JAVA_UCHAR)ret);    } while(0)
 #define bc_invoke_special_b(fp) do {JAVA_BYTE    ret = ((JavaMethodRetByte)    fp)(vmCurrentContext); stack_push_int(ret);                } while(0)
 #define bc_invoke_special_s(fp) do {JAVA_SHORT   ret = ((JavaMethodRetShort)   fp)(vmCurrentContext); stack_push_int(ret);                } while(0)
 #define bc_invoke_special_i(fp) do {JAVA_INT     ret = ((JavaMethodRetInt)     fp)(vmCurrentContext); stack_push_int(ret);                } while(0)
@@ -338,7 +338,7 @@ JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, Java
     vmCurrentContext->callingClass = classRef
 #define bc_invoke_static(class_info,   fp) do {bc_invoke_static_prepare(class_info);                    ((JavaMethodRetVoid)    fp)(vmCurrentContext);                                     } while(0)
 #define bc_invoke_static_z(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_BOOLEAN ret = ((JavaMethodRetBoolean) fp)(vmCurrentContext); stack_push_int(ret);                } while(0)
-#define bc_invoke_static_c(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_CHAR    ret = ((JavaMethodRetChar)    fp)(vmCurrentContext); stack_push_int(ret);                } while(0)
+#define bc_invoke_static_c(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_CHAR    ret = ((JavaMethodRetChar)    fp)(vmCurrentContext); stack_push_int((JAVA_UCHAR)ret);    } while(0)
 #define bc_invoke_static_b(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_BYTE    ret = ((JavaMethodRetByte)    fp)(vmCurrentContext); stack_push_int(ret);                } while(0)
 #define bc_invoke_static_s(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_SHORT   ret = ((JavaMethodRetShort)   fp)(vmCurrentContext); stack_push_int(ret);                } while(0)
 #define bc_invoke_static_i(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_INT     ret = ((JavaMethodRetInt)     fp)(vmCurrentContext); stack_push_int(ret);                } while(0)
@@ -398,7 +398,7 @@ JAVA_OBJECT bc_getfield(VMOperandStack *stack);
     JAVA_OBJECT objectRef = bc_getfield(OP_STACK);                      \
     JAVA_##field_type value = ((object_type*)objectRef)->field_name
 #define bc_getfield_z(object_type, field_name) do {bc_do_getfield(object_type, field_name, BOOLEAN); stack_push_int(value);                } while(0)
-#define bc_getfield_c(object_type, field_name) do {bc_do_getfield(object_type, field_name, CHAR);    stack_push_int(value);                } while(0)
+#define bc_getfield_c(object_type, field_name) do {bc_do_getfield(object_type, field_name, CHAR);    stack_push_int((JAVA_UCHAR)value);    } while(0)
 #define bc_getfield_b(object_type, field_name) do {bc_do_getfield(object_type, field_name, BYTE);    stack_push_int(value);                } while(0)
 #define bc_getfield_s(object_type, field_name) do {bc_do_getfield(object_type, field_name, SHORT);   stack_push_int(value);                } while(0)
 #define bc_getfield_i(object_type, field_name) do {bc_do_getfield(object_type, field_name, INT);     stack_push_int(value);                } while(0)
@@ -432,7 +432,7 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, JavaClas
     bc_resolve_class(vmCurrentContext, &STACK_FRAME, class_info, &classRef);    \
     JAVA_##field_type value = ((class_type*)classRef)->field_name
 #define bc_getstatic_z(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, BOOLEAN); stack_push_int(value);                } while(0)
-#define bc_getstatic_c(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, CHAR);    stack_push_int(value);                } while(0)
+#define bc_getstatic_c(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, CHAR);    stack_push_int((JAVA_UCHAR)value);    } while(0)
 #define bc_getstatic_b(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, BYTE);    stack_push_int(value);                } while(0)
 #define bc_getstatic_s(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, SHORT);   stack_push_int(value);                } while(0)
 #define bc_getstatic_i(class_info, class_type, field_name) do {bc_do_getstatic(class_info, class_type, field_name, INT);     stack_push_int(value);                } while(0)
@@ -541,7 +541,7 @@ JAVA_VOID bc_cast_a(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, C_CSTR desc
 // End the native stack frame then push the result to the java stack.
 // This also switch the state of current thread back to normal.
 #define bc_native_end_z(result) do {native_exit_jni(vmCurrentContext); stack_push_int(result);    native_stack_frame_end();} while(0)
-#define bc_native_end_c(result) do {native_exit_jni(vmCurrentContext); stack_push_int(result);    native_stack_frame_end();} while(0)
+#define bc_native_end_c(result) do {native_exit_jni(vmCurrentContext); stack_push_int((JAVA_UCHAR)result);    native_stack_frame_end();} while(0)
 #define bc_native_end_b(result) do {native_exit_jni(vmCurrentContext); stack_push_int(result);    native_stack_frame_end();} while(0)
 #define bc_native_end_s(result) do {native_exit_jni(vmCurrentContext); stack_push_int(result);    native_stack_frame_end();} while(0)
 #define bc_native_end_i(result) do {native_exit_jni(vmCurrentContext); stack_push_int(result);    native_stack_frame_end();} while(0)

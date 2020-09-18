@@ -270,8 +270,15 @@ def_conv_func(d, l);
 def_conv_func(d, f);
 
 def_conv_func(i, b);
-def_conv_func(i, c);
 def_conv_func(i, s);
+
+decl_arithmetic_func(i2c) {
+    arithmetic_un_operand(slot_type_of(i));
+
+    java_type_of(c) converted = (JAVA_UCHAR) value->data.slot_value_of(i);
+    value->type = slot_type_of(c);
+    value->data.slot_value_of(c) = converted;
+}
 
 // Comparison operations
 #define CMP_RESULT_g 1
