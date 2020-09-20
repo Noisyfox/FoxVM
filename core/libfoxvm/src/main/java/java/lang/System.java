@@ -30,6 +30,8 @@ import java.util.Properties;
 import java.util.Objects;
 import java.nio.channels.Channel;
 import java.nio.channels.spi.SelectorProvider;
+
+import dalvik.annotation.optimization.FastNative;
 import sun.nio.ch.Interruptible;
 import sun.reflect.CallerSensitive;
 import sun.reflect.Reflection;
@@ -551,6 +553,7 @@ public final class System {
      * @return  the hashCode
      * @since   JDK1.1
      */
+    @FastNative
     public static native int identityHashCode(Object x);
 
     /**

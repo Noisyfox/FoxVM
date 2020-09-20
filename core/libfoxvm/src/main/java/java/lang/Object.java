@@ -100,8 +100,9 @@ public class Object {
      * @see     java.lang.Object#equals(java.lang.Object)
      * @see     java.lang.System#identityHashCode
      */
-    @FastNative
-    public native int hashCode();
+    public int hashCode() {
+        return System.identityHashCode(this);
+    }
 
     /**
      * Indicates whether some other object is "equal to" this one.
