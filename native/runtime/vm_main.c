@@ -10,6 +10,7 @@
 #include "vm_reflection.h"
 #include "vm_primitive.h"
 #include <stdio.h>
+#include <string.h>
 
 static void main_call_initializeSystemClass(VM_PARAM_CURRENT_CONTEXT) {
     JAVA_CLASS java_lang_System = classloader_get_class_by_name_init(vmCurrentContext, JAVA_NULL, "java/lang/System");
@@ -21,7 +22,7 @@ static void main_call_initializeSystemClass(VM_PARAM_CURRENT_CONTEXT) {
     ((JavaMethodRetVoid) method_initializeSystemClass->code)(vmCurrentContext);
 }
 
-static void start_main(VM_PARAM_CURRENT_CONTEXT, JavaMethodRetVoid entrance) {
+static void start_main(VM_PARAM_CURRENT_CONTEXT, int argc, char *argv[], C_STR mainClass) {
     // Since we are calling into java function, we need a java stack frame
     stack_frame_start(NULL, 1, 0);
     exception_frame_start();
@@ -31,13 +32,43 @@ static void start_main(VM_PARAM_CURRENT_CONTEXT, JavaMethodRetVoid entrance) {
     // Call `java.lang.System#initializeSystemClass`
     main_call_initializeSystemClass(vmCurrentContext);
 
+    JAVA_CLASS c;
+    {
+        size_t len = strlen(mainClass);
+        char mainClass2[len + 1];
+        memcpy(mainClass2, mainClass, (len + 1) * sizeof(char));
+
+        C_STR p = mainClass;
+        while ((*p) != '\0') {
+            if ((*p) == '.') {
+                (*p) = '/';
+            }
+            p++;
+        }
+
+        c = classloader_get_class_by_name_init(vmCurrentContext, JAVA_NULL, mainClass2);
+    }
+    exception_raise_if_occurred(vmCurrentContext);
+    if (!c) {
+        fprintf(stderr,
+                "Error: Could not find or load main class %s\n", mainClass);
+        abort();
+    }
+
+    MethodInfo *mainFunc = method_find(c->info, "main", "([Ljava/lang/String;)V");
+    if(!mainFunc) {
+        fprintf(stderr,
+                "Error: Main method not found in class %s, please define the main method as:\n   public static void main(String[] args)\n", mainClass);
+        abort();
+    }
+    // TODO: prepare arguments
     bc_aconst_null();
-    entrance(vmCurrentContext);
+    bc_invoke_static(c->info, mainFunc->code);
 
     stack_frame_end();
 }
 
-int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
+int vm_main(int argc, char *argv[], C_STR mainClass) {
     // Init low level memory system first
     if (!mem_init()) {
         return -1;
@@ -88,7 +119,7 @@ int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance) {
     reflection_init(vmCurrentContext);
     primitive_init(vmCurrentContext);
 
-    start_main(vmCurrentContext, entrance);
+    start_main(vmCurrentContext, argc, argv, mainClass);
     if (exception_occurred(vmCurrentContext)) {
         fprintf(stderr, "Unhandled exception");
         abort();

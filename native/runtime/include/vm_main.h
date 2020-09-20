@@ -16,9 +16,9 @@
  *
  * @param argc
  * @param argv
- * @param entrance
+ * @param mainClass
  * @return
  */
-int vm_main(int argc, char *argv[], JavaMethodRetVoid entrance);
+int vm_main(int argc, char *argv[], C_STR mainClass);
 
 #endif //FOXVM_VM_MAIN_H
