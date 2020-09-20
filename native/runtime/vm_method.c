@@ -37,6 +37,25 @@ MethodInfo *method_find(JavaClassInfo *clazz, C_CSTR name, C_CSTR desc) {
     return NULL;
 }
 
+JAVA_INT method_vtable_find(JavaClassInfo *clazz, C_CSTR name, C_CSTR desc) {
+    for (uint16_t i = 0; i < clazz->vtableCount; i++) {
+        VTableItem *vti = &clazz->vtable[i];
+
+        JavaClassInfo *c = clazz;
+        if (vti->declaringClass) {
+            c = vti->declaringClass;
+        }
+        MethodInfo *m = c->methods[vti->methodIndex];
+
+        if (strcmp(string_get_constant_utf8(m->name), name) == 0 &&
+            strcmp(string_get_constant_utf8(m->descriptor), desc) == 0) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 MethodInfo *method_vtable_get(JavaClassInfo *clazz, JAVA_INT vtable_index) {
     VTableItem *vt = &clazz->vtable[vtable_index];
     JavaClassInfo *i = clazz;

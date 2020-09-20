@@ -30,6 +30,7 @@ static inline JAVA_BOOLEAN method_is_initializer(MethodInfo *method) {
 
 MethodInfo *method_find(JavaClassInfo *clazz, C_CSTR name, C_CSTR desc);
 
+JAVA_INT method_vtable_find(JavaClassInfo *clazz, C_CSTR name, C_CSTR desc);
 MethodInfo *method_vtable_get(JavaClassInfo *clazz, JAVA_INT vtable_index);
 
 C_CSTR method_get_return_type(C_CSTR desc);

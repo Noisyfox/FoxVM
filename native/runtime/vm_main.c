@@ -68,6 +68,20 @@ static void start_main(VM_PARAM_CURRENT_CONTEXT, int argc, char *argv[], C_STR m
     stack_frame_end();
 }
 
+static void try_print_exception(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT ex) {
+    stack_frame_start(NULL, 1, 0);
+
+    stack_push_object(ex);
+
+    JavaClassInfo *clazz = obj_get_class(ex)->info;
+    JAVA_INT i = method_vtable_find(clazz, "printStackTrace", "()V");
+    assert(i >= 0);
+
+    bc_invoke_virtual(1, clazz, i);
+
+    stack_frame_end();
+}
+
 int vm_main(int argc, char *argv[], C_STR mainClass) {
     // Init low level memory system first
     if (!mem_init()) {
@@ -122,6 +136,7 @@ int vm_main(int argc, char *argv[], C_STR mainClass) {
     start_main(vmCurrentContext, argc, argv, mainClass);
     if (exception_occurred(vmCurrentContext)) {
         fprintf(stderr, "Unhandled exception");
+        try_print_exception(vmCurrentContext, exception_clear(vmCurrentContext));
         abort();
     }
 
