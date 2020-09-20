@@ -37,6 +37,17 @@ MethodInfo *method_find(JavaClassInfo *clazz, C_CSTR name, C_CSTR desc) {
     return NULL;
 }
 
+MethodInfo *method_vtable_get(JavaClassInfo *clazz, JAVA_INT vtable_index) {
+    VTableItem *vt = &clazz->vtable[vtable_index];
+    JavaClassInfo *i = clazz;
+    if (vt->declaringClass) {
+        i = vt->declaringClass;
+    }
+    MethodInfo *m = i->methods[vt->methodIndex];
+
+    return m;
+}
+
 C_CSTR method_get_return_type(C_CSTR desc) {
     // Find the end of the parameter desc
     while (*desc != ')') {

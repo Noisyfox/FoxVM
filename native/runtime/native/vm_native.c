@@ -296,17 +296,17 @@ static jobject JNICALL GetObjectField(JNIEnv *env, jobject obj, jfieldID fieldID
     get_thread_context();
     native_exit_jni(vmCurrentContext);
 
+    jobject result = NULL;
     JAVA_OBJECT object = native_dereference(vmCurrentContext, obj);
     if (object == JAVA_NULL) {
-        // TODO: throw NullPointerException instead.
-        abort();
+        exception_set_NullPointerException_property(vmCurrentContext, string_get_constant_utf8(field->info.name), JAVA_TRUE);
+        native_check_exception();
     }
 
-    JAVA_OBJECT resultObj = *((JAVA_OBJECT *) ptr_inc(object, field->info.offset));
-    jobject result = native_get_local_ref(vmCurrentContext, resultObj);
+    native_handler_of(result, *((JAVA_OBJECT *) ptr_inc(object, field->info.offset)));
 
+native_end:
     native_enter_jni(vmCurrentContext);
-
     return result;
 }
 
@@ -319,29 +319,39 @@ static jint JNICALL GetIntField(JNIEnv *env, jobject obj, jfieldID fieldID) {
     get_thread_context();
     native_exit_jni(vmCurrentContext);
 
+    jint result = 0;
     JAVA_OBJECT object = native_dereference(vmCurrentContext, obj);
     if (object == JAVA_NULL) {
-        // TODO: throw NullPointerException instead.
-        abort();
+        exception_set_NullPointerException_property(vmCurrentContext, string_get_constant_utf8(field->info.name), JAVA_TRUE);
+        native_check_exception();
     }
 
-    jint result = *((JAVA_INT *) ptr_inc(object, field->info.offset));
+    result = *((JAVA_INT *) ptr_inc(object, field->info.offset));
 
+native_end:
     native_enter_jni(vmCurrentContext);
-
     return result;
 }
 
 static jfieldID JNICALL GetStaticFieldID(JNIEnv *env, jclass cls, const char *name, const char *sig) {
+    get_thread_context();
+
     ResolvedField *field = native_get_field(env, cls, name, sig);
+    native_check_exception();
+
     if (field != NULL) {
         // Make sure it's static field
         if (!field_is_static(&field->info)) {
-            // TODO: Throw NoSuchFieldError instead
             field = NULL;
         }
     }
+    if (field == NULL) {
+        native_exit_jni(vmCurrentContext);
+        exception_set_NoSuchFieldError(vmCurrentContext, name);
+        native_enter_jni(vmCurrentContext);
+    }
 
+native_end:
     return (jfieldID) field;
 }
 
@@ -356,12 +366,18 @@ static void JNICALL SetStaticObjectField(JNIEnv* env, jclass cls, jfieldID field
     native_exit_jni(vmCurrentContext);
 
     JAVA_CLASS clazz = (JAVA_CLASS) native_dereference(vmCurrentContext, cls);
-    assert(clazz != (JAVA_CLASS) JAVA_NULL);
+    native_check_exception();
+    if(clazz == (JAVA_CLASS)JAVA_NULL) {
+        exception_set_NullPointerException_arg(vmCurrentContext, "cls");
+        native_check_exception();
+    }
 
     JAVA_OBJECT obj = native_dereference(vmCurrentContext, value);
+    native_check_exception();
 
     *((JAVA_OBJECT *) ptr_inc(clazz, field->info.offset)) = obj;
 
+native_end:
     native_enter_jni(vmCurrentContext);
 }
 
@@ -372,7 +388,7 @@ static jsize JNICALL GetStringUTFLength(JNIEnv *env, jstring string) {
     jsize result = 0;
     JAVA_OBJECT strObj = native_dereference(vmCurrentContext, string);
     if (strObj == JAVA_NULL) {
-        exception_set_NullPointerException(vmCurrentContext, "string");
+        exception_set_NullPointerException_arg(vmCurrentContext, "string");
     } else {
         result = string_utf8_length_of(vmCurrentContext, strObj);
     }
@@ -389,7 +405,7 @@ static const char* JNICALL GetStringUTFChars(JNIEnv *env, jstring string, jboole
     C_CSTR result = NULL;
     JAVA_OBJECT strObj = native_dereference(vmCurrentContext, string);
     if (strObj == JAVA_NULL) {
-        exception_set_NullPointerException(vmCurrentContext, "string");
+        exception_set_NullPointerException_arg(vmCurrentContext, "string");
     } else {
         result = string_utf8_of(vmCurrentContext, strObj);
         if (isCopy && !exception_occurred(vmCurrentContext)) {
@@ -410,16 +426,17 @@ static jsize JNICALL GetArrayLength(JNIEnv *env, jarray array) {
     get_thread_context();
     native_exit_jni(vmCurrentContext);
 
+    jint length = 0;
     // TODO: check type and null
     JAVA_ARRAY arrayObj = (JAVA_ARRAY) native_dereference(vmCurrentContext, array);
     if (arrayObj == (JAVA_ARRAY) JAVA_NULL) {
-        // TODO: throw NullPointerException instead.
-        abort();
+        exception_set_NullPointerException_arg(vmCurrentContext, "array");
+        native_check_exception();
     }
-    jint length = arrayObj->length;
+    length = arrayObj->length;
 
+native_end:
     native_enter_jni(vmCurrentContext);
-
     return length;
 }
 
@@ -430,8 +447,8 @@ static void JNICALL GetByteArrayRegion(JNIEnv *env, jbyteArray array, jsize star
     // TODO: check type and null
     JAVA_ARRAY arrayObj = (JAVA_ARRAY) native_dereference(vmCurrentContext, array);
     if (arrayObj == (JAVA_ARRAY) JAVA_NULL) {
-        // TODO: throw NullPointerException instead.
-        abort();
+        exception_set_NullPointerException_arg(vmCurrentContext, "array");
+        native_check_exception();
     }
 
     // TODO: check bounds
@@ -439,6 +456,7 @@ static void JNICALL GetByteArrayRegion(JNIEnv *env, jbyteArray array, jsize star
     void *src = array_element_at(arrayObj, VM_TYPE_BYTE, start);
     memcpy(buf, src, len * type_size(VM_TYPE_BYTE));
 
+native_end:
     native_enter_jni(vmCurrentContext);
 }
 

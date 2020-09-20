@@ -56,7 +56,12 @@ JAVA_VOID exception_set_IncompatibleClassChangeError(VM_PARAM_CURRENT_CONTEXT, C
 JAVA_VOID exception_set_UnsatisfiedLinkError(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method, C_CSTR message);
 JAVA_VOID exception_set_AbstractMethodError(VM_PARAM_CURRENT_CONTEXT, MethodInfo *method);
 
-JAVA_VOID exception_set_NullPointerException(VM_PARAM_CURRENT_CONTEXT, C_CSTR variableName);
+JAVA_VOID exception_set_NullPointerException_arg(VM_PARAM_CURRENT_CONTEXT, C_CSTR argName);
+JAVA_VOID exception_set_NullPointerException_property(VM_PARAM_CURRENT_CONTEXT, C_CSTR propertyName, JAVA_BOOLEAN get);
+JAVA_VOID exception_set_NullPointerException_monitor(VM_PARAM_CURRENT_CONTEXT, JAVA_BOOLEAN enter);
+JAVA_VOID exception_set_NullPointerException_invoke(VM_PARAM_CURRENT_CONTEXT, C_CSTR methodName);
+JAVA_VOID exception_set_NullPointerException_arraylen(VM_PARAM_CURRENT_CONTEXT);
+JAVA_VOID exception_set_NullPointerException_array(VM_PARAM_CURRENT_CONTEXT, JAVA_BOOLEAN get);
 JAVA_VOID exception_set_ArrayStoreException(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *arrayType, JavaClassInfo *elementType);
 JAVA_VOID exception_set_NegativeArraySizeException(VM_PARAM_CURRENT_CONTEXT, JAVA_INT length);
 JAVA_VOID exception_set_IllegalArgumentException(VM_PARAM_CURRENT_CONTEXT, C_CSTR message);

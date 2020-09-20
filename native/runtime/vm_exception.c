@@ -147,8 +147,47 @@ JAVA_VOID exception_set_AbstractMethodError(VM_PARAM_CURRENT_CONTEXT, MethodInfo
                        "%s.%s%s", method->declaringClass->thisClass, string_get_constant_utf8(method->name), string_get_constant_utf8(method->descriptor));
 }
 
-JAVA_VOID exception_set_NullPointerException(VM_PARAM_CURRENT_CONTEXT, C_CSTR variableName) {
-    exception_set_newf(vmCurrentContext, g_classInfo_java_lang_NullPointerException, "%s == null", variableName);
+JAVA_VOID exception_set_NullPointerException_arg(VM_PARAM_CURRENT_CONTEXT, C_CSTR argName) {
+    exception_set_newf(vmCurrentContext, g_classInfo_java_lang_NullPointerException, "%s == null", argName);
+}
+
+JAVA_VOID exception_set_NullPointerException_property(VM_PARAM_CURRENT_CONTEXT, C_CSTR propertyName, JAVA_BOOLEAN get) {
+    if (get) {
+        exception_set_newf(vmCurrentContext, g_classInfo_java_lang_NullPointerException,
+                           "Cannot get property '%s' on null object", propertyName);
+    } else {
+        exception_set_newf(vmCurrentContext, g_classInfo_java_lang_NullPointerException,
+                           "Cannot set property '%s' on null object", propertyName);
+    }
+}
+
+JAVA_VOID exception_set_NullPointerException_monitor(VM_PARAM_CURRENT_CONTEXT, JAVA_BOOLEAN enter) {
+    if (enter) {
+        exception_set_new(vmCurrentContext, g_classInfo_java_lang_NullPointerException,
+                          "Cannot acquire lock on null object");
+    } else {
+        exception_set_new(vmCurrentContext, g_classInfo_java_lang_NullPointerException,
+                          "Cannot release lock on null object");
+    }
+}
+
+JAVA_VOID exception_set_NullPointerException_invoke(VM_PARAM_CURRENT_CONTEXT, C_CSTR methodName) {
+    exception_set_newf(vmCurrentContext, g_classInfo_java_lang_NullPointerException, "Cannot invoke method %s() on null object", methodName);
+}
+
+JAVA_VOID exception_set_NullPointerException_arraylen(VM_PARAM_CURRENT_CONTEXT) {
+    exception_set_new(vmCurrentContext, g_classInfo_java_lang_NullPointerException,
+                      "Attempt to get length of null array");
+}
+
+JAVA_VOID exception_set_NullPointerException_array(VM_PARAM_CURRENT_CONTEXT, JAVA_BOOLEAN get) {
+    if (get) {
+        exception_set_new(vmCurrentContext, g_classInfo_java_lang_NullPointerException,
+                          "Attempt to read from null array");
+    } else {
+        exception_set_new(vmCurrentContext, g_classInfo_java_lang_NullPointerException,
+                          "Attempt to write to null array");
+    }
 }
 
 JAVA_VOID exception_set_NegativeArraySizeException(VM_PARAM_CURRENT_CONTEXT, JAVA_INT length) {

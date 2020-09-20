@@ -348,18 +348,18 @@ JAVA_VOID bc_resolve_class(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, Java
 #define bc_invoke_static_a(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_ARRAY   ret = ((JavaMethodRetArray)   fp)(vmCurrentContext); stack_push_object((JAVA_OBJECT)ret);} while(0)
 #define bc_invoke_static_o(class_info, fp) do {bc_invoke_static_prepare(class_info); JAVA_OBJECT  ret = ((JavaMethodRetObject)  fp)(vmCurrentContext); stack_push_object(ret);             } while(0)
 
-void *bc_vtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, uint16_t vtable_index);
-#define bc_invoke_virtual(argument_count,   vtable_index) bc_invoke_special(  bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
-#define bc_invoke_virtual_z(argument_count, vtable_index) bc_invoke_special_z(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
-#define bc_invoke_virtual_c(argument_count, vtable_index) bc_invoke_special_c(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
-#define bc_invoke_virtual_b(argument_count, vtable_index) bc_invoke_special_b(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
-#define bc_invoke_virtual_s(argument_count, vtable_index) bc_invoke_special_s(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
-#define bc_invoke_virtual_i(argument_count, vtable_index) bc_invoke_special_i(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
-#define bc_invoke_virtual_f(argument_count, vtable_index) bc_invoke_special_f(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
-#define bc_invoke_virtual_l(argument_count, vtable_index) bc_invoke_special_l(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
-#define bc_invoke_virtual_d(argument_count, vtable_index) bc_invoke_special_d(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
-#define bc_invoke_virtual_a(argument_count, vtable_index) bc_invoke_special_a(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
-#define bc_invoke_virtual_o(argument_count, vtable_index) bc_invoke_special_o(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
+void *bc_vtable_lookup(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JAVA_INT argument_count, JavaClassInfo* clazz, uint16_t vtable_index);
+#define bc_invoke_virtual(argument_count,   clazz, vtable_index) bc_invoke_special(  bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
+#define bc_invoke_virtual_z(argument_count, clazz, vtable_index) bc_invoke_special_z(bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
+#define bc_invoke_virtual_c(argument_count, clazz, vtable_index) bc_invoke_special_c(bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
+#define bc_invoke_virtual_b(argument_count, clazz, vtable_index) bc_invoke_special_b(bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
+#define bc_invoke_virtual_s(argument_count, clazz, vtable_index) bc_invoke_special_s(bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
+#define bc_invoke_virtual_i(argument_count, clazz, vtable_index) bc_invoke_special_i(bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
+#define bc_invoke_virtual_f(argument_count, clazz, vtable_index) bc_invoke_special_f(bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
+#define bc_invoke_virtual_l(argument_count, clazz, vtable_index) bc_invoke_special_l(bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
+#define bc_invoke_virtual_d(argument_count, clazz, vtable_index) bc_invoke_special_d(bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
+#define bc_invoke_virtual_a(argument_count, clazz, vtable_index) bc_invoke_special_a(bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
+#define bc_invoke_virtual_o(argument_count, clazz, vtable_index) bc_invoke_special_o(bc_vtable_lookup(vmCurrentContext, OP_STACK, argument_count, clazz, vtable_index))
 
 void *bc_ivtable_lookup(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JAVA_INT argument_count, JavaClassInfo* interface_type, uint16_t method_index);
 #define bc_invoke_interface(argument_count,   interface_type, method_index) bc_invoke_special(  bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
@@ -375,38 +375,38 @@ void *bc_ivtable_lookup(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JAVA_IN
 #define bc_invoke_interface_o(argument_count, interface_type, method_index) bc_invoke_special_o(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
 
 // field instructions
-JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *valueOut, BasicType fieldType);
-#define bc_do_putfield(object_type, field_name, field_type)             \
-    JAVA_OBJECT objectRef;                                              \
-    JAVA_##field_type value;                                            \
-    bc_putfield(OP_STACK, &objectRef, &value, VM_TYPE_##field_type);    \
+JAVA_VOID bc_putfield(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JavaClassInfo* clazz, uint16_t field_index, JAVA_OBJECT *objRefOut, void *valueOut, BasicType fieldType);
+#define bc_do_putfield(clazz, field_index, object_type, field_name, field_type)                                 \
+    JAVA_OBJECT objectRef;                                                                                      \
+    JAVA_##field_type value;                                                                                    \
+    bc_putfield(vmCurrentContext, OP_STACK, clazz, field_index, &objectRef, &value, VM_TYPE_##field_type);      \
     ((object_type*)objectRef)->field_name = value
-#define bc_putfield_z(object_type, field_name) do {bc_do_putfield(object_type, field_name, BOOLEAN);} while(0)
-#define bc_putfield_c(object_type, field_name) do {bc_do_putfield(object_type, field_name, CHAR);   } while(0)
-#define bc_putfield_b(object_type, field_name) do {bc_do_putfield(object_type, field_name, BYTE);   } while(0)
-#define bc_putfield_s(object_type, field_name) do {bc_do_putfield(object_type, field_name, SHORT);  } while(0)
-#define bc_putfield_i(object_type, field_name) do {bc_do_putfield(object_type, field_name, INT);    } while(0)
-#define bc_putfield_f(object_type, field_name) do {bc_do_putfield(object_type, field_name, FLOAT);  } while(0)
-#define bc_putfield_l(object_type, field_name) do {bc_do_putfield(object_type, field_name, LONG);   } while(0)
-#define bc_putfield_d(object_type, field_name) do {bc_do_putfield(object_type, field_name, DOUBLE); } while(0)
+#define bc_putfield_z(clazz, field_index, object_type, field_name) do {bc_do_putfield(clazz, field_index, object_type, field_name, BOOLEAN);} while(0)
+#define bc_putfield_c(clazz, field_index, object_type, field_name) do {bc_do_putfield(clazz, field_index, object_type, field_name, CHAR);   } while(0)
+#define bc_putfield_b(clazz, field_index, object_type, field_name) do {bc_do_putfield(clazz, field_index, object_type, field_name, BYTE);   } while(0)
+#define bc_putfield_s(clazz, field_index, object_type, field_name) do {bc_do_putfield(clazz, field_index, object_type, field_name, SHORT);  } while(0)
+#define bc_putfield_i(clazz, field_index, object_type, field_name) do {bc_do_putfield(clazz, field_index, object_type, field_name, INT);    } while(0)
+#define bc_putfield_f(clazz, field_index, object_type, field_name) do {bc_do_putfield(clazz, field_index, object_type, field_name, FLOAT);  } while(0)
+#define bc_putfield_l(clazz, field_index, object_type, field_name) do {bc_do_putfield(clazz, field_index, object_type, field_name, LONG);   } while(0)
+#define bc_putfield_d(clazz, field_index, object_type, field_name) do {bc_do_putfield(clazz, field_index, object_type, field_name, DOUBLE); } while(0)
 // TODO: update card table for cross-gen reference
-#define bc_putfield_a(object_type, field_name) do {bc_do_putfield(object_type, field_name, ARRAY);  } while(0)
-#define bc_putfield_o(object_type, field_name) do {bc_do_putfield(object_type, field_name, OBJECT); } while(0)
+#define bc_putfield_a(clazz, field_index, object_type, field_name) do {bc_do_putfield(clazz, field_index, object_type, field_name, ARRAY);  } while(0)
+#define bc_putfield_o(clazz, field_index, object_type, field_name) do {bc_do_putfield(clazz, field_index, object_type, field_name, OBJECT); } while(0)
 
-JAVA_OBJECT bc_getfield(VMOperandStack *stack);
-#define bc_do_getfield(object_type, field_name, field_type)             \
-    JAVA_OBJECT objectRef = bc_getfield(OP_STACK);                      \
+JAVA_OBJECT bc_getfield(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JavaClassInfo* clazz, uint16_t field_index);
+#define bc_do_getfield(clazz, field_index, object_type, field_name, field_type)                                 \
+    JAVA_OBJECT objectRef = bc_getfield(vmCurrentContext, OP_STACK, clazz, field_index);                        \
     JAVA_##field_type value = ((object_type*)objectRef)->field_name
-#define bc_getfield_z(object_type, field_name) do {bc_do_getfield(object_type, field_name, BOOLEAN); stack_push_int(value);                } while(0)
-#define bc_getfield_c(object_type, field_name) do {bc_do_getfield(object_type, field_name, CHAR);    stack_push_int((JAVA_UCHAR)value);    } while(0)
-#define bc_getfield_b(object_type, field_name) do {bc_do_getfield(object_type, field_name, BYTE);    stack_push_int(value);                } while(0)
-#define bc_getfield_s(object_type, field_name) do {bc_do_getfield(object_type, field_name, SHORT);   stack_push_int(value);                } while(0)
-#define bc_getfield_i(object_type, field_name) do {bc_do_getfield(object_type, field_name, INT);     stack_push_int(value);                } while(0)
-#define bc_getfield_f(object_type, field_name) do {bc_do_getfield(object_type, field_name, FLOAT);   stack_push_float(value);              } while(0)
-#define bc_getfield_l(object_type, field_name) do {bc_do_getfield(object_type, field_name, LONG);    stack_push_long(value);               } while(0)
-#define bc_getfield_d(object_type, field_name) do {bc_do_getfield(object_type, field_name, DOUBLE);  stack_push_double(value);             } while(0)
-#define bc_getfield_a(object_type, field_name) do {bc_do_getfield(object_type, field_name, ARRAY);   stack_push_object((JAVA_OBJECT)value);} while(0)
-#define bc_getfield_o(object_type, field_name) do {bc_do_getfield(object_type, field_name, OBJECT);  stack_push_object(value);             } while(0)
+#define bc_getfield_z(clazz, field_index, object_type, field_name) do {bc_do_getfield(clazz, field_index, object_type, field_name, BOOLEAN); stack_push_int(value);                } while(0)
+#define bc_getfield_c(clazz, field_index, object_type, field_name) do {bc_do_getfield(clazz, field_index, object_type, field_name, CHAR);    stack_push_int((JAVA_UCHAR)value);    } while(0)
+#define bc_getfield_b(clazz, field_index, object_type, field_name) do {bc_do_getfield(clazz, field_index, object_type, field_name, BYTE);    stack_push_int(value);                } while(0)
+#define bc_getfield_s(clazz, field_index, object_type, field_name) do {bc_do_getfield(clazz, field_index, object_type, field_name, SHORT);   stack_push_int(value);                } while(0)
+#define bc_getfield_i(clazz, field_index, object_type, field_name) do {bc_do_getfield(clazz, field_index, object_type, field_name, INT);     stack_push_int(value);                } while(0)
+#define bc_getfield_f(clazz, field_index, object_type, field_name) do {bc_do_getfield(clazz, field_index, object_type, field_name, FLOAT);   stack_push_float(value);              } while(0)
+#define bc_getfield_l(clazz, field_index, object_type, field_name) do {bc_do_getfield(clazz, field_index, object_type, field_name, LONG);    stack_push_long(value);               } while(0)
+#define bc_getfield_d(clazz, field_index, object_type, field_name) do {bc_do_getfield(clazz, field_index, object_type, field_name, DOUBLE);  stack_push_double(value);             } while(0)
+#define bc_getfield_a(clazz, field_index, object_type, field_name) do {bc_do_getfield(clazz, field_index, object_type, field_name, ARRAY);   stack_push_object((JAVA_OBJECT)value);} while(0)
+#define bc_getfield_o(clazz, field_index, object_type, field_name) do {bc_do_getfield(clazz, field_index, object_type, field_name, OBJECT);  stack_push_object(value);             } while(0)
 
 JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, JavaClassInfo *classInfo,
                        JAVA_CLASS *classRefOut, void *valueOut, BasicType fieldType);
@@ -446,13 +446,13 @@ JAVA_VOID bc_putstatic(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, JavaClas
 JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_CSTR desc);
 #define bc_newarray(desc) do {JAVA_ARRAY array = bc_new_array(vmCurrentContext, &STACK_FRAME, desc); stack_push_object((JAVA_OBJECT)array);} while(0)
 
-JAVA_INT bc_array_length(VMOperandStack *stack);
-#define bc_arraylength() do {JAVA_INT len = bc_array_length(OP_STACK); stack_push_int(len);} while(0)
+JAVA_INT bc_array_length(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack);
+#define bc_arraylength() do {JAVA_INT len = bc_array_length(vmCurrentContext, OP_STACK); stack_push_int(len);} while(0)
 
-JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldType);
+JAVA_VOID bc_array_load(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, void *valueOut, BasicType fieldType);
 #define bc_do_array_load(field_type)                        \
     JAVA_##field_type value;                                \
-    bc_array_load(OP_STACK, &value, VM_TYPE_##field_type)
+    bc_array_load(vmCurrentContext, OP_STACK, &value, VM_TYPE_##field_type)
 // For caload the char value is zero-extended to an int value, so here we need a unsigned cast,
 // otherwise it will be sign-extended.
 #define bc_caload() do {bc_do_array_load(CHAR);   stack_push_int((JAVA_UCHAR)value);   } while(0)
@@ -566,8 +566,8 @@ JAVA_VOID bc_cast_a(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, C_CSTR desc
 
 // Called at the beginning of each instance method to check the validity of the objectref
 // and also populate the STACK_FRAME.thisClass
-JAVA_VOID bc_check_objref(JavaStackFrame* frame);
-#define bc_check_objectref()  bc_check_objref(&STACK_FRAME)
+JAVA_VOID bc_check_objref(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame* frame);
+#define bc_check_objectref()  bc_check_objref(vmCurrentContext, &STACK_FRAME)
 
 void *bc_resolve_native(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method);
 

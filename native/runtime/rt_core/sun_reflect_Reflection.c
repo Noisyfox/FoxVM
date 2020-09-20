@@ -23,7 +23,7 @@ JNIEXPORT jint JNICALL Java_sun_reflect_Reflection_getClassAccessFlags(VM_PARAM_
     jint result = 0;
     JAVA_OBJECT classObj = native_dereference(vmCurrentContext, cls);
     if (!classObj) {
-        exception_set_NullPointerException(vmCurrentContext, "c");
+        exception_set_NullPointerException_arg(vmCurrentContext, "cls");
         native_check_exception();
     }
     JAVA_CLASS clazz = class_get_native_class(classObj);

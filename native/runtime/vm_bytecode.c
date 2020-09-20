@@ -379,14 +379,19 @@ JAVA_INT bc_switch_get_index(VMOperandStack *stack) {
     return value->data.i;
 }
 
-JAVA_VOID bc_check_objref(JavaStackFrame *frame) {
+JAVA_VOID bc_check_objref(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame) {
     // objectref is always in the local0
     assert(frame->locals.maxLocals > 0);
     VMStackSlot *objSlot = &frame->locals.slots[0];
     assert(objSlot->type == VM_SLOT_OBJECT);
 
     JAVA_OBJECT obj = objSlot->data.o;
-    assert(obj != JAVA_NULL); // TODO: throw NullPointerException instead
+    if (obj == JAVA_NULL) {
+        // Get current method info
+        MethodInfo *m = frame->currentMethod;
+        exception_set_NullPointerException_invoke(vmCurrentContext, string_get_constant_utf8(m->name));
+        exception_raise(vmCurrentContext);
+    }
 
     frame->baseFrame.thisClass = obj_get_class(obj);
     assert(frame->baseFrame.thisClass != (JAVA_CLASS) JAVA_NULL);
@@ -461,14 +466,20 @@ JAVA_VOID bc_read_stack_top(VMOperandStack *stack, void *valueOut, BasicType req
     value->type = VM_SLOT_INVALID;
 }
 
-JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *valueOut, BasicType fieldType) {
+JAVA_VOID bc_putfield(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JavaClassInfo* clazz, uint16_t field_index, JAVA_OBJECT *objRefOut, void *valueOut, BasicType fieldType) {
     VMStackSlot *value = stack->top - 1;
     VMStackSlot *objectRef = stack->top - 2;
 
     assert(objectRef >= stack->slots);
 
     assert(objectRef->type == VM_SLOT_OBJECT);
-    assert(objectRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    if (objectRef->data.o == JAVA_NULL) {
+        exception_set_NullPointerException_property(vmCurrentContext,
+                                                    string_get_constant_utf8(clazz->fields[field_index].name),
+                                                    JAVA_FALSE);
+        exception_raise(vmCurrentContext);
+    }
 
     *objRefOut = objectRef->data.o;
 
@@ -480,12 +491,17 @@ JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *value
     objectRef->type = VM_SLOT_INVALID;
 }
 
-JAVA_OBJECT bc_getfield(VMOperandStack *stack) {
+JAVA_OBJECT bc_getfield(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JavaClassInfo* clazz, uint16_t field_index) {
     // Pop the top of the stack as a JAVA_OBJECT
     JAVA_OBJECT obj;
     bc_read_stack_top(stack, &obj, VM_TYPE_OBJECT);
 
-    assert(obj != JAVA_NULL); // TODO: throw NullPointerException instead
+    if (obj == JAVA_NULL) {
+        exception_set_NullPointerException_property(vmCurrentContext,
+                                                    string_get_constant_utf8(clazz->fields[field_index].name),
+                                                    JAVA_TRUE);
+        exception_raise(vmCurrentContext);
+    }
 
     return obj;
 }
@@ -532,13 +548,16 @@ JAVA_ARRAY bc_new_array(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_CSTR 
     return array;
 }
 
-JAVA_INT bc_array_length(VMOperandStack *stack) {
+JAVA_INT bc_array_length(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack) {
     VMStackSlot *arrayRef = stack->top - 1;
 
     assert(arrayRef >= stack->slots);
 
     assert(arrayRef->type == VM_SLOT_OBJECT);
-    assert(arrayRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+    if (arrayRef->data.o == JAVA_NULL) {
+        exception_set_NullPointerException_arraylen(vmCurrentContext);
+        exception_raise(vmCurrentContext);
+    }
 
     JAVA_ARRAY array = (JAVA_ARRAY) arrayRef->data.o;
 
@@ -553,14 +572,17 @@ JAVA_INT bc_array_length(VMOperandStack *stack) {
     return length;
 }
 
-JAVA_VOID bc_array_load(VMOperandStack *stack, void *valueOut, BasicType fieldType) {
+JAVA_VOID bc_array_load(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, void *valueOut, BasicType fieldType) {
     VMStackSlot *index = stack->top - 1;
     VMStackSlot *arrayRef = stack->top - 2;
 
     assert(arrayRef >= stack->slots);
 
     assert(arrayRef->type == VM_SLOT_OBJECT);
-    assert(arrayRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+    if (arrayRef->data.o == JAVA_NULL) {
+        exception_set_NullPointerException_array(vmCurrentContext, JAVA_TRUE);
+        exception_raise(vmCurrentContext);
+    }
     assert(index->type == VM_SLOT_INT);
     JAVA_INT i = index->data.i;
     assert(i >= 0); // TODO: throw ArrayIndexOutOfBoundsException instead
@@ -625,7 +647,10 @@ JAVA_VOID bc_array_store(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, BasicT
     assert(arrayRef >= stack->slots);
 
     assert(arrayRef->type == VM_SLOT_OBJECT);
-    assert(arrayRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+    if (arrayRef->data.o == JAVA_NULL) {
+        exception_set_NullPointerException_array(vmCurrentContext, JAVA_FALSE);
+        exception_raise(vmCurrentContext);
+    }
     assert(index->type == VM_SLOT_INT);
     JAVA_INT i = index->data.i;
     assert(i >= 0); // TODO: throw ArrayIndexOutOfBoundsException instead
@@ -710,7 +735,11 @@ JAVA_VOID bc_monitor_enter(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack) {
     assert(objectRef >= stack->slots);
 
     assert(objectRef->type == VM_SLOT_OBJECT);
-    assert(objectRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    if (objectRef->data.o == JAVA_NULL) {
+        exception_set_NullPointerException_monitor(vmCurrentContext, JAVA_TRUE);
+        exception_raise(vmCurrentContext);
+    }
 
     int ret = monitor_enter(vmCurrentContext, objectRef);
 
@@ -730,7 +759,11 @@ JAVA_VOID bc_monitor_exit(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack) {
     assert(objectRef >= stack->slots);
 
     assert(objectRef->type == VM_SLOT_OBJECT);
-    assert(objectRef->data.o != JAVA_NULL); // TODO: throw NullPointerException instead
+
+    if (objectRef->data.o == JAVA_NULL) {
+        exception_set_NullPointerException_monitor(vmCurrentContext, JAVA_FALSE);
+        exception_raise(vmCurrentContext);
+    }
 
     int ret = monitor_exit(vmCurrentContext, objectRef);
 
@@ -758,7 +791,7 @@ JAVA_VOID bc_monitor_exit(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack) {
   *
   * @param argument_count argument count, including the implicitly passed `objectref`
   */
-void *bc_vtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, uint16_t vtable_index) {
+void *bc_vtable_lookup(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JAVA_INT argument_count, JavaClassInfo* clazz, uint16_t vtable_index) {
     assert(argument_count >= 1);
 
     VMStackSlot *objectRef = stack->top - argument_count;
@@ -766,7 +799,11 @@ void *bc_vtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, uint16_t 
     assert(objectRef->type == VM_SLOT_OBJECT);
 
     JAVA_OBJECT object = objectRef->data.o;
-    assert(object != JAVA_NULL); // TODO: throw NullPointerException instead
+    if (object == JAVA_NULL) {
+        MethodInfo *m = method_vtable_get(clazz, vtable_index);
+        exception_set_NullPointerException_invoke(vmCurrentContext, string_get_constant_utf8(m->name));
+        exception_raise(vmCurrentContext);
+    }
 
     JavaClassInfo *info = obj_get_class(object)->info;
     assert(vtable_index < info->vtableCount);
@@ -815,17 +852,15 @@ void *bc_ivtable_lookup(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JAVA_IN
     assert(objectRef->type == VM_SLOT_OBJECT);
 
     JAVA_OBJECT object = objectRef->data.o;
-    assert(object != JAVA_NULL); // TODO: throw NullPointerException instead
+    if (object == JAVA_NULL) {
+        exception_set_NullPointerException_invoke(vmCurrentContext, string_get_constant_utf8(interface_type->methods[method_index]->name));
+        exception_raise(vmCurrentContext);
+    }
 
     JavaClassInfo *info = obj_get_class(object)->info;
     int32_t vtableIndex = bc_ivtable_do_lookup(info, interface_type, method_index);
     if (vtableIndex >= 0) {
-        VTableItem* vt = &info->vtable[vtableIndex];
-        JavaClassInfo *i = info;
-        if(vt->declaringClass) {
-            i = vt->declaringClass;
-        }
-        MethodInfo *m = i->methods[vt->methodIndex];
+        MethodInfo *m = method_vtable_get(info, vtableIndex);
         if(!method_is_public(m)) {
             exception_set_newf(vmCurrentContext, g_classInfo_java_lang_IllegalAccessError, "%s.%s%s",
                                info->thisClass, string_get_constant_utf8(m->name), string_get_constant_utf8(m->descriptor));

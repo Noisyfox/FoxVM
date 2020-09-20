@@ -246,7 +246,7 @@ JAVA_OBJECT string_get_constant(VM_PARAM_CURRENT_CONTEXT, JAVA_INT constant_inde
 
 JAVA_ARRAY string_get_value_array(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT str) {
     if (str == JAVA_NULL) {
-        exception_set_NullPointerException(vmCurrentContext, "str");
+        exception_set_NullPointerException_property(vmCurrentContext, "value", JAVA_TRUE);
         return (JAVA_ARRAY) JAVA_NULL;
     }
 

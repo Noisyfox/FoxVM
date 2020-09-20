@@ -126,7 +126,7 @@ JAVA_CLASS primitive_of_name(C_CSTR name) {
 #define def_unbox(return_type, class_name, suffix)                                                                      \
 return_type primitive_unbox_##suffix(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT o) {                                         \
     if (!o) {                                                                                                           \
-        exception_set_NullPointerException(vmCurrentContext, "o");                                                      \
+        exception_set_NullPointerException_property(vmCurrentContext, "value", JAVA_TRUE);                              \
         return 0;                                                                                                       \
     }                                                                                                                   \
                                                                                                                         \

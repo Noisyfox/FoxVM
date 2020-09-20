@@ -1114,7 +1114,7 @@ class ClassWriter(
                             cWriter.write(
                                 """
                     |    // getfield ${inst.owner}.${inst.name}:${inst.desc}
-                    |    bc_getfield${resolvedField.typeSuffix}(${resolvedField.declaringClass.cObjectName}, ${preResolved.cName});
+                    |    bc_getfield${resolvedField.typeSuffix}(&${resolvedField.declaringClass.cName}, ${preResolved.fieldIndex}, ${resolvedField.declaringClass.cObjectName}, ${preResolved.cName});
                     |""".trimMargin()
                             )
                         }
@@ -1142,7 +1142,7 @@ class ClassWriter(
                             cWriter.write(
                                 """
                     |    // putfield ${inst.owner}.${inst.name}:${inst.desc}
-                    |    bc_putfield${resolvedField.typeSuffix}(${resolvedField.declaringClass.cObjectName}, ${preResolved.cName});
+                    |    bc_putfield${resolvedField.typeSuffix}(&${resolvedField.declaringClass.cName}, ${preResolved.fieldIndex}, ${resolvedField.declaringClass.cObjectName}, ${preResolved.cName});
                     |""".trimMargin()
                             )
                         }
@@ -1217,10 +1217,11 @@ class ClassWriter(
                                 }
 
                                 val targetMethodArgumentCount = lookupMethod.descriptor.argumentTypes.size + 1 // implicitly passed this
+                                cWriter.addDependency(ownerClass)
                                 cWriter.write(
                                     """
                     |    // invokevirtual ${inst.owner}.${inst.name}${inst.desc}
-                    |    bc_invoke_virtual${lookupMethod.invokeSuffix}($targetMethodArgumentCount, $vtableIndex);
+                    |    bc_invoke_virtual${lookupMethod.invokeSuffix}($targetMethodArgumentCount, &${ownerClass.cName}, $vtableIndex);
                     |""".trimMargin()
                                 )
                             }
