@@ -12,6 +12,8 @@
 #include "vm_string.h"
 #include "vm_native.h"
 #include "vm_class.h"
+#include "vm_method.h"
+#include "classloader/vm_boot_classloader.h"
 
 #define RETURNV() exception_raise_if_occurred(vmCurrentContext); return
 #define RETURN(result) exception_raise_if_occurred(vmCurrentContext); return result
@@ -805,7 +807,7 @@ static int32_t bc_ivtable_do_lookup(JavaClassInfo* clazz, JavaClassInfo* interfa
   *
   * @param argument_count argument count, including the implicitly passed `objectref`
   */
-void *bc_ivtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, JavaClassInfo* interface_type, uint16_t method_index) {
+void *bc_ivtable_lookup(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JAVA_INT argument_count, JavaClassInfo* interface_type, uint16_t method_index) {
     assert(argument_count >= 1);
 
     VMStackSlot *objectRef = stack->top - argument_count;
@@ -818,6 +820,17 @@ void *bc_ivtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, JavaClas
     JavaClassInfo *info = obj_get_class(object)->info;
     int32_t vtableIndex = bc_ivtable_do_lookup(info, interface_type, method_index);
     if (vtableIndex >= 0) {
+        VTableItem* vt = &info->vtable[vtableIndex];
+        JavaClassInfo *i = info;
+        if(vt->declaringClass) {
+            i = vt->declaringClass;
+        }
+        MethodInfo *m = i->methods[vt->methodIndex];
+        if(!method_is_public(m)) {
+            exception_set_newf(vmCurrentContext, g_classInfo_java_lang_IllegalAccessError, "%s.%s%s",
+                               info->thisClass, string_get_constant_utf8(m->name), string_get_constant_utf8(m->descriptor));
+            exception_raise(vmCurrentContext);
+        }
         return info->vtable[vtableIndex].code;
     }
 
@@ -827,9 +840,9 @@ void *bc_ivtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, JavaClas
         return im->code;
     }
 
-    // TODO: throw AbstractMethodError instead.
     fprintf(stderr, "bc_ivtable_lookup failed: AbstractMethodError\n");
-    abort();
+    exception_set_AbstractMethodError(vmCurrentContext, im);
+    exception_raise(vmCurrentContext);
 }
 
 JAVA_OBJECT bc_ldc_class_obj(VM_PARAM_CURRENT_CONTEXT, JavaStackFrame *frame, C_CSTR class_name) {

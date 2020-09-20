@@ -142,6 +142,11 @@ JAVA_VOID exception_set_UnsatisfiedLinkError(VM_PARAM_CURRENT_CONTEXT, MethodInf
                        "Unable to find native method %s%s: %s", string_get_constant_utf8(method->method.name), string_get_constant_utf8(method->method.descriptor), message);
 }
 
+JAVA_VOID exception_set_AbstractMethodError(VM_PARAM_CURRENT_CONTEXT, MethodInfo *method) {
+    exception_set_newf(vmCurrentContext, g_classInfo_java_lang_AbstractMethodError,
+                       "%s.%s%s", method->declaringClass->thisClass, string_get_constant_utf8(method->name), string_get_constant_utf8(method->descriptor));
+}
+
 JAVA_VOID exception_set_NullPointerException(VM_PARAM_CURRENT_CONTEXT, C_CSTR variableName) {
     exception_set_newf(vmCurrentContext, g_classInfo_java_lang_NullPointerException, "%s == null", variableName);
 }

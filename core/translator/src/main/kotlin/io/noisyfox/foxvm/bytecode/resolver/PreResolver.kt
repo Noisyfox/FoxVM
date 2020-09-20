@@ -366,6 +366,10 @@ private class PreResolverClassVisitor(
         }
 
         // Resolve ivtable
+        // WARN: this does not comfort jvms8 invokeinterface method lookup procedure because jvms8 allows the method lookup
+        // results in a private method, however here since our ivtable points to vtable which contains virtual method only,
+        // hens our lookup procedure won't return a private method ever.
+        // This issue is likely to be addressed in jvms11, but we ignore this edge case here.
         if (!info.isInterface) {
             val superinterfaces = info.allSuperClasses().map {
                 it.requireClassInfo()
@@ -374,10 +378,12 @@ private class PreResolverClassVisitor(
             }
 
             superinterfaces.forEach { superinterface ->
+                val isNewInterface = info.superClass?.requireClassInfo()?.instanceOf(superinterface)?.not() ?: true
+
                 val methodImpls = mutableListOf<IVTableMethodIndex>()
                 // See if current class declares any method that overrides methods from superinterface
-                info.vtable.withIndex().filter { it.value.declaringClass == info }.forEach { (i, m) ->
-                    val overriddenM = superinterface.methods.withIndex().filter { m overrides it.value }
+                info.vtable.withIndex().filter { isNewInterface || it.value.declaringClass == info }.forEach { (i, m) ->
+                    val overriddenM = superinterface.methods.withIndex().filter { it.value.matches(m.name, m.descriptor.descriptor) }
                     when (overriddenM.size) {
                         0 -> {
                         }
@@ -389,7 +395,7 @@ private class PreResolverClassVisitor(
                                 )
                             )
                         }
-                        else -> throw VerifyError("Method $m overrides multiple methods from interface $superinterface :$overriddenM")
+                        else -> throw VerifyError("Method $m matches multiple methods from interface $superinterface :$overriddenM")
                     }
                 }
 

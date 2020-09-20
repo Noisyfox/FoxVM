@@ -37,7 +37,7 @@ static inline JAVA_OBJECT exception_clear(VM_PARAM_CURRENT_CONTEXT) {
 JAVA_BOOLEAN exception_matches(JAVA_OBJECT ex, int32_t current_sp, int32_t start, int32_t end, JavaClassInfo* type);
 
 JAVA_VOID exception_set(VM_PARAM_CURRENT_CONTEXT, JAVA_OBJECT ex);
-JAVA_VOID exception_raise(VM_PARAM_CURRENT_CONTEXT);
+NORETURN JAVA_VOID exception_raise(VM_PARAM_CURRENT_CONTEXT);
 
 static inline JAVA_VOID exception_raise_if_occurred(VM_PARAM_CURRENT_CONTEXT) {
     if (exception_occurred(vmCurrentContext)) {
@@ -54,6 +54,7 @@ JAVA_VOID exception_set_newf(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *exClass, C
 JAVA_VOID exception_set_NoSuchFieldError(VM_PARAM_CURRENT_CONTEXT, C_CSTR message);
 JAVA_VOID exception_set_IncompatibleClassChangeError(VM_PARAM_CURRENT_CONTEXT, C_CSTR message);
 JAVA_VOID exception_set_UnsatisfiedLinkError(VM_PARAM_CURRENT_CONTEXT, MethodInfoNative *method, C_CSTR message);
+JAVA_VOID exception_set_AbstractMethodError(VM_PARAM_CURRENT_CONTEXT, MethodInfo *method);
 
 JAVA_VOID exception_set_NullPointerException(VM_PARAM_CURRENT_CONTEXT, C_CSTR variableName);
 JAVA_VOID exception_set_ArrayStoreException(VM_PARAM_CURRENT_CONTEXT, JavaClassInfo *arrayType, JavaClassInfo *elementType);

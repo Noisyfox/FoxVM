@@ -11,6 +11,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#if defined(_MSC_VER)
+#define NORETURN __declspec(noreturn)
+#elif defined(__GNUC__) || defined(__clang__)
+#define NORETURN __attribute__((__noreturn__))
+#else
+#error "noreturn not supported"
+#endif
+
 // static_assert for C: https://stackoverflow.com/a/3385694
 #define STATIC_ASSERT(COND, MSG) typedef char static_assertion_##MSG[(!!(COND))*2-1]
 // token pasting madness:

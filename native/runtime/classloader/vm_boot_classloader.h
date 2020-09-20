@@ -39,6 +39,8 @@ cached_class(java_lang_NoSuchMethodError);
 cached_class(java_lang_IncompatibleClassChangeError);
 cached_class(java_lang_UnsatisfiedLinkError);
 cached_class(java_lang_InstantiationError);
+cached_class(java_lang_IllegalAccessError);
+cached_class(java_lang_AbstractMethodError);
 
 // Exceptions
 cached_class(java_lang_Throwable);

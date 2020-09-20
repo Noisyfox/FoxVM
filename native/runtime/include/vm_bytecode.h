@@ -361,18 +361,18 @@ void *bc_vtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, uint16_t 
 #define bc_invoke_virtual_a(argument_count, vtable_index) bc_invoke_special_a(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
 #define bc_invoke_virtual_o(argument_count, vtable_index) bc_invoke_special_o(bc_vtable_lookup(OP_STACK, argument_count, vtable_index))
 
-void *bc_ivtable_lookup(VMOperandStack *stack, JAVA_INT argument_count, JavaClassInfo* interface_type, uint16_t method_index);
-#define bc_invoke_interface(argument_count,   interface_type, method_index) bc_invoke_special(  bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
-#define bc_invoke_interface_z(argument_count, interface_type, method_index) bc_invoke_special_z(bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
-#define bc_invoke_interface_c(argument_count, interface_type, method_index) bc_invoke_special_c(bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
-#define bc_invoke_interface_b(argument_count, interface_type, method_index) bc_invoke_special_b(bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
-#define bc_invoke_interface_s(argument_count, interface_type, method_index) bc_invoke_special_s(bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
-#define bc_invoke_interface_i(argument_count, interface_type, method_index) bc_invoke_special_i(bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
-#define bc_invoke_interface_f(argument_count, interface_type, method_index) bc_invoke_special_f(bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
-#define bc_invoke_interface_l(argument_count, interface_type, method_index) bc_invoke_special_l(bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
-#define bc_invoke_interface_d(argument_count, interface_type, method_index) bc_invoke_special_d(bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
-#define bc_invoke_interface_a(argument_count, interface_type, method_index) bc_invoke_special_a(bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
-#define bc_invoke_interface_o(argument_count, interface_type, method_index) bc_invoke_special_o(bc_ivtable_lookup(OP_STACK, argument_count, interface_type, method_index))
+void *bc_ivtable_lookup(VM_PARAM_CURRENT_CONTEXT, VMOperandStack *stack, JAVA_INT argument_count, JavaClassInfo* interface_type, uint16_t method_index);
+#define bc_invoke_interface(argument_count,   interface_type, method_index) bc_invoke_special(  bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
+#define bc_invoke_interface_z(argument_count, interface_type, method_index) bc_invoke_special_z(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
+#define bc_invoke_interface_c(argument_count, interface_type, method_index) bc_invoke_special_c(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
+#define bc_invoke_interface_b(argument_count, interface_type, method_index) bc_invoke_special_b(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
+#define bc_invoke_interface_s(argument_count, interface_type, method_index) bc_invoke_special_s(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
+#define bc_invoke_interface_i(argument_count, interface_type, method_index) bc_invoke_special_i(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
+#define bc_invoke_interface_f(argument_count, interface_type, method_index) bc_invoke_special_f(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
+#define bc_invoke_interface_l(argument_count, interface_type, method_index) bc_invoke_special_l(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
+#define bc_invoke_interface_d(argument_count, interface_type, method_index) bc_invoke_special_d(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
+#define bc_invoke_interface_a(argument_count, interface_type, method_index) bc_invoke_special_a(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
+#define bc_invoke_interface_o(argument_count, interface_type, method_index) bc_invoke_special_o(bc_ivtable_lookup(vmCurrentContext, OP_STACK, argument_count, interface_type, method_index))
 
 // field instructions
 JAVA_VOID bc_putfield(VMOperandStack *stack, JAVA_OBJECT *objRefOut, void *valueOut, BasicType fieldType);

@@ -58,6 +58,8 @@ cached_class(java_lang_NoSuchMethodError);
 cached_class(java_lang_IncompatibleClassChangeError);
 cached_class(java_lang_UnsatisfiedLinkError);
 cached_class(java_lang_InstantiationError);
+cached_class(java_lang_IllegalAccessError);
+cached_class(java_lang_AbstractMethodError);
 
 // Exceptions
 cached_class(java_lang_Throwable);
@@ -499,6 +501,8 @@ JAVA_BOOLEAN cl_bootstrap_init(VM_PARAM_CURRENT_CONTEXT) {
     cache_class(java_lang_IncompatibleClassChangeError, "java/lang/IncompatibleClassChangeError");
     cache_class(java_lang_UnsatisfiedLinkError, "java/lang/UnsatisfiedLinkError");
     cache_class(java_lang_InstantiationError, "java/lang/InstantiationError");
+    cache_class(java_lang_IllegalAccessError, "java/lang/IllegalAccessError");
+    cache_class(java_lang_AbstractMethodError, "java/lang/AbstractMethodError");
 
     cache_class(java_lang_Throwable, "java/lang/Throwable");
     cache_class(java_lang_RuntimeException, "java/lang/RuntimeException");
